@@ -12,11 +12,11 @@ import (
 	"strings"
 
 	jira "github.com/andygrunwald/go-jira"
-	"github.com/tychoish/grip/level"
-	"github.com/tychoish/grip/message"
 	"github.com/dghubble/oauth1"
 	"github.com/pkg/errors"
 	"github.com/trivago/tgo/tcontainer"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
 // jiraIssueKey is the key in a message.Fields that will hold the ID of the issue created

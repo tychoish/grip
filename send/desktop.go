@@ -1,10 +1,10 @@
 package send
 
 import (
-	"github.com/tychoish/grip/level"
-	"github.com/tychoish/grip/message"
 	"github.com/gen2brain/beeep"
 	"github.com/pkg/errors"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
 type desktopNotify struct {

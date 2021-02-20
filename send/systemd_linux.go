@@ -6,9 +6,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/coreos/go-systemd/journal"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
-	"github.com/coreos/go-systemd/journal"
 )
 
 type systemdJournal struct {

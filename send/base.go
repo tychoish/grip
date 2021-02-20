@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/tychoish/grip/message"
 	"github.com/pkg/errors"
+	"github.com/tychoish/grip/message"
 )
 
 // Base provides most of the functionality of the Sender interface,

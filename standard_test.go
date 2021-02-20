@@ -5,11 +5,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/logging"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
-	"github.com/stretchr/testify/suite"
 )
 
 const testMessage = "hello world"

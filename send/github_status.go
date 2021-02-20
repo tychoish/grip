@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/tychoish/grip/message"
 	"github.com/google/go-github/github"
+	"github.com/tychoish/grip/message"
 )
 
 type githubStatusMessageLogger struct {

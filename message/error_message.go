@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/tychoish/grip/level"
 	"github.com/pkg/errors"
+	"github.com/tychoish/grip/level"
 )
 
 type errorComposerWrap struct {

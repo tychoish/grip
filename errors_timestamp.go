@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tychoish/grip/level"
 	"github.com/pkg/errors"
+	"github.com/tychoish/grip/level"
 )
 
 type errorCauser interface {

@@ -3,9 +3,9 @@ package send
 import (
 	"testing"
 
-	"github.com/tychoish/grip/level"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tychoish/grip/level"
 )
 
 func TestSenderWriter(t *testing.T) {

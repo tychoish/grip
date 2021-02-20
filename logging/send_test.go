@@ -7,10 +7,10 @@ import (
 	"os/exec"
 	"testing"
 
+	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
-	"github.com/stretchr/testify/suite"
 )
 
 type GripInternalSuite struct {

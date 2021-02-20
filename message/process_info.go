@@ -5,9 +5,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/tychoish/grip/level"
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
+	"github.com/tychoish/grip/level"
 )
 
 // ProcessInfo holds the data for per-process statistics (e.g. cpu,

@@ -3,8 +3,8 @@ package message
 import (
 	"testing"
 
-	"github.com/tychoish/grip/level"
 	"github.com/stretchr/testify/assert"
+	"github.com/tychoish/grip/level"
 )
 
 func TestGithubStatus(t *testing.T) {

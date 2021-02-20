@@ -6,11 +6,11 @@ import (
 	"log"
 	"os"
 
-	"github.com/tychoish/grip/level"
-	"github.com/tychoish/grip/message"
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
 	"github.com/pkg/errors"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
 type twitterLogger struct {

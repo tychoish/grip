@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tychoish/grip/message"
 	xmpp "github.com/mattn/go-xmpp"
 	"github.com/pkg/errors"
+	"github.com/tychoish/grip/message"
 )
 
 type xmppLogger struct {

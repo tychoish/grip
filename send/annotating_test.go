@@ -3,10 +3,10 @@ package send
 import (
 	"testing"
 
-	"github.com/tychoish/grip/level"
-	"github.com/tychoish/grip/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
 func TestAnnotatingSender(t *testing.T) {

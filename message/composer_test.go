@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tychoish/grip/level"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tychoish/grip/level"
 )
 
 func TestPopulatedMessageComposerConstructors(t *testing.T) {

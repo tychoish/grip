@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tychoish/grip/level"
-	"github.com/tychoish/grip/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
 type SenderSuite struct {

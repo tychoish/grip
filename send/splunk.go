@@ -6,10 +6,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/tychoish/grip/level"
-	"github.com/tychoish/grip/message"
 	hec "github.com/fuyufjh/splunk-hec-go"
 	"github.com/pkg/errors"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
 const (
