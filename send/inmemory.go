@@ -8,7 +8,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip/message"
 )
 
 const (

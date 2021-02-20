@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip/message"
 )
 
 const (

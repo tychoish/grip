@@ -1,4 +1,4 @@
-module github.com/cdr/grip
+module github.com/tychoish/grip
 
 go 1.14
 

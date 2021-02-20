@@ -1,8 +1,8 @@
 package send
 
 import (
-	"github.com/cdr/grip/level"
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 	"github.com/gen2brain/beeep"
 	"github.com/pkg/errors"
 )

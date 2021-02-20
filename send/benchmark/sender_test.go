@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cdr/grip"
+	"github.com/tychoish/grip"
 )
 
 const maxBenchTime = 1 * time.Minute

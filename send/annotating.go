@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip/message"
 )
 
 type annotatingSender struct {

@@ -1,8 +1,8 @@
 package grip
 
 import (
-	"github.com/cdr/grip/level"
-	"github.com/cdr/grip/send"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/send"
 )
 
 // The base type for all Journaling methods provided by the Grip

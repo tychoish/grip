@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/cdr/grip/level"
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
 	"github.com/pkg/errors"

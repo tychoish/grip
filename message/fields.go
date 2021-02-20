@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cdr/grip/level"
+	"github.com/tychoish/grip/level"
 )
 
 // FieldsMsgName is the name of the default "message" field in the

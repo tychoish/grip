@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cdr/grip/level"
-	"github.com/cdr/grip/message"
-	"github.com/cdr/grip/send"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 const (

@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/cdr/grip/level"
+	"github.com/tychoish/grip/level"
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
 )

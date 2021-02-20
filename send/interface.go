@@ -9,8 +9,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/cdr/grip/level"
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
 // The Sender interface describes how the Journaler type's method in primary

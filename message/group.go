@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cdr/grip/level"
+	"github.com/tychoish/grip/level"
 )
 
 // GroupComposer handles groups of composers as a single message,

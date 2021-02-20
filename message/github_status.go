@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/cdr/grip/level"
+	"github.com/tychoish/grip/level"
 )
 
 // GithubState represents the 4 valid states for the Github State API in
@@ -115,10 +115,10 @@ func (c *githubStatusMessage) String() string {
 		base = fmt.Sprintf("%s/%s@%s ", c.raw.Owner, c.raw.Repo, c.raw.Ref)
 	}
 	if len(c.raw.Description) == 0 {
-		// looks like: evergreen failed (https://evergreen.cdr.com)
+		// looks like: evergreen failed (https://evergreen.tychoish.com)
 		c.str = base + fmt.Sprintf("%s %s (%s)", c.raw.Context, string(c.raw.State), c.raw.URL)
 	} else {
-		// looks like: evergreen failed: 1 task failed (https://evergreen.cdr.com)
+		// looks like: evergreen failed: 1 task failed (https://evergreen.tychoish.com)
 		c.str = base + fmt.Sprintf("%s %s: %s (%s)", c.raw.Context, string(c.raw.State), c.raw.Description, c.raw.URL)
 	}
 

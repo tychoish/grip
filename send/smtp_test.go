@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cdr/grip/level"
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 	"github.com/stretchr/testify/suite"
 )
 

@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/cdr/grip/level"
+	"github.com/tychoish/grip/level"
 	"github.com/pkg/errors"
 )
 

@@ -3,8 +3,8 @@ package send
 import (
 	"sync"
 
-	"github.com/cdr/grip/level"
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
 // InternalSender implements a Sender object that makes it possible to

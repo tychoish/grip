@@ -1,7 +1,7 @@
 package message
 
 import (
-	"github.com/cdr/grip/level"
+	"github.com/tychoish/grip/level"
 )
 
 type jiraComment struct {

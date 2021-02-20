@@ -7,8 +7,8 @@ import (
 	"sync"
 	"unicode"
 
-	"github.com/cdr/grip/level"
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
 // WriterSender wraps another sender and also provides an io.Writer.

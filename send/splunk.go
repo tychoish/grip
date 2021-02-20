@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/cdr/grip/level"
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 	hec "github.com/fuyufjh/splunk-hec-go"
 	"github.com/pkg/errors"
 )

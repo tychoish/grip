@@ -18,10 +18,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cdr/grip"
-	"github.com/cdr/grip/level"
-	"github.com/cdr/grip/logging"
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/logging"
+	"github.com/tychoish/grip/message"
 )
 
 const killOverrideVarName = "__GRIP_EXIT_OVERRIDE"

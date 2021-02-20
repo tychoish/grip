@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cdr/grip/level"
+	"github.com/tychoish/grip/level"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -60,14 +60,14 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		}): fmt.Sprintf("To: someone@example.com; Body: %s", testMsg),
 		NewGithubStatusMessage(level.Error, "tests", GithubStateError, "https://example.com", testMsg): fmt.Sprintf("tests error: %s (https://example.com)", testMsg),
 		NewGithubStatusMessageWithRepo(level.Error, GithubStatus{
-			Owner:       "cdr",
+			Owner:       "tychoish",
 			Repo:        "grip",
 			Ref:         "master",
 			Context:     "tests",
 			State:       GithubStateError,
 			URL:         "https://example.com",
 			Description: testMsg,
-		}): fmt.Sprintf("cdr/grip@master tests error: %s (https://example.com)", testMsg),
+		}): fmt.Sprintf("tychoish/grip@master tests error: %s (https://example.com)", testMsg),
 		NewJIRACommentMessage(level.Error, "ABC-123", testMsg): testMsg,
 		NewSlackMessage(level.Error, "@someone", testMsg, nil): fmt.Sprintf("@someone: %s", testMsg),
 	}

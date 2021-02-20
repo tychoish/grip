@@ -3,7 +3,7 @@ package message
 import (
 	"testing"
 
-	"github.com/cdr/grip/level"
+	"github.com/tychoish/grip/level"
 	"github.com/stretchr/testify/assert"
 )
 

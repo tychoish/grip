@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip/message"
 	xmpp "github.com/mattn/go-xmpp"
 	"github.com/pkg/errors"
 )

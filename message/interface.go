@@ -1,7 +1,7 @@
 package message
 
 import (
-	"github.com/cdr/grip/level"
+	"github.com/tychoish/grip/level"
 )
 
 // Composer defines an interface with a "String()" method that

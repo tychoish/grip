@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip/message"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 )

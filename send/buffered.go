@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cdr/grip/message"
+	"github.com/tychoish/grip/message"
 )
 
 const minInterval = 5 * time.Second
