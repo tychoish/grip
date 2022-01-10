@@ -2,7 +2,7 @@
 name := grip
 buildDir := build
 packages := recovery logging message send $(name)
-orgPath := github.com/cdr
+orgPath := github.com/tychoish
 projectPath := $(orgPath)/$(name)
 # end project configuration
 
