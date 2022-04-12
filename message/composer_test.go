@@ -1,13 +1,13 @@
 package message
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
 	"strings"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tychoish/grip/level"
@@ -447,7 +447,7 @@ func TestErrors(t *testing.T) {
 				assert.Equal(t, cmp.(error).Error(), cmp.String())
 			})
 			t.Run("Causer", func(t *testing.T) {
-				cause := errors.Cause(cmp.(error))
+				cause := unwrapCause(cmp.(error))
 				assert.NotEqual(t, cause, cmp)
 			})
 			t.Run("ExtendedFormat", func(t *testing.T) {

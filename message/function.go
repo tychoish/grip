@@ -33,10 +33,10 @@
 package message
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/tychoish/grip/level"
 )
 
@@ -336,7 +336,7 @@ func (ep *errorProducerMessage) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v\n", errors.Cause(ep))
+			fmt.Fprintf(s, "%+v\n", unwrapCause(ep))
 			_, _ = io.WriteString(s, ep.String())
 			return
 		}
@@ -381,7 +381,7 @@ func (ecs errorComposerShim) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v\n", errors.Cause(ecs))
+			fmt.Fprintf(s, "%+v\n", unwrapCause(ecs))
 			_, _ = io.WriteString(s, ecs.String())
 			return
 		}

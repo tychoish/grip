@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/tychoish/grip/level"
 )
 
@@ -73,7 +72,7 @@ func (m *errorComposerWrap) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v\n", errors.Cause(m.err))
+			fmt.Fprintf(s, "%+v\n", unwrapCause(m.err))
 			_, _ = io.WriteString(s, m.String())
 			return
 		}

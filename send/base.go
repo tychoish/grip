@@ -2,10 +2,10 @@ package send
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/tychoish/grip/message"
 )
 
@@ -61,7 +61,7 @@ func (b *Base) Close() error {
 
 	if b.closer != nil {
 		if err := b.closer(); err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 	}
 	b.closed = true

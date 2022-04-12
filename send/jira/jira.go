@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -13,8 +14,6 @@ import (
 
 	jira "github.com/andygrunwald/go-jira"
 	"github.com/dghubble/oauth1"
-	"github.com/pkg/errors"
-	"github.com/trivago/tgo/tcontainer"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -164,11 +163,7 @@ func getFields(m message.Composer) *jira.IssueFields {
 			Description: msg.Description,
 		}
 		if len(msg.Fields) != 0 {
-			unknownsMap := tcontainer.NewMarshalMap()
-			for key, value := range msg.Fields {
-				unknownsMap[key] = value
-			}
-			issueFields.Unknowns = unknownsMap
+			issueFields.Unknowns = msg.Fields
 		}
 		if msg.Reporter != "" {
 			issueFields.Reporter = &jira.User{Name: msg.Reporter}
@@ -346,11 +341,11 @@ func Oauth1Client(ctx context.Context, credentials JiraOauthCredentials) (*http.
 		return nil, errors.New("unable to decode jira private key")
 	}
 	if !(keyDERBlock.Type == "PRIVATE KEY" || strings.HasSuffix(keyDERBlock.Type, " PRIVATE KEY")) {
-		return nil, errors.Errorf("malformed key block type: %s", keyDERBlock.Type)
+		return nil, fmt.Errorf("malformed key block type: %s", keyDERBlock.Type)
 	}
 	privateKey, err := x509.ParsePKCS1PrivateKey(keyDERBlock.Bytes)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse jira private key")
+		return nil, fmt.Errorf("unable to parse jira private key: %w", err)
 	}
 	oauthConfig := oauth1.Config{
 		ConsumerKey: credentials.ConsumerKey,

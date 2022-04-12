@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	xmpp "github.com/mattn/go-xmpp"
-	"github.com/pkg/errors"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -193,5 +192,5 @@ func (c *xmppClientImpl) Create(info XMPPConnectionInfo) error {
 		return nil
 	}
 
-	return errors.Errorf("problem establishing connection to xmpp server: %s", strings.Join(append(errs, err.Error()), ";"))
+	return fmt.Errorf("problem establishing connection to xmpp server: %s", strings.Join(append(errs, err.Error()), ";"))
 }

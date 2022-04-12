@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/tychoish/grip/level"
 )
 
@@ -67,14 +66,34 @@ func (e *errorMessage) Raw() interface{} {
 	return e
 }
 
+func unwrapCause(err error) error {
+	// stolen from pkg/errors
+	type causer interface {
+		Cause() error
+	}
+
+	for err != nil {
+		cause, ok := err.(causer)
+		if !ok {
+			break
+		}
+		err = cause.Cause()
+	}
+	return err
+}
+
 func (e *errorMessage) Error() string { return e.String() }
 func (e *errorMessage) Cause() error  { return e.err }
 func (e *errorMessage) Unwrap() error { return e.err }
 func (e *errorMessage) Format(s fmt.State, verb rune) {
+	if e.err == nil {
+		return
+	}
+
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v\n", errors.Cause(e.err))
+			fmt.Fprintf(s, "%+v\n", unwrapCause(e.err))
 			_, _ = io.WriteString(s, e.String())
 			return
 		}

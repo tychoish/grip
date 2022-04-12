@@ -8,7 +8,6 @@ import (
 
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
-	"github.com/pkg/errors"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -55,7 +54,7 @@ func New(ctx context.Context, opts *TwitterOptions, l send.LevelInfo) (send.Send
 	}
 
 	if err := s.SetLevel(l); err != nil {
-		return nil, errors.Wrap(err, "invalid level specification")
+		return nil, fmt.Errorf("invalid level specification: %w", err)
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
@@ -70,7 +69,7 @@ func New(ctx context.Context, opts *TwitterOptions, l send.LevelInfo) (send.Send
 	s.SetName(opts.Name)
 
 	if err := s.twitter.Verify(); err != nil {
-		return nil, errors.Wrap(err, "problem connecting to twitter")
+		return nil, fmt.Errorf("problem connecting to twitter: %w", err)
 	}
 
 	return s, nil
@@ -99,10 +98,10 @@ func newTwitterClient(ctx context.Context, opts *TwitterOptions) twitterClient {
 
 func (tc *twitterClientImpl) Verify() error {
 	_, _, err := tc.twitter.Accounts.VerifyCredentials(&twitter.AccountVerifyParams{})
-	return errors.Wrap(err, "could not verify account")
+	return fmt.Errorf("could not verify account: %w", err)
 }
 
 func (tc *twitterClientImpl) Send(in string) error {
 	_, _, err := tc.twitter.Statuses.Update(in, nil)
-	return errors.WithStack(err)
+	return err
 }

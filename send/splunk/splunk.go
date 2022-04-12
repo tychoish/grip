@@ -2,12 +2,12 @@ package send
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
 
 	hec "github.com/fuyufjh/splunk-hec-go"
-	"github.com/pkg/errors"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -56,10 +56,10 @@ func (info ConnectionInfo) Populated() bool {
 
 func (info ConnectionInfo) validateFromEnv() error {
 	if info.ServerURL == "" {
-		return errors.Errorf("environment variable %s not defined, cannot create splunk client", splunkServerURL)
+		return fmt.Errorf("environment variable %s not defined, cannot create splunk client", splunkServerURL)
 	}
 	if info.Token == "" {
-		return errors.Errorf("environment variable %s not defined, cannot create splunk client", splunkClientToken)
+		return fmt.Errorf("environment variable %s not defined, cannot create splunk client", splunkClientToken)
 	}
 	return nil
 }
@@ -110,11 +110,11 @@ func New(name string, info ConnectionInfo, l send.LevelInfo) (send.Sender, error
 
 	s, err := buildSplunkLogger(name, client, info, l)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	if err := s.client.Create(client, info); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	return s, nil
@@ -126,11 +126,11 @@ func New(name string, info ConnectionInfo, l send.LevelInfo) (send.Sender, error
 func NewWithClient(name string, info ConnectionInfo, l send.LevelInfo, client *http.Client) (send.Sender, error) {
 	s, err := buildSplunkLogger(name, client, info, l)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	if err := s.client.Create(client, info); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	return s, nil
@@ -145,12 +145,12 @@ func buildSplunkLogger(name string, client *http.Client, info ConnectionInfo, l 
 
 	hostname, err := os.Hostname()
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	s.hostname = hostname
 
 	if err := s.SetLevel(l); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	return s, nil
 }
@@ -164,7 +164,7 @@ func buildSplunkLogger(name string, client *http.Client, info ConnectionInfo, l 
 func Make(name string) (send.Sender, error) {
 	info := GetConnectionInfo()
 	if err := info.validateFromEnv(); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	return New(name, info, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
@@ -175,7 +175,7 @@ func Make(name string) (send.Sender, error) {
 func MakeWithClient(name string, client *http.Client) (send.Sender, error) {
 	info := GetConnectionInfo()
 	if err := info.validateFromEnv(); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	return NewWithClient(name, info, send.LevelInfo{Default: level.Trace, Threshold: level.Trace}, client)
