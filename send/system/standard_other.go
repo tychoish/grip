@@ -1,6 +1,6 @@
 // +build !linux
 
-package send
+package system
 
 // MakeDefaultSystem returns a native log sender on all platforms
 // other than linux.

@@ -1,4 +1,4 @@
-package send
+package system
 
 import (
 	"errors"
@@ -9,44 +9,50 @@ import (
 	"github.com/coreos/go-systemd/journal"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 type systemdJournal struct {
 	options map[string]string
-	*Base
+	*send.Base
 }
 
-// NewSystemdLogger creates a Sender object that writes log messages
+// NewSystemd creates a Sender object that writes log messages
 // to the system's systemd journald logging facility. If there's an
 // error with the sending to the journald, messages fallback to
 // writing to standard output.
-func NewSystemdLogger(name string, l LevelInfo) (Sender, error) {
-	s, err := MakeSystemdLogger()
+func NewSystemd(name string, l send.LevelInfo) (send.Sender, error) {
+	s, err := MakeSystemd()
 	if err != nil {
 		return nil, err
 	}
+	if err := s.SetLevel(l); err != nil {
+		return nil, err
+	}
 
-	return setup(s, name, l)
+	s.SetName(name)
+
+	return s, nil
 }
 
-// MakeSystemdLogger constructs an unconfigured systemd journald
+// MakeSystemd constructs an unconfigured systemd journald
 // logger. Pass to Journaler.SetSender or call SetName before using.
-func MakeSystemdLogger() (Sender, error) {
+func MakeSystemd() (send.Sender, error) {
 	if !journal.Enabled() {
 		return nil, errors.New("systemd journal logging is not available on this platform")
 	}
 
 	s := &systemdJournal{
 		options: make(map[string]string),
-		Base:    NewBase(""),
+		Base:    send.NewBase(""),
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	_ = s.SetErrorHandler(ErrorHandlerFromLogger(fallback))
+	_ = s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 
-	s.reset = func() {
+	s.SetResetHook(func() {
 		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
-	}
+	})
 
 	return s, nil
 }
@@ -58,15 +64,15 @@ func (s *systemdJournal) Send(m message.Composer) {
 		}
 	}()
 
-	if s.Level().ShouldLog(m) {
-		err := journal.Send(m.String(), s.level.convertPrioritySystemd(m.Priority()), s.options)
+	if level := s.Level(); level.ShouldLog(m) {
+		err := journal.Send(m.String(), convertPrioritySystemd(level, m.Priority()), s.options)
 		if err != nil {
 			s.ErrorHandler()(err, m)
 		}
 	}
 }
 
-func (l LevelInfo) convertPrioritySystemd(p level.Priority) journal.Priority {
+func convertPrioritySystemd(l send.LevelInfo, p level.Priority) journal.Priority {
 	switch p {
 	case level.Emergency:
 		return journal.PriEmerg
@@ -85,6 +91,6 @@ func (l LevelInfo) convertPrioritySystemd(p level.Priority) journal.Priority {
 	case level.Debug, level.Trace:
 		return journal.PriDebug
 	default:
-		return l.convertPrioritySystemd(l.Default)
+		return convertPrioritySystemd(l, l.Default)
 	}
 }

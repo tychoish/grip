@@ -1,4 +1,4 @@
-package send
+package github
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-github/github"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 type githubCommentLogger struct {
@@ -15,18 +16,18 @@ type githubCommentLogger struct {
 	opts  *GithubOptions
 	gh    githubClient
 
-	*Base
+	*send.Base
 }
 
-// NewGithubCommentLogger creates a new Sender implementation that
+// NewCommentLogger creates a new Sender implementation that
 // adds a comment to a github issue (or pull request) for every log
 // message sent.
 //
 // Specify the credentials to use the GitHub via the GithubOptions
 // structure, and the issue number as an argument to the constructor.
-func NewGithubCommentLogger(name string, issueID int, opts *GithubOptions) (Sender, error) {
+func NewCommentLogger(name string, issueID int, opts *GithubOptions) (send.Sender, error) {
 	s := &githubCommentLogger{
-		Base:  NewBase(name),
+		Base:  send.NewBase(name),
 		opts:  opts,
 		issue: issueID,
 		gh:    &githubClientImpl{},
@@ -37,25 +38,24 @@ func NewGithubCommentLogger(name string, issueID int, opts *GithubOptions) (Send
 	s.gh.Init(ctx, opts.Token)
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := s.SetErrorHandler(ErrorHandlerFromLogger(fallback)); err != nil {
+	if err := s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
 		return nil, err
 	}
 
-	if err := s.SetFormatter(MakeDefaultFormatter()); err != nil {
+	if err := s.SetFormatter(send.MakeDefaultFormatter()); err != nil {
 		return nil, err
 	}
 
-	s.reset = func() {
-		fallback.SetPrefix(fmt.Sprintf("[%s] [%s/%s#%d] ",
-			s.Name(), opts.Account, opts.Repo, issueID))
-	}
+	s.SetResetHook(func() {
+		fallback.SetPrefix(fmt.Sprintf("[%s] [%s/%s#%d] ", s.Name(), opts.Account, opts.Repo, issueID))
+	})
 
 	return s, nil
 }
 
 func (s *githubCommentLogger) Send(m message.Composer) {
 	if s.Level().ShouldLog(m) {
-		text, err := s.formatter(m)
+		text, err := s.Formatter()(m)
 		if err != nil {
 			s.ErrorHandler()(err, m)
 			return

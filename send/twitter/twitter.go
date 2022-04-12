@@ -11,11 +11,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 type twitterLogger struct {
 	twitter twitterClient
-	*Base
+	*send.Base
 }
 
 // TwitterOptions describes the credentials required to connect to the
@@ -35,22 +36,22 @@ func (opts *TwitterOptions) resolve(ctx context.Context) *twitter.Client {
 		Client(ctx, oauth1.NewToken(opts.AccessToken, opts.AccessSecret)))
 }
 
-// MakeTwitterLogger constructs a default sender implementation that
+// Make constructs a default sender implementation that
 // posts messages to a twitter account. The implementation does not
 // rate limit outgoing messages, which should be the responsibility of
 // the caller.
-func MakeTwitterLogger(ctx context.Context, opts *TwitterOptions) (Sender, error) {
-	return NewTwitterLogger(ctx, opts, LevelInfo{level.Trace, level.Trace})
+func Make(ctx context.Context, opts *TwitterOptions) (send.Sender, error) {
+	return New(ctx, opts, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
 }
 
-// NewTwitterLogger constructs a sender implementation that posts
+// New constructs a sender implementation that posts
 // messages to a twitter account, with configurable level
 // information. The implementation does not rate limit outgoing
 // messages, which should be the responsibility of the caller.
-func NewTwitterLogger(ctx context.Context, opts *TwitterOptions, l LevelInfo) (Sender, error) {
+func New(ctx context.Context, opts *TwitterOptions, l send.LevelInfo) (send.Sender, error) {
 	s := &twitterLogger{
 		twitter: newTwitterClient(ctx, opts),
-		Base:    NewBase(opts.Name),
+		Base:    send.NewBase(opts.Name),
 	}
 
 	if err := s.SetLevel(l); err != nil {
@@ -58,13 +59,13 @@ func NewTwitterLogger(ctx context.Context, opts *TwitterOptions, l LevelInfo) (S
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := s.SetErrorHandler(ErrorHandlerFromLogger(fallback)); err != nil {
+	if err := s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
 		return nil, err
 	}
 
-	s.reset = func() {
+	s.SetResetHook(func() {
 		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
-	}
+	})
 
 	s.SetName(opts.Name)
 

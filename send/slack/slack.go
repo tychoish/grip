@@ -1,4 +1,4 @@
-package send
+package slack
 
 import (
 	"errors"
@@ -11,6 +11,7 @@ import (
 	"github.com/bluele/slack"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 const (
@@ -19,19 +20,19 @@ const (
 
 type slackJournal struct {
 	opts *SlackOptions
-	*Base
+	*send.Base
 }
 
-// NewSlackLogger constructs a Sender that posts messages to a slack,
+// New constructs a Sender that posts messages to a slack,
 // given a slack API token. Configure the slack sender using a SlackOptions struct.
-func NewSlackLogger(opts *SlackOptions, token string, l LevelInfo) (Sender, error) {
+func New(opts *SlackOptions, token string, l send.LevelInfo) (send.Sender, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, err
 	}
 
 	s := &slackJournal{
 		opts: opts,
-		Base: NewBase(opts.Name),
+		Base: send.NewBase(opts.Name),
 	}
 
 	s.opts.client.Create(token)
@@ -45,13 +46,11 @@ func NewSlackLogger(opts *SlackOptions, token string, l LevelInfo) (Sender, erro
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := s.SetErrorHandler(ErrorHandlerFromLogger(fallback)); err != nil {
+	if err := s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
 		return nil, err
 	}
 
-	s.reset = func() {
-		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
-	}
+	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name())) })
 
 	s.SetName(opts.Name)
 
@@ -61,21 +60,18 @@ func NewSlackLogger(opts *SlackOptions, token string, l LevelInfo) (Sender, erro
 // MakeSlackLogger is equivalent to NewSlackLogger, but constructs a
 // Sender reading the slack token from the environment variable
 // "GRIP_SLACK_CLIENT_TOKEN".
-func MakeSlackLogger(opts *SlackOptions) (Sender, error) {
+func Make(opts *SlackOptions) (send.Sender, error) {
 	token := os.Getenv(slackClientToken)
 	if token == "" {
 		return nil, fmt.Errorf("environment variable %s not defined, cannot create slack client",
 			slackClientToken)
 	}
 
-	return NewSlackLogger(opts, token, LevelInfo{level.Trace, level.Trace})
+	return New(opts, token, send.LevelInfo{level.Trace, level.Trace})
 }
 
 func (s *slackJournal) Send(m message.Composer) {
 	if s.Level().ShouldLog(m) {
-		s.Base.mutex.RLock()
-		defer s.Base.mutex.RUnlock()
-
 		var msg string
 		var params *slack.ChatPostMessageOpt
 		channel := s.opts.Channel

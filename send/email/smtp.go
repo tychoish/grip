@@ -1,4 +1,4 @@
-package send
+package email
 
 import (
 	"bytes"
@@ -15,19 +15,20 @@ import (
 	"sync"
 
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 type smtpLogger struct {
 	opts *SMTPOptions
-	*Base
+	*send.Base
 }
 
 // NewSMTPLogger constructs a Sender implementation that delivers mail
 // for every loggable message. The configuration of the outgoing SMTP
 // server, and the formatting of the log message is handled by the
 // SMTPOptions structure, which you must use to configure this sender.
-func NewSMTPLogger(opts *SMTPOptions, l LevelInfo) (Sender, error) {
-	s, err := MakeSMTPLogger(opts)
+func New(opts *SMTPOptions, l send.LevelInfo) (send.Sender, error) {
+	s, err := Make(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -44,24 +45,22 @@ func NewSMTPLogger(opts *SMTPOptions, l LevelInfo) (Sender, error) {
 // The configuration of the outgoing SMTP server, and the formatting of the
 // log message is handled by the SMTPOptions structure, which you must use
 // to configure this sender.
-func MakeSMTPLogger(opts *SMTPOptions) (Sender, error) {
+func Make(opts *SMTPOptions) (send.Sender, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, err
 	}
 
 	s := &smtpLogger{
-		Base: NewBase(opts.Name),
+		Base: send.NewBase(opts.Name),
 		opts: opts,
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := s.SetErrorHandler(ErrorHandlerFromLogger(fallback)); err != nil {
+	if err := s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
 		return nil, err
 	}
 
-	s.reset = func() {
-		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
-	}
+	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name())) })
 
 	s.SetName(opts.Name)
 

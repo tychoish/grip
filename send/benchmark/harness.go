@@ -1,7 +1,6 @@
 package send
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -53,7 +52,6 @@ func senderCases() map[string]benchCase {
 		"FileLogger":         fileLoggerCase,
 		"InMemorySender":     inMemorySenderCase,
 		"JSONFileLoggerCase": jsonFileLoggerCase,
-		"StreamLogger":       streamLoggerCase,
 	}
 }
 
@@ -147,15 +145,6 @@ func jsonFileLoggerCase(ctx context.Context, tm TimerManager, iters int, size in
 	}
 	defer os.Remove(file.Name())
 	s, err := send.NewJSONFileLogger("json", file.Name(), defaultLevelInfo())
-	if err != nil {
-		return err
-	}
-	msgs := makeMessages(numMsgs, size, defaultLevelInfo().Default)
-	return sendMessages(ctx, tm, iters, s, msgs)
-}
-
-func streamLoggerCase(ctx context.Context, tm TimerManager, iters int, size int, numMsgs int) error {
-	s, err := send.NewStreamLogger("stream", &bytes.Buffer{}, defaultLevelInfo())
 	if err != nil {
 		return err
 	}

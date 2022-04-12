@@ -17,56 +17,57 @@ import (
 	"github.com/trivago/tgo/tcontainer"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 // jiraIssueKey is the key in a message.Fields that will hold the ID of the issue created
 const jiraIssueKey = "jira-key"
 
 type jiraJournal struct {
-	opts *JiraOptions
-	*Base
+	opts *Options
+	*send.Base
 }
 
-// JiraOptions include configurations for the JIRA client
-type JiraOptions struct {
+// Options include configurations for the JIRA client
+type Options struct {
 	Name          string // Name of the journaler
 	BaseURL       string // URL of the JIRA instance
-	BasicAuthOpts JiraBasicAuth
-	Oauth1Opts    JiraOauth1
+	BasicAuthOpts BasicAuth
+	Oauth1Opts    Oauth1
 	HTTPClient    *http.Client
 	client        jiraClient
 }
 
-type JiraBasicAuth struct {
+type BasicAuth struct {
 	UseBasicAuth bool
 	Username     string
 	Password     string
 }
 
-type JiraOauth1 struct {
+type Oauth1 struct {
 	PrivateKey  []byte
 	AccessToken string
 	TokenSecret string
 	ConsumerKey string
 }
 
-// MakeJiraLogger is the same as NewJiraLogger but uses a warning
+// Make is the same as NewJiraLogger but uses a warning
 // level of Trace
-func MakeJiraLogger(ctx context.Context, opts *JiraOptions) (Sender, error) {
-	return NewJiraLogger(ctx, opts, LevelInfo{level.Trace, level.Trace})
+func Make(ctx context.Context, opts *Options) (send.Sender, error) {
+	return New(ctx, opts, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
 }
 
-// NewJiraLogger constructs a Sender that creates issues to jira, given
+// New constructs a Sender that creates issues to jira, given
 // options defined in a JiraOptions struct. ctx is used as the request context
 // in the OAuth HTTP client
-func NewJiraLogger(ctx context.Context, opts *JiraOptions, l LevelInfo) (Sender, error) {
+func New(ctx context.Context, opts *Options, l send.LevelInfo) (send.Sender, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, err
 	}
 
 	j := &jiraJournal{
 		opts: opts,
-		Base: NewBase(opts.Name),
+		Base: send.NewBase(opts.Name),
 	}
 
 	if err := j.opts.client.CreateClient(opts.HTTPClient, opts.BaseURL); err != nil {
@@ -91,14 +92,11 @@ func NewJiraLogger(ctx context.Context, opts *JiraOptions, l LevelInfo) (Sender,
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := j.SetErrorHandler(ErrorHandlerFromLogger(fallback)); err != nil {
+	if err := j.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
 		return nil, err
 	}
 
-	j.reset = func() {
-		fallback.SetPrefix(fmt.Sprintf("[%s] ", j.Name()))
-	}
-
+	j.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", j.Name())) })
 	j.SetName(opts.Name)
 
 	return j, nil
@@ -126,7 +124,7 @@ func (j *jiraJournal) Send(m message.Composer) {
 
 // Validate inspects the contents of JiraOptions struct and returns an error in case of
 // missing any required fields.
-func (o *JiraOptions) Validate() error {
+func (o *Options) Validate() error {
 	if o == nil {
 		return errors.New("jira options cannot be nil")
 	}

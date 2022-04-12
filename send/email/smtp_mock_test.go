@@ -1,4 +1,4 @@
-package send
+package email
 
 import (
 	"bytes"

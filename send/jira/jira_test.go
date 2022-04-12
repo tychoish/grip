@@ -9,10 +9,11 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 type JiraSuite struct {
-	opts *JiraOptions
+	opts *Options
 	suite.Suite
 }
 
@@ -23,10 +24,10 @@ func TestJiraSuite(t *testing.T) {
 func (j *JiraSuite) SetupSuite() {}
 
 func (j *JiraSuite) SetupTest() {
-	j.opts = &JiraOptions{
+	j.opts = &Options{
 		Name:    "bot",
 		BaseURL: "url",
-		BasicAuthOpts: JiraBasicAuth{
+		BasicAuthOpts: BasicAuth{
 			Username: "username",
 			Password: "password",
 		},
@@ -35,14 +36,14 @@ func (j *JiraSuite) SetupTest() {
 }
 
 func (j *JiraSuite) TestMockSenderWithNewConstructor() {
-	sender, err := NewJiraLogger(context.Background(), j.opts, LevelInfo{level.Trace, level.Info})
+	sender, err := New(context.Background(), j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.NotNil(sender)
 	j.NoError(err)
 }
 
 func (j *JiraSuite) TestConstructorMustCreate() {
 	j.opts.client = &jiraClientMock{failCreate: true}
-	sender, err := NewJiraLogger(context.Background(), j.opts, LevelInfo{level.Trace, level.Info})
+	sender, err := New(context.Background(), j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 
 	j.Nil(sender)
 	j.Error(err)
@@ -50,39 +51,39 @@ func (j *JiraSuite) TestConstructorMustCreate() {
 
 func (j *JiraSuite) TestConstructorMustPassAuthTest() {
 	j.opts.client = &jiraClientMock{failAuth: true}
-	sender, err := NewJiraLogger(context.Background(), j.opts, LevelInfo{level.Trace, level.Info})
+	sender, err := New(context.Background(), j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 
 	j.Nil(sender)
 	j.Error(err)
 }
 
 func (j *JiraSuite) TestConstructorErrorsWithInvalidConfigs() {
-	sender, err := NewJiraLogger(context.Background(), nil, LevelInfo{level.Trace, level.Info})
+	sender, err := New(context.Background(), nil, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 
 	j.Nil(sender)
 	j.Error(err)
 
-	sender, err = NewJiraLogger(context.Background(), &JiraOptions{}, LevelInfo{level.Trace, level.Info})
+	sender, err = New(context.Background(), &Options{}, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.Nil(sender)
 	j.Error(err)
 
-	opts := &JiraOptions{
-		BasicAuthOpts: JiraBasicAuth{
+	opts := &Options{
+		BasicAuthOpts: BasicAuth{
 			Username: "foo",
 			Password: "bar",
 		},
-		Oauth1Opts: JiraOauth1{
+		Oauth1Opts: Oauth1{
 			AccessToken: "12345",
 		},
 	}
 
-	sender, err = NewJiraLogger(context.Background(), opts, LevelInfo{level.Trace, level.Info})
+	sender, err = New(context.Background(), opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.Nil(sender)
 	j.EqualError(err, "must specify exactly 1 method of authentication")
 }
 
 func (j *JiraSuite) TestSendMethod() {
-	sender, err := NewJiraLogger(context.Background(), j.opts, LevelInfo{level.Trace, level.Info})
+	sender, err := New(context.Background(), j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.NotNil(sender)
 	j.NoError(err)
 
@@ -104,7 +105,7 @@ func (j *JiraSuite) TestSendMethod() {
 }
 
 func (j *JiraSuite) TestSendMethodWithError() {
-	sender, err := NewJiraLogger(context.Background(), j.opts, LevelInfo{level.Trace, level.Info})
+	sender, err := New(context.Background(), j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.NotNil(sender)
 	j.NoError(err)
 
@@ -184,7 +185,7 @@ func (j *JiraSuite) TestGetFieldsWithFields() {
 }
 
 func (j *JiraSuite) TestTruncate() {
-	sender, err := NewJiraLogger(context.Background(), j.opts, LevelInfo{level.Trace, level.Info})
+	sender, err := New(context.Background(), j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.NotNil(sender)
 	j.NoError(err)
 
@@ -219,7 +220,7 @@ func (j *JiraSuite) TestTruncate() {
 }
 
 func (j *JiraSuite) TestCustomFields() {
-	sender, err := NewJiraLogger(context.Background(), j.opts, LevelInfo{level.Trace, level.Info})
+	sender, err := New(context.Background(), j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.NotNil(sender)
 	j.NoError(err)
 
@@ -250,7 +251,7 @@ func (j *JiraSuite) TestCustomFields() {
 }
 
 func (j *JiraSuite) TestPopulateKey() {
-	sender, err := NewJiraLogger(context.Background(), j.opts, LevelInfo{level.Trace, level.Info})
+	sender, err := New(context.Background(), j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.NotNil(sender)
 	j.NoError(err)
 	mock, ok := j.opts.client.(*jiraClientMock)
@@ -285,7 +286,7 @@ func (j *JiraSuite) TestPopulateKey() {
 }
 
 func (j *JiraSuite) TestWhenCallbackNil() {
-	sender, err := NewJiraLogger(context.Background(), j.opts, LevelInfo{level.Trace, level.Info})
+	sender, err := New(context.Background(), j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.NotNil(sender)
 	j.NoError(err)
 	mock, ok := j.opts.client.(*jiraClientMock)

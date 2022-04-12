@@ -1,4 +1,4 @@
-package send
+package slack
 
 import (
 	"errors"

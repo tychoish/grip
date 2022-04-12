@@ -85,6 +85,20 @@ func (b *Base) SetName(name string) {
 	b.reset()
 }
 
+func (b *Base) SetResetHook(f func()) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	b.reset = f
+}
+
+func (b *Base) SetCloseHook(f func() error) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	b.closer = f
+}
+
 // SetFormatter users to set the formatting function used to construct log messages.
 func (b *Base) SetFormatter(mf MessageFormatter) error {
 	if mf == nil {

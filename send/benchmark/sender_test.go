@@ -52,7 +52,3 @@ func BenchmarkInMemorySender(b *testing.B) {
 func BenchmarkJSONFileLogger(b *testing.B) {
 	wrapBenchmark(b, jsonFileLoggerCase)
 }
-
-func BenchmarkStreamLogger(b *testing.B) {
-	wrapBenchmark(b, streamLoggerCase)
-}

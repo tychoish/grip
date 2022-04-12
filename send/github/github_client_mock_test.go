@@ -1,4 +1,4 @@
-package send
+package github
 
 import (
 	"context"

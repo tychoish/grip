@@ -1,4 +1,4 @@
-package send
+package slack
 
 import (
 	"os"
@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 type SlackSuite struct {
@@ -31,15 +32,15 @@ func (s *SlackSuite) SetupTest() {
 }
 
 func (s *SlackSuite) TestMakeSlackConstructorErrorsWithUnsetEnvVar() {
-	sender, err := MakeSlackLogger(nil)
+	sender, err := Make(nil)
 	s.Error(err)
 	s.Nil(sender)
 
-	sender, err = MakeSlackLogger(&SlackOptions{})
+	sender, err = Make(&SlackOptions{})
 	s.Error(err)
 	s.Nil(sender)
 
-	sender, err = MakeSlackLogger(&SlackOptions{Channel: "#meta"})
+	sender, err = Make(&SlackOptions{Channel: "#meta"})
 	s.Error(err)
 	s.Nil(sender)
 }
@@ -48,11 +49,11 @@ func (s *SlackSuite) TestMakeSlackConstructorErrorsWithInvalidConfigs() {
 	defer os.Setenv(slackClientToken, os.Getenv(slackClientToken))
 	s.NoError(os.Setenv(slackClientToken, "foo"))
 
-	sender, err := MakeSlackLogger(nil)
+	sender, err := Make(nil)
 	s.Error(err)
 	s.Nil(sender)
 
-	sender, err = MakeSlackLogger(&SlackOptions{})
+	sender, err = Make(&SlackOptions{})
 	s.Error(err)
 	s.Nil(sender)
 }
@@ -220,34 +221,34 @@ func (s *SlackSuite) TestMockSenderWithMakeConstructor() {
 	defer os.Setenv(slackClientToken, os.Getenv(slackClientToken))
 	s.NoError(os.Setenv(slackClientToken, "foo"))
 
-	sender, err := MakeSlackLogger(s.opts)
+	sender, err := Make(s.opts)
 	s.NotNil(sender)
 	s.NoError(err)
 }
 
 func (s *SlackSuite) TestMockSenderWithNewConstructor() {
-	sender, err := NewSlackLogger(s.opts, "foo", LevelInfo{level.Trace, level.Info})
+	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 	s.NotNil(sender)
 	s.NoError(err)
 
 }
 
 func (s *SlackSuite) TestInvaldLevelCausesConstructionErrors() {
-	sender, err := NewSlackLogger(s.opts, "foo", LevelInfo{level.Trace, level.Invalid})
+	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Invalid})
 	s.Nil(sender)
 	s.Error(err)
 }
 
 func (s *SlackSuite) TestConstructorMustPassAuthTest() {
 	s.opts.client = &slackClientMock{failAuthTest: true}
-	sender, err := NewSlackLogger(s.opts, "foo", LevelInfo{level.Trace, level.Info})
+	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 
 	s.Nil(sender)
 	s.Error(err)
 }
 
 func (s *SlackSuite) TestSendMethod() {
-	sender, err := NewSlackLogger(s.opts, "foo", LevelInfo{level.Trace, level.Info})
+	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 	s.NotNil(sender)
 	s.NoError(err)
 
@@ -275,7 +276,7 @@ func (s *SlackSuite) TestSendMethod() {
 }
 
 func (s *SlackSuite) TestSendMethodWithError() {
-	sender, err := NewSlackLogger(s.opts, "foo", LevelInfo{level.Trace, level.Info})
+	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 	s.NotNil(sender)
 	s.NoError(err)
 
@@ -310,7 +311,7 @@ func (s *SlackSuite) TestCreateMethodChangesClientState() {
 }
 
 func (s *SlackSuite) TestSendMethodDoesIncorrectlyAllowTooLowMessages() {
-	sender, err := NewSlackLogger(s.opts, "foo", LevelInfo{level.Trace, level.Info})
+	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 	s.NotNil(sender)
 	s.NoError(err)
 
@@ -318,7 +319,7 @@ func (s *SlackSuite) TestSendMethodDoesIncorrectlyAllowTooLowMessages() {
 	s.True(ok)
 	s.Equal(mock.numSent, 0)
 
-	s.NoError(sender.SetLevel(LevelInfo{Default: level.Critical, Threshold: level.Alert}))
+	s.NoError(sender.SetLevel(send.LevelInfo{Default: level.Critical, Threshold: level.Alert}))
 	s.Equal(mock.numSent, 0)
 	sender.Send(message.NewDefaultMessage(level.Info, "hello"))
 	s.Equal(mock.numSent, 0)
@@ -329,7 +330,7 @@ func (s *SlackSuite) TestSendMethodDoesIncorrectlyAllowTooLowMessages() {
 }
 
 func (s *SlackSuite) TestSettingBotIdentity() {
-	sender, err := NewSlackLogger(s.opts, "foo", LevelInfo{level.Trace, level.Info})
+	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 
@@ -346,7 +347,7 @@ func (s *SlackSuite) TestSettingBotIdentity() {
 
 	s.opts.Username = "Grip"
 	s.opts.IconURL = "https://example.com/icon.ico"
-	sender, err = NewSlackLogger(s.opts, "foo", LevelInfo{level.Trace, level.Info})
+	sender, err = New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 	s.NoError(err)
 	sender.Send(m)
 	s.Equal(2, mock.numSent)

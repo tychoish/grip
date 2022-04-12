@@ -1,4 +1,4 @@
-package send
+package github
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/go-github/github"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 type githubStatusMessageLogger struct {
@@ -16,7 +17,7 @@ type githubStatusMessageLogger struct {
 	ref  string
 
 	gh githubClient
-	*Base
+	*send.Base
 }
 
 func (s *githubStatusMessageLogger) Send(m message.Composer) {
@@ -68,11 +69,11 @@ func (s *githubStatusMessageLogger) Send(m message.Composer) {
 	}
 }
 
-// NewGithubStatusLogger returns a Sender to send payloads to the Github Status
+// NewStatusLogger returns a Sender to send payloads to the Github Status
 // API. Statuses will be attached to the given ref.
-func NewGithubStatusLogger(name string, opts *GithubOptions, ref string) (Sender, error) {
+func NewStatusLogger(name string, opts *GithubOptions, ref string) (send.Sender, error) {
 	s := &githubStatusMessageLogger{
-		Base: NewBase(name),
+		Base: send.NewBase(name),
 		gh:   &githubClientImpl{},
 		ref:  ref,
 	}
@@ -81,17 +82,17 @@ func NewGithubStatusLogger(name string, opts *GithubOptions, ref string) (Sender
 	s.gh.Init(ctx, opts.Token)
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := s.SetErrorHandler(ErrorHandlerFromLogger(fallback)); err != nil {
+	if err := s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
 		return nil, err
 	}
 
-	if err := s.SetFormatter(MakePlainFormatter()); err != nil {
+	if err := s.SetFormatter(send.MakePlainFormatter()); err != nil {
 		return nil, err
 	}
 
-	s.reset = func() {
+	s.SetResetHook(func() {
 		fallback.SetPrefix(fmt.Sprintf("[%s] [%s/%s] ", s.Name(), opts.Account, opts.Repo))
-	}
+	})
 
 	s.SetName(name)
 

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 type twitterClientMock struct {
@@ -23,7 +24,7 @@ func (tm *twitterClientMock) reset()               { tm.VerifyError = nil; tm.Se
 
 func newMockedTwitterSender(client *twitterClientMock) *twitterLogger {
 	return &twitterLogger{
-		Base:    NewBase("mock-twitter"),
+		Base:    send.NewBase("mock-twitter"),
 		twitter: client,
 	}
 }
@@ -34,15 +35,15 @@ func TestTwitter(t *testing.T) {
 
 	t.Run("Constructors", func(t *testing.T) {
 		t.Run("NilCredentialsPanic", func(t *testing.T) {
-			assert.Panics(t, func() { _, _ = MakeTwitterLogger(ctx, nil) })
+			assert.Panics(t, func() { _, _ = Make(ctx, nil) })
 		})
 		t.Run("EmptyCredentialsError", func(t *testing.T) {
-			s, err := MakeTwitterLogger(ctx, &TwitterOptions{})
+			s, err := Make(ctx, &TwitterOptions{})
 			assert.Error(t, err)
 			assert.Nil(t, s)
 		})
 		t.Run("SetInvalidLevel", func(t *testing.T) {
-			s, err := NewTwitterLogger(ctx, &TwitterOptions{}, LevelInfo{-1, -1})
+			s, err := New(ctx, &TwitterOptions{}, send.LevelInfo{Default: -1, Threshold: -1})
 			assert.Error(t, err)
 			assert.Nil(t, s)
 		})
@@ -62,10 +63,10 @@ func TestTwitter(t *testing.T) {
 		})
 		mock.reset()
 		t.Run("WithError", func(t *testing.T) {
-			errsender, err := NewInternalLogger("errr", LevelInfo{level.Info, level.Info})
+			errsender, err := send.NewInternalLogger("errr", send.LevelInfo{Default: level.Info, Threshold: level.Info})
 			require.NoError(t, err)
 			s := newMockedTwitterSender(mock)
-			require.NoError(t, s.SetErrorHandler(ErrorHandlerFromSender(errsender)))
+			require.NoError(t, s.SetErrorHandler(send.ErrorHandlerFromSender(errsender)))
 			mock.SendError = errors.New("sendERROR")
 
 			msg := message.NewSimpleStringMessage(level.Info, "hi")
@@ -76,15 +77,15 @@ func TestTwitter(t *testing.T) {
 		mock.reset()
 	})
 	t.Run("WithError", func(t *testing.T) {
-		errsender, err := NewInternalLogger("errr", LevelInfo{level.Info, level.Info})
+		errsender, err := send.NewInternalLogger("errr", send.LevelInfo{Default: level.Info, Threshold: level.Info})
 		require.NoError(t, err)
 
 		s := &twitterLogger{
 			twitter: &twitterClientImpl{twitter: (&TwitterOptions{}).resolve(ctx)},
-			Base:    NewBase("fake"),
+			Base:    send.NewBase("fake"),
 		}
 
-		require.NoError(t, s.SetErrorHandler(ErrorHandlerFromSender(errsender)))
+		require.NoError(t, s.SetErrorHandler(send.ErrorHandlerFromSender(errsender)))
 
 		msg := message.NewSimpleStringMessage(level.Info, "hi")
 		s.Send(msg)

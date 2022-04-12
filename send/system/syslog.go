@@ -1,6 +1,6 @@
 // +build linux freebsd solaris darwin
 
-package send
+package system
 
 import (
 	"fmt"
@@ -10,34 +10,43 @@ import (
 
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 type syslogger struct {
 	logger *syslog.Writer
-	*Base
+	*send.Base
 }
 
-// NewSyslogLogger creates a new Sender object that writes all
+// NewSyslog creates a new Sender object that writes all
 // loggable messages to a syslog instance on the specified
 // network. Uses the Go standard library syslog implementation that is
 // only available on Unix systems. Use this constructor to return a
 // connection to a remote Syslog interface, but will fall back first
 // to the local syslog interface before writing messages to standard
 // output.
-func NewSyslogLogger(name, network, raddr string, l LevelInfo) (Sender, error) {
-	return setup(MakeSysLogger(network, raddr), name, l)
+func NewSyslog(name, network, raddr string, l send.LevelInfo) (send.Sender, error) {
+	s := MakeSyslog(network, raddr)
+
+	if err := s.SetLevel(l); err != nil {
+		return nil, err
+	}
+
+	s.SetName(name)
+
+	return s, nil
 }
 
-// MakeSysLogger constructs a minimal and unconfigured logger that
+// MakeSyslog constructs a minimal and unconfigured logger that
 // posts to systemd's journal.
 // Pass to Journaler.SetSender or call SetName before using.
-func MakeSysLogger(network, raddr string) Sender {
-	s := &syslogger{Base: NewBase("")}
+func MakeSyslog(network, raddr string) send.Sender {
+	s := &syslogger{Base: send.NewBase("")}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	_ = s.SetErrorHandler(ErrorHandlerFromLogger(fallback))
+	_ = s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 
-	s.reset = func() {
+	s.SetResetHook(func() {
 		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
 
 		if s.logger != nil {
@@ -54,27 +63,23 @@ func MakeSysLogger(network, raddr string) Sender {
 			return
 		}
 
-		s.closer = func() error {
+		s.SetCloseHook(func() error {
 			return w.Close()
-		}
+		})
 
 		s.logger = w
-	}
+	})
 
 	return s
 }
 
-// MakeLocalSyslogLogger is a constructor for creating the same kind of
+// MakeLocalSyslog is a constructor for creating the same kind of
 // Sender instance as NewSyslogLogger, except connecting directly to
 // the local syslog service. If there is no local syslog service, or
 // there are issues connecting to it, writes logging messages to
 // standard error. Pass to Journaler.SetSender or call SetName before using.
-func MakeLocalSyslogLogger() Sender {
-	return MakeSysLogger("", "")
-}
-
-func (s *syslogger) Close() error { return s.logger.Close() }
-
+func MakeLocalSyslog() send.Sender { return MakeSyslog("", "") }
+func (s *syslogger) Close() error  { return s.logger.Close() }
 func (s *syslogger) Send(m message.Composer) {
 	defer func() {
 		if err := recover(); err != nil {

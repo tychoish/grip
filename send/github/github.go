@@ -1,4 +1,4 @@
-package send
+package github
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-github/github"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 	"golang.org/x/oauth2"
 )
 
@@ -15,7 +16,7 @@ type githubLogger struct {
 	opts *GithubOptions
 	gh   githubClient
 
-	*Base
+	*send.Base
 }
 
 // GithubOptions contains information about a github account and
@@ -27,11 +28,11 @@ type GithubOptions struct {
 	Token   string
 }
 
-// NewGithubIssuesLogger builds a sender implementation that creates a
+// NewIssuesLogger builds a sender implementation that creates a
 // new issue in a Github Project for each log message.
-func NewGithubIssuesLogger(name string, opts *GithubOptions) (Sender, error) {
+func NewIssues(name string, opts *GithubOptions) (send.Sender, error) {
 	s := &githubLogger{
-		Base: NewBase(name),
+		Base: send.NewBase(name),
 		opts: opts,
 		gh:   &githubClientImpl{},
 	}
@@ -40,24 +41,22 @@ func NewGithubIssuesLogger(name string, opts *GithubOptions) (Sender, error) {
 	s.gh.Init(ctx, opts.Token)
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := s.SetErrorHandler(ErrorHandlerFromLogger(fallback)); err != nil {
+	if err := s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
 		return nil, err
 	}
 
-	if err := s.SetFormatter(MakeDefaultFormatter()); err != nil {
+	if err := s.SetFormatter(send.MakeDefaultFormatter()); err != nil {
 		return nil, err
 	}
 
-	s.reset = func() {
-		fallback.SetPrefix(fmt.Sprintf("[%s] [%s/%s] ", s.Name(), opts.Account, opts.Repo))
-	}
+	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] [%s/%s] ", s.Name(), opts.Account, opts.Repo)) })
 
 	return s, nil
 }
 
 func (s *githubLogger) Send(m message.Composer) {
 	if s.Level().ShouldLog(m) {
-		text, err := s.formatter(m)
+		text, err := s.Formatter()(m)
 		if err != nil {
 			s.ErrorHandler()(err, m)
 			return

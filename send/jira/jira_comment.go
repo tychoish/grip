@@ -8,24 +8,25 @@ import (
 
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 type jiraCommentJournal struct {
 	issueID string
-	opts    *JiraOptions
-	*Base
+	opts    *Options
+	*send.Base
 }
 
-// MakeJiraCommentLogger is the same as NewJiraCommentLogger but uses a warning
+// MakeComment is the same as NewJiraCommentLogger but uses a warning
 // level of Trace
-func MakeJiraCommentLogger(ctx context.Context, id string, opts *JiraOptions) (Sender, error) {
-	return NewJiraCommentLogger(ctx, id, opts, LevelInfo{level.Trace, level.Trace})
+func MakeComment(ctx context.Context, id string, opts *Options) (send.Sender, error) {
+	return NewComment(ctx, id, opts, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
 }
 
-// NewJiraCommentLogger constructs a Sender that creates issues to jira, given
+// NewComment constructs a Sender that creates issues to jira, given
 // options defined in a JiraOptions struct. id parameter is the ID of the issue.
 // ctx is used as the request context in the OAuth HTTP client
-func NewJiraCommentLogger(ctx context.Context, id string, opts *JiraOptions, l LevelInfo) (Sender, error) {
+func NewComment(ctx context.Context, id string, opts *Options, l send.LevelInfo) (send.Sender, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, err
 	}
@@ -33,7 +34,7 @@ func NewJiraCommentLogger(ctx context.Context, id string, opts *JiraOptions, l L
 	j := &jiraCommentJournal{
 		opts:    opts,
 		issueID: id,
-		Base:    NewBase(id),
+		Base:    send.NewBase(id),
 	}
 
 	if err := j.opts.client.CreateClient(opts.HTTPClient, opts.BaseURL); err != nil {
@@ -58,14 +59,12 @@ func NewJiraCommentLogger(ctx context.Context, id string, opts *JiraOptions, l L
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := j.SetErrorHandler(ErrorHandlerFromLogger(fallback)); err != nil {
+	if err := j.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
 		return nil, err
 	}
 
 	j.SetName(id)
-	j.reset = func() {
-		fallback.SetPrefix(fmt.Sprintf("[%s] ", j.Name()))
-	}
+	j.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", j.Name())) })
 
 	return j, nil
 }

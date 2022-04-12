@@ -1,4 +1,4 @@
-package send
+package email
 
 import (
 	"net/mail"
@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 type SMTPSuite struct {
@@ -153,11 +154,11 @@ func (s *SMTPSuite) TestAddingSingleRecipient() {
 }
 
 func (s *SMTPSuite) TestMakeConstructorFailureCases() {
-	sender, err := MakeSMTPLogger(nil)
+	sender, err := Make(nil)
 	s.Nil(sender)
 	s.Error(err)
 
-	sender, err = MakeSMTPLogger(&SMTPOptions{})
+	sender, err = Make(&SMTPOptions{})
 	s.Nil(sender)
 	s.Error(err)
 }
@@ -223,21 +224,21 @@ func (s *SMTPSuite) TestSendMailRecordsMessage() {
 }
 
 func (s *SMTPSuite) TestNewConstructor() {
-	sender, err := NewSMTPLogger(nil, LevelInfo{level.Trace, level.Info})
+	sender, err := New(nil, send.LevelInfo{level.Trace, level.Info})
 	s.Error(err)
 	s.Nil(sender)
 
-	sender, err = NewSMTPLogger(s.opts, LevelInfo{level.Invalid, level.Info})
+	sender, err = New(s.opts, send.LevelInfo{level.Invalid, level.Info})
 	s.Error(err)
 	s.Nil(sender)
 
-	sender, err = NewSMTPLogger(s.opts, LevelInfo{level.Trace, level.Info})
+	sender, err = New(s.opts, send.LevelInfo{level.Trace, level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 }
 
 func (s *SMTPSuite) TestSendMethod() {
-	sender, err := NewSMTPLogger(s.opts, LevelInfo{level.Trace, level.Info})
+	sender, err := New(s.opts, send.LevelInfo{level.Trace, level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 
@@ -259,7 +260,7 @@ func (s *SMTPSuite) TestSendMethod() {
 }
 
 func (s *SMTPSuite) TestSendMethodWithError() {
-	sender, err := NewSMTPLogger(s.opts, LevelInfo{level.Trace, level.Info})
+	sender, err := New(s.opts, send.LevelInfo{level.Trace, level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 
@@ -278,7 +279,7 @@ func (s *SMTPSuite) TestSendMethodWithError() {
 }
 
 func (s *SMTPSuite) TestSendMethodWithEmailComposerOverridesSMTPOptions() {
-	sender, err := NewSMTPLogger(s.opts, LevelInfo{level.Trace, level.Info})
+	sender, err := New(s.opts, send.LevelInfo{level.Trace, level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 

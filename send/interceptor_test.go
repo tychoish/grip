@@ -10,7 +10,7 @@ import (
 )
 
 func TestInterceptor(t *testing.T) {
-	base, err := NewInternalLogger("test", LevelInfo{Threshold: level.Info, Default: level.Debug})
+	base, err := NewInternalLogger("test", LevelInfo{Default: level.Info, Threshold: level.Debug})
 	require.NoError(t, err)
 
 	var count int
@@ -24,6 +24,6 @@ func TestInterceptor(t *testing.T) {
 	assert.Equal(t, 1, count)
 
 	icept.Send(message.NewSimpleStringMessage(level.Trace, "hello"))
-	assert.Equal(t, 1, base.Len())
+	assert.Equal(t, 2, base.Len())
 	assert.Equal(t, 2, count)
 }

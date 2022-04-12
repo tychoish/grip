@@ -1,21 +1,22 @@
-package send
+package desktop
 
 import (
 	"github.com/gen2brain/beeep"
 	"github.com/pkg/errors"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 type desktopNotify struct {
-	*Base
+	*send.Base
 }
 
 // NewDesktopNotify constructs a sender that pushes messages
 // to local system notification process.
-func NewDesktopNotify(name string, l LevelInfo) (Sender, error) {
+func New(name string, l send.LevelInfo) (send.Sender, error) {
 	s := &desktopNotify{
-		Base: NewBase(name),
+		Base: send.NewBase(name),
 	}
 
 	if err := s.SetLevel(l); err != nil {
@@ -27,8 +28,8 @@ func NewDesktopNotify(name string, l LevelInfo) (Sender, error) {
 
 // MakeDesktopNotify constructs a default sender that pushes messages
 // to local system notification.
-func MakeDesktopNotify(name string) (Sender, error) {
-	s, err := NewDesktopNotify(name, LevelInfo{Threshold: level.Trace, Default: level.Debug})
+func Make(name string) (send.Sender, error) {
+	s, err := New(name, send.LevelInfo{Threshold: level.Trace, Default: level.Debug})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

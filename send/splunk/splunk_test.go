@@ -8,10 +8,11 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 type SplunkSuite struct {
-	info   SplunkConnectionInfo
+	info   ConnectionInfo
 	sender splunkLogger
 	suite.Suite
 }
@@ -22,13 +23,13 @@ func TestSplunkSuite(t *testing.T) {
 
 func (s *SplunkSuite) SetupTest() {
 	s.sender = splunkLogger{
-		info:   SplunkConnectionInfo{},
+		info:   ConnectionInfo{},
 		client: &splunkClientMock{},
-		Base:   NewBase("name"),
+		Base:   send.NewBase("name"),
 	}
 
 	s.NoError(s.sender.client.Create(http.DefaultClient, s.info))
-	s.NoError(s.sender.SetLevel(LevelInfo{level.Debug, level.Info}))
+	s.NoError(s.sender.SetLevel(send.LevelInfo{Default: level.Debug, Threshold: level.Info}))
 }
 
 func (s *SplunkSuite) TestEnvironmentVariableReader() {
@@ -41,14 +42,14 @@ func (s *SplunkSuite) TestEnvironmentVariableReader() {
 	s.NoError(os.Setenv(splunkServerURL, serverVal))
 	s.NoError(os.Setenv(splunkClientToken, tokenVal))
 
-	info := GetSplunkConnectionInfo()
+	info := GetConnectionInfo()
 
 	s.Equal(serverVal, info.ServerURL)
 	s.Equal(tokenVal, info.Token)
 }
 
 func (s *SplunkSuite) TestNewConstructor() {
-	sender, err := NewSplunkLogger("name", s.info, LevelInfo{level.Debug, level.Info})
+	sender, err := New("name", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 }
@@ -63,7 +64,7 @@ func (s *SplunkSuite) TestAutoConstructor() {
 	s.NoError(os.Setenv(splunkServerURL, serverVal))
 	s.NoError(os.Setenv(splunkClientToken, tokenVal))
 
-	sender, err := MakeSplunkLogger("name")
+	sender, err := Make("name")
 	s.NoError(err)
 	s.NotNil(sender)
 }
@@ -78,14 +79,14 @@ func (s *SplunkSuite) TestAutoConstructorFailsWhenEnvVarFails() {
 	s.NoError(os.Setenv(splunkServerURL, serverVal))
 	s.NoError(os.Setenv(splunkClientToken, tokenVal))
 
-	sender, err := MakeSplunkLogger("name")
+	sender, err := Make("name")
 	s.Error(err)
 	s.Nil(sender)
 
 	serverVal = "serverVal"
 
 	s.NoError(os.Setenv(splunkServerURL, serverVal))
-	sender, err = MakeSplunkLogger("name")
+	sender, err = Make("name")
 	s.Error(err)
 	s.Nil(sender)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 const (
@@ -19,28 +20,28 @@ const (
 )
 
 type splunkLogger struct {
-	info     SplunkConnectionInfo
+	info     ConnectionInfo
 	client   splunkClient
 	hostname string
-	*Base
+	*send.Base
 }
 
-// SplunkConnectionInfo stores all information needed to connect
+// ConnectionInfo stores all information needed to connect
 // to a splunk server to send log messsages.
-type SplunkConnectionInfo struct {
+type ConnectionInfo struct {
 	ServerURL string `bson:"url" json:"url" yaml:"url"`
 	Token     string `bson:"token" json:"token" yaml:"token"`
 	Channel   string `bson:"channel" json:"channel" yaml:"channel"`
 }
 
-// GetSplunkConnectionInfo builds a SplunkConnectionInfo structure
+// GetConnectionInfo builds a SplunkConnectionInfo structure
 // reading default values from the following environment variables:
 //
 //		GRIP_SPLUNK_SERVER_URL
 //		GRIP_SPLUNK_CLIENT_TOKEN
 //		GRIP_SPLUNK_CHANNEL
-func GetSplunkConnectionInfo() SplunkConnectionInfo {
-	return SplunkConnectionInfo{
+func GetConnectionInfo() ConnectionInfo {
+	return ConnectionInfo{
 		ServerURL: os.Getenv(splunkServerURL),
 		Token:     os.Getenv(splunkClientToken),
 		Channel:   os.Getenv(splunkChannel),
@@ -49,11 +50,11 @@ func GetSplunkConnectionInfo() SplunkConnectionInfo {
 
 // Populated validates a SplunkConnectionInfo, and returns false if
 // there is missing data.
-func (info SplunkConnectionInfo) Populated() bool {
+func (info ConnectionInfo) Populated() bool {
 	return info.ServerURL != "" && info.Token != ""
 }
 
-func (info SplunkConnectionInfo) validateFromEnv() error {
+func (info ConnectionInfo) validateFromEnv() error {
 	if info.ServerURL == "" {
 		return errors.Errorf("environment variable %s not defined, cannot create splunk client", splunkServerURL)
 	}
@@ -91,10 +92,10 @@ func (s *splunkLogger) Send(m message.Composer) {
 	}
 }
 
-// NewSplunkLogger constructs a new Sender implementation that sends
+// New constructs a new Sender implementation that sends
 // messages to a Splunk event collector using the credentials specified
 // in the SplunkConnectionInfo struct.
-func NewSplunkLogger(name string, info SplunkConnectionInfo, l LevelInfo) (Sender, error) {
+func New(name string, info ConnectionInfo, l send.LevelInfo) (send.Sender, error) {
 	client := (&http.Client{
 		Transport: &http.Transport{
 			Proxy:               http.ProxyFromEnvironment,
@@ -119,10 +120,10 @@ func NewSplunkLogger(name string, info SplunkConnectionInfo, l LevelInfo) (Sende
 	return s, nil
 }
 
-// NewSplunkLoggerWithClient makes it possible to pass an existing
+// NewWithClient makes it possible to pass an existing
 // http.Client to the splunk instance, but is otherwise identical to
 // NewSplunkLogger.
-func NewSplunkLoggerWithClient(name string, info SplunkConnectionInfo, l LevelInfo, client *http.Client) (Sender, error) {
+func NewWithClient(name string, info ConnectionInfo, l send.LevelInfo, client *http.Client) (send.Sender, error) {
 	s, err := buildSplunkLogger(name, client, info, l)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -135,11 +136,11 @@ func NewSplunkLoggerWithClient(name string, info SplunkConnectionInfo, l LevelIn
 	return s, nil
 }
 
-func buildSplunkLogger(name string, client *http.Client, info SplunkConnectionInfo, l LevelInfo) (*splunkLogger, error) {
+func buildSplunkLogger(name string, client *http.Client, info ConnectionInfo, l send.LevelInfo) (*splunkLogger, error) {
 	s := &splunkLogger{
 		info:   info,
 		client: &splunkClientImpl{},
-		Base:   NewBase(name),
+		Base:   send.NewBase(name),
 	}
 
 	hostname, err := os.Hostname()
@@ -154,30 +155,30 @@ func buildSplunkLogger(name string, client *http.Client, info SplunkConnectionIn
 	return s, nil
 }
 
-// MakeSplunkLogger constructs a new Sender implementation that reads
+// Make constructs a new Sender implementation that reads
 // the hostname, username, and password from environment variables:
 //
 //		GRIP_SPLUNK_SERVER_URL
 //		GRIP_SPLUNK_CLIENT_TOKEN
 //		GRIP_SPLUNK_CLIENT_CHANNEL
-func MakeSplunkLogger(name string) (Sender, error) {
-	info := GetSplunkConnectionInfo()
+func Make(name string) (send.Sender, error) {
+	info := GetConnectionInfo()
 	if err := info.validateFromEnv(); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	return NewSplunkLogger(name, info, LevelInfo{level.Trace, level.Trace})
+	return New(name, info, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
 }
 
-// MakeSplunkLoggerWithClient is identical to MakeSplunkLogger but
+// MakeWithClient is identical to MakeSplunkLogger but
 // allows you to pass in a http.Client.
-func MakeSplunkLoggerWithClient(name string, client *http.Client) (Sender, error) {
-	info := GetSplunkConnectionInfo()
+func MakeWithClient(name string, client *http.Client) (send.Sender, error) {
+	info := GetConnectionInfo()
 	if err := info.validateFromEnv(); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	return NewSplunkLoggerWithClient(name, info, LevelInfo{level.Trace, level.Trace}, client)
+	return NewWithClient(name, info, send.LevelInfo{Default: level.Trace, Threshold: level.Trace}, client)
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -187,7 +188,7 @@ func MakeSplunkLoggerWithClient(name string, client *http.Client) (Sender, error
 ////////////////////////////////////////////////////////////////////////
 
 type splunkClient interface {
-	Create(*http.Client, SplunkConnectionInfo) error
+	Create(*http.Client, ConnectionInfo) error
 	WriteEvent(*hec.Event) error
 	WriteBatch([]*hec.Event) error
 }
@@ -196,7 +197,7 @@ type splunkClientImpl struct {
 	hec.HEC
 }
 
-func (c *splunkClientImpl) Create(client *http.Client, info SplunkConnectionInfo) error {
+func (c *splunkClientImpl) Create(client *http.Client, info ConnectionInfo) error {
 	c.HEC = hec.NewClient(info.ServerURL, info.Token)
 	if info.Channel != "" {
 		c.HEC.SetChannel(info.Channel)
