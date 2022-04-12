@@ -18,6 +18,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/tychoish/emt"
 	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/logging"
@@ -70,7 +71,7 @@ func LogStackTraceAndContinue(opDetails ...string) {
 //     func operation() (err error) {}
 //
 func HandlePanicWithError(p interface{}, err error, opDetails ...string) error {
-	catcher := grip.NewSimpleCatcher()
+	catcher := emt.NewSimpleCatcher()
 	catcher.Add(err)
 
 	if p != nil {
@@ -135,7 +136,7 @@ func SendStackTraceMessageAndExit(logger grip.Journaler, m interface{}) {
 // the same rules as logging methods, and annotates those messages
 // with the stack trace and panic information.
 func AnnotateMessageWithPanicError(p interface{}, err error, m interface{}) error {
-	catcher := grip.NewSimpleCatcher()
+	catcher := emt.NewSimpleCatcher()
 	catcher.Add(err)
 
 	if p != nil {
@@ -152,7 +153,7 @@ func AnnotateMessageWithPanicError(p interface{}, err error, m interface{}) erro
 // AnnotateMessageWithPanicError, but allows you to inject a custom
 // grip.Jounaler interface to receive the log message.
 func SendMessageWithPanicError(p interface{}, err error, logger grip.Journaler, m interface{}) error {
-	catcher := grip.NewSimpleCatcher()
+	catcher := emt.NewSimpleCatcher()
 	catcher.Add(err)
 
 	if p != nil {

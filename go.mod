@@ -21,6 +21,7 @@ require (
 	github.com/shirou/gopsutil v3.20.11+incompatible
 	github.com/stretchr/testify v1.3.0
 	github.com/trivago/tgo v1.0.7
+	github.com/tychoish/emt v0.0.0-20220306153139-74b97c67f209 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 )

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/tychoish/emt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/logging"
 	"github.com/tychoish/grip/message"
@@ -80,8 +81,8 @@ func Name() string {
 // collecting errors from a sender using the supplied error
 // catcher. At the very least, consider using a catcher that has a
 // specified maxsize, and possibly timestamp annotating catcher as
-// well. If you
-func MakeCatcherErrorHandler(catcher Catcher, fallback send.Sender) send.ErrorHandler {
+// well.
+func MakeCatcherErrorHandler(catcher emt.Catcher, fallback send.Sender) send.ErrorHandler {
 	return func(err error, m message.Composer) {
 		if err == nil {
 			return

@@ -184,40 +184,6 @@ highest log level, ``Emergency`` messages will always log.
 available as functions in the ``grip`` package to manage and configure the
 instance.
 
-Error Collector for "Continue on Error" Semantics
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you want to do something other than ignore or simply log errors, but don't
-want to abort after an error, the `Catcher Interface
-<https://godoc.org/github.com/tychoish/grip#Catcher>`_ provides a threadsafe
-way of aggregating errors. Consider: ::
-
-   func doStuff(dirname string) (error) {
-	   files, err := ioutil.ReadDir(dirname)
-	   if err != nil {
-		   // should abort here because we shouldn't continue.
-		   return err
-	   }
-
-	   catcher := grip.NewCatcher()t
-	   for _, f := range files {
-	       err = doStuffToFile(f.Name())
-	       catcher.Add(err)
-	   }
-
-	   return catcher.Resolve()
-   }
-
-Grip provides several error catchers (which are independent of the logging
-infrastructure.) They are Basic, Simple, and Extended. These variants differ
-on how the collected errors are represented in the final error object. Basic
-uses the ``Error()`` method of component errors, Simple users
-``fmt.Sprintf("%s", err)`` and Extended users ``fmt.Sprintf("%+v",
-err)``. There are also Timestamp methods that annotate all errors with a
-timestamp of when the error was collected to improve debugability in longer
-running asynchronous contexts: these collectors rely on ``WrapErrorTime`` to
-annotate the timestamp, which may be useful in other contexts.
-
 Conditional Logging
 ~~~~~~~~~~~~~~~~~~~
 
