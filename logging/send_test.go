@@ -128,15 +128,6 @@ func (s *GripInternalSuite) TestCatchMethods() {
 		s.grip.Notice,
 		s.grip.Warning,
 
-		s.grip.Alertln,
-		s.grip.Criticalln,
-		s.grip.Debugln,
-		s.grip.Emergencyln,
-		s.grip.Errorln,
-		s.grip.Infoln,
-		s.grip.Noticeln,
-		s.grip.Warningln,
-
 		s.grip.Alertf,
 		s.grip.Criticalf,
 		s.grip.Debugf,
@@ -158,7 +149,6 @@ func (s *GripInternalSuite) TestCatchMethods() {
 		func(w bool, m interface{}) { s.grip.LogWhen(w, level.Info, m) },
 		func(m interface{}) { s.grip.Log(level.Info, m) },
 		func(m string, a ...interface{}) { s.grip.Logf(level.Info, m, a...) },
-		func(m ...interface{}) { s.grip.Logln(level.Info, m...) },
 		func(m ...message.Composer) { s.grip.Log(level.Info, m) },
 		func(m []message.Composer) { s.grip.Log(level.Info, m) },
 		func(w bool, m ...message.Composer) { s.grip.LogWhen(w, level.Info, m) },

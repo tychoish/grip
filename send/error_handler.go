@@ -3,6 +3,7 @@ package send
 import (
 	"log"
 
+	"github.com/tychoish/emt"
 	"github.com/tychoish/grip/message"
 )
 
@@ -30,5 +31,24 @@ func ErrorHandlerFromSender(s Sender) ErrorHandler {
 		}
 
 		s.Send(message.WrapError(err, m))
+	}
+}
+
+// MakeCatcherErrorHandler produces an error handler useful for
+// collecting errors from a sender using the supplied error
+// catcher. At the very least, consider using a catcher that has a
+// specified maxsize, and possibly timestamp annotating catcher as
+// well.
+func MakeCatcherErrorHandler(catcher emt.Catcher, fallback Sender) ErrorHandler {
+	return func(err error, m message.Composer) {
+		if err == nil {
+			return
+		}
+
+		catcher.Add(err)
+
+		if fallback != nil {
+			fallback.Send(message.WrapError(err, m))
+		}
 	}
 }

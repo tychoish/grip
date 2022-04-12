@@ -6,10 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/tychoish/emt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/logging"
-	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
 
@@ -77,25 +75,6 @@ func Name() string {
 	return std.Name()
 }
 
-// MakeCatcherErrorHandler produces an error handler useful for
-// collecting errors from a sender using the supplied error
-// catcher. At the very least, consider using a catcher that has a
-// specified maxsize, and possibly timestamp annotating catcher as
-// well.
-func MakeCatcherErrorHandler(catcher emt.Catcher, fallback send.Sender) send.ErrorHandler {
-	return func(err error, m message.Composer) {
-		if err == nil {
-			return
-		}
-
-		catcher.Add(err)
-
-		if fallback != nil {
-			fallback.Send(message.WrapError(err, m))
-		}
-	}
-}
-
 // SetName declare a name string for the logger, including in the logging
 // message. Typically this is included on the output of the command.
 func SetName(name string) {
@@ -120,9 +99,6 @@ func Log(l level.Priority, msg interface{}) {
 func Logf(l level.Priority, msg string, a ...interface{}) {
 	std.Logf(l, msg, a...)
 }
-func Logln(l level.Priority, a ...interface{}) {
-	std.Logln(l, a...)
-}
 func LogWhen(conditional bool, l level.Priority, m interface{}) {
 	std.LogWhen(conditional, l, m)
 }
@@ -139,9 +115,6 @@ func Emergency(msg interface{}) {
 func Emergencyf(msg string, a ...interface{}) {
 	std.Emergencyf(msg, a...)
 }
-func Emergencyln(a ...interface{}) {
-	std.Emergencyln(a...)
-}
 func EmergencyPanic(msg interface{}) {
 	std.EmergencyPanic(msg)
 }
@@ -157,9 +130,6 @@ func Alert(msg interface{}) {
 func Alertf(msg string, a ...interface{}) {
 	std.Alertf(msg, a...)
 }
-func Alertln(a ...interface{}) {
-	std.Alertln(a...)
-}
 func AlertWhen(conditional bool, m interface{}) {
 	std.AlertWhen(conditional, m)
 }
@@ -171,9 +141,6 @@ func Critical(msg interface{}) {
 }
 func Criticalf(msg string, a ...interface{}) {
 	std.Criticalf(msg, a...)
-}
-func Criticalln(a ...interface{}) {
-	std.Criticalln(a...)
 }
 func CriticalWhen(conditional bool, m interface{}) {
 	std.CriticalWhen(conditional, m)
@@ -187,9 +154,6 @@ func Error(msg interface{}) {
 func Errorf(msg string, a ...interface{}) {
 	std.Errorf(msg, a...)
 }
-func Errorln(a ...interface{}) {
-	std.Errorln(a...)
-}
 func ErrorWhen(conditional bool, m interface{}) {
 	std.ErrorWhen(conditional, m)
 }
@@ -201,9 +165,6 @@ func Warning(msg interface{}) {
 }
 func Warningf(msg string, a ...interface{}) {
 	std.Warningf(msg, a...)
-}
-func Warningln(a ...interface{}) {
-	std.Warningln(a...)
 }
 func WarningWhen(conditional bool, m interface{}) {
 	std.WarningWhen(conditional, m)
@@ -217,9 +178,6 @@ func Notice(msg interface{}) {
 func Noticef(msg string, a ...interface{}) {
 	std.Noticef(msg, a...)
 }
-func Noticeln(a ...interface{}) {
-	std.Noticeln(a...)
-}
 func NoticeWhen(conditional bool, m interface{}) {
 	std.NoticeWhen(conditional, m)
 }
@@ -232,9 +190,6 @@ func Info(msg interface{}) {
 func Infof(msg string, a ...interface{}) {
 	std.Infof(msg, a...)
 }
-func Infoln(a ...interface{}) {
-	std.Infoln(a...)
-}
 func InfoWhen(conditional bool, message interface{}) {
 	std.InfoWhen(conditional, message)
 }
@@ -246,9 +201,6 @@ func Debug(msg interface{}) {
 }
 func Debugf(msg string, a ...interface{}) {
 	std.Debugf(msg, a...)
-}
-func Debugln(a ...interface{}) {
-	std.Debugln(a...)
 }
 func DebugWhen(conditional bool, m interface{}) {
 	std.DebugWhen(conditional, m)

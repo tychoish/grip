@@ -30,7 +30,6 @@ type Journaler interface {
 	// name.
 	Log(level.Priority, interface{})
 	Logf(level.Priority, string, ...interface{})
-	Logln(level.Priority, ...interface{})
 	LogWhen(bool, level.Priority, interface{})
 
 	// Methods for sending messages at specific levels. If you
@@ -45,47 +44,38 @@ type Journaler interface {
 	EmergencyPanic(interface{})
 
 	// For each level, in addition to a basic logger that takes
-	// strings and message.Composer objects (and tries to do its best
-	// with everythingelse.) there are println and printf
-	// loggers. Each Level also has "When" variants that only log
-	// if the passed condition are true.
+	// strings and message.Composer objects (and tries to do its
+	// best with everythingelse.) Each Level also has "When"
+	// variants that only log if the passed condition are true.
 	Emergency(interface{})
 	Emergencyf(string, ...interface{})
-	Emergencyln(...interface{})
 	EmergencyWhen(bool, interface{})
 
 	Alert(interface{})
 	Alertf(string, ...interface{})
-	Alertln(...interface{})
 	AlertWhen(bool, interface{})
 
 	Critical(interface{})
 	Criticalf(string, ...interface{})
-	Criticalln(...interface{})
 	CriticalWhen(bool, interface{})
 
 	Error(interface{})
 	Errorf(string, ...interface{})
-	Errorln(...interface{})
 	ErrorWhen(bool, interface{})
 
 	Warning(interface{})
 	Warningf(string, ...interface{})
-	Warningln(...interface{})
 	WarningWhen(bool, interface{})
 
 	Notice(interface{})
 	Noticef(string, ...interface{})
-	Noticeln(...interface{})
 	NoticeWhen(bool, interface{})
 
 	Info(interface{})
 	Infof(string, ...interface{})
-	Infoln(...interface{})
 	InfoWhen(bool, interface{})
 
 	Debug(interface{})
 	Debugf(string, ...interface{})
-	Debugln(...interface{})
 	DebugWhen(bool, interface{})
 }
