@@ -101,3 +101,7 @@ func setup(s Sender, name string, l LevelInfo) (Sender, error) {
 func MakeStandardLogger(s Sender, p level.Priority) *log.Logger {
 	return log.New(MakeWriterSender(s, p), "", 0)
 }
+
+// FromStandard prodeces a sender implementation from the standard
+// library logger.
+func FromStandard(logger *log.Logger) Sender { return WrapWriter(logger.Writer()) }
