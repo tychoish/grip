@@ -7,20 +7,20 @@ import (
 	"strings"
 
 	"github.com/tychoish/grip/level"
-	"github.com/tychoish/grip/logging"
 	"github.com/tychoish/grip/send"
 )
 
-var std = NewJournaler("grip")
+var std Logger
 
 func init() {
+	sender := send.WrapWriterLogger(log.Writer())
 	if !strings.Contains(os.Args[0], "go-build") {
-		std.SetName(filepath.Base(os.Args[0]))
+		sender.SetName(filepath.Base(os.Args[0]))
+	} else {
+		sender.SetName("grip")
 	}
 
-	sender, err := send.NewNativeLogger(std.Name(), std.GetSender().Level())
-	std.Alert(std.SetSender(sender))
-	std.Alert(err)
+	std = MakeGrip(sender)
 }
 
 // SetDefaultStandardLogger set's the standard library's global
@@ -37,28 +37,23 @@ func MakeStandardLogger(p level.Priority) *log.Logger {
 	return send.MakeStandardLogger(std.GetSender(), p)
 }
 
-// NewJournaler creates a new Journaler instance. The Sender method is
-// a non-operational bootstrap method that stores default and
-// threshold types, as needed. You must use journaler.SetSender() to
-// configure the backend.
-func NewJournaler(name string) Journaler { return logging.NewGrip(name) }
-
-// GetGlobalJournaler returns the global journal instance used by
+// GetGlobalLogger returns the global journal instance used by
 // this library. This call is not thread safe relative to other
 // logging calls, or SetGlobalJournaler call, although all journaling
 // methods are safe.
-func GetGlobalJournaler() Journaler { return std }
+func GetGlobalLogger() Logger { return std }
 
 // SetGlobalJournaler allows you to override the standard logger,
 // that is used by calls in the grip package. This call is not thread
 // safe relative to other logging calls, or the GetGlobalJournaler
 // call, although all journaling methods are safe: as a result be sure
 // to only call this method during package and process initialization.
-func SetGlobalJournaler(l Journaler) { std = l }
+func SetGlobalLogger(l Logger) { std = l }
 
 func Log(l level.Priority, msg interface{})                     { std.Log(l, msg) }
 func Logf(l level.Priority, msg string, a ...interface{})       { std.Logf(l, msg, a...) }
 func LogWhen(conditional bool, l level.Priority, m interface{}) { std.LogWhen(conditional, l, m) }
+func Send(msg interface{})                                      { std.Send(msg) }
 func EmergencyFatal(msg interface{})                            { std.EmergencyFatal(msg) }
 func Emergency(msg interface{})                                 { std.Emergency(msg) }
 func Emergencyf(msg string, a ...interface{})                   { std.Emergencyf(msg, a...) }

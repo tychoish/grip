@@ -2,12 +2,10 @@ package grip
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
-	"github.com/tychoish/grip/logging"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -22,9 +20,10 @@ type (
 )
 
 type LoggingMethodSuite struct {
-	logger        Journaler
+	logger        Logger
 	loggingSender *send.InternalSender
 	stdSender     *send.InternalSender
+	defaultSender send.Sender
 	suite.Suite
 }
 
@@ -33,15 +32,16 @@ func TestLoggingMethodSuite(t *testing.T) {
 }
 
 func (s *LoggingMethodSuite) SetupTest() {
-	s.logger = logging.NewGrip("test")
-
+	s.defaultSender = GetGlobalLogger().GetSender()
 	s.stdSender = send.MakeInternalLogger()
-	s.NoError(GetGlobalJournaler().SetSender(s.stdSender))
-	s.Exactly(GetGlobalJournaler().GetSender(), s.stdSender)
+	SetGlobalLogger(MakeGrip(s.stdSender))
 
 	s.loggingSender = send.MakeInternalLogger()
-	s.NoError(s.logger.SetSender(s.loggingSender))
-	s.Exactly(s.logger.GetSender(), s.loggingSender)
+	s.logger = MakeGrip(s.loggingSender)
+}
+
+func (s *LoggingMethodSuite) TeardownTest() {
+	SetGlobalLogger(MakeGrip(s.defaultSender))
 }
 
 func (s *LoggingMethodSuite) TestWhenMethods() {
@@ -201,7 +201,7 @@ func (s *LoggingMethodSuite) TestProgramaticLevelMethods() {
 }
 
 type GripSuite struct {
-	grip Journaler
+	grip Logger
 	name string
 	suite.Suite
 }
@@ -211,61 +211,28 @@ func TestGripSuite(t *testing.T) {
 }
 
 func (s *GripSuite) SetupSuite() {
-	s.grip = NewJournaler(s.name)
-	s.Equal(s.grip.Name(), s.name)
+	s.grip = MakeGrip(send.MakeNative())
+	s.grip.GetSender().SetName(s.name)
+	s.Equal(s.grip.GetSender().Name(), s.name)
 }
 
-func (s *GripSuite) SetupTest() {
-	s.grip.SetName(s.name)
-	sender, err := send.NewNativeLogger(s.name, s.grip.GetSender().Level())
-	s.NoError(err)
-	s.NoError(s.grip.SetSender(sender))
-}
+func (s *GripSuite) SetupTest() {}
 
 func (s *GripSuite) TestDefaultJournalerIsBootstrap() {
-	firstName := s.grip.Name()
+	firstName := s.grip.GetSender().Name()
 	// the bootstrap sender is a bit special because you can't
 	// change it's name, therefore:
 	secondName := "something_else"
-	s.grip.SetName(secondName)
+	s.grip.GetSender().SetName(secondName)
 
-	s.Equal(s.grip.Name(), secondName)
-	s.NotEqual(s.grip.Name(), firstName)
+	s.Equal(s.grip.GetSender().Name(), secondName)
+	s.NotEqual(s.grip.GetSender().Name(), firstName)
 	s.NotEqual(firstName, secondName)
 }
 
 func (s *GripSuite) TestNameSetterAndGetter() {
 	for _, name := range []string{"a", "a39df", "a@)(*E)"} {
-		s.grip.SetName(name)
-		s.Equal(s.grip.Name(), name)
+		s.grip.GetSender().SetName(name)
+		s.Equal(s.grip.GetSender().Name(), name)
 	}
-}
-
-func (s *GripSuite) TestSenderGetterReturnsExpectedJournaler() {
-	grip := NewJournaler("sender_swap")
-	s.Equal(grip.Name(), "sender_swap")
-
-	sender, err := send.NewNativeLogger(grip.Name(), grip.GetSender().Level())
-	s.NoError(err)
-	s.NoError(grip.SetSender(sender))
-
-	s.Equal(grip.Name(), "sender_swap")
-	ns, _ := send.NewNativeLogger("native_sender", s.grip.GetSender().Level())
-	defer ns.Close()
-	s.IsType(grip.GetSender(), ns)
-
-	sender, err = send.NewFileLogger(grip.Name(), "foo", grip.GetSender().Level())
-	s.NoError(grip.SetSender(sender))
-	s.NoError(err)
-
-	defer func() { std.Error(os.Remove("foo")) }()
-
-	s.Equal(grip.Name(), "sender_swap")
-	s.NotEqual(grip.GetSender(), ns)
-	fs, _ := send.NewFileLogger("file_sender", "foo", s.grip.GetSender().Level())
-	defer fs.Close()
-	s.IsType(grip.GetSender(), fs)
-
-	s.Error(grip.SetSender(nil))
-
 }

@@ -1,4 +1,4 @@
-package logging
+package grip
 
 import (
 	"errors"
@@ -14,26 +14,19 @@ import (
 )
 
 type GripInternalSuite struct {
-	grip *Grip
+	grip *loggerImpl
 	name string
 	suite.Suite
 }
 
-func TestGripSuite(t *testing.T) {
+func TestLoggerSuite(t *testing.T) {
 	suite.Run(t, new(GripInternalSuite))
 }
 
-func (s *GripInternalSuite) SetupSuite() {
-	s.name = "test"
-	s.grip = NewGrip(s.name)
-	s.Equal(s.grip.Name(), s.name)
-}
-
 func (s *GripInternalSuite) SetupTest() {
-	s.grip.SetName(s.name)
-	sender, err := send.NewNativeLogger(s.grip.Name(), send.LevelInfo{Default: level.Info, Threshold: level.Trace})
+	sender, err := send.NewNativeLogger(s.name, send.LevelInfo{Default: level.Info, Threshold: level.Trace})
 	s.NoError(err)
-	s.NoError(s.grip.SetSender(sender))
+	s.Equal(sender.Name(), s.name)
 }
 
 func (s *GripInternalSuite) TestPanicSenderActuallyPanics() {
@@ -46,7 +39,7 @@ func (s *GripInternalSuite) TestPanicSenderActuallyPanics() {
 			s.Nil(recover())
 		}()
 
-		s.grip.GetSender().Send(message.NewLineMessage(level.Critical, "foo"))
+		s.grip.impl.Send(message.NewLineMessage(level.Critical, "foo"))
 	}()
 
 	func() {
@@ -59,14 +52,10 @@ func (s *GripInternalSuite) TestPanicSenderActuallyPanics() {
 	}()
 }
 
-func (s *GripInternalSuite) TestSetSenderErrorsForNil() {
-	s.Error(s.grip.SetSender(nil))
-}
-
 func (s *GripInternalSuite) TestPanicSenderRespectsTThreshold() {
 	s.True(level.Debug > s.grip.GetSender().Level().Threshold)
-	s.NoError(s.grip.GetSender().SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Notice}))
-	s.True(level.Debug < s.grip.GetSender().Level().Threshold)
+	s.NoError(s.grip.impl.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Notice}))
+	s.True(level.Debug < s.grip.impl.Level().Threshold)
 
 	// test that there is a no panic if the message isn't "logabble"
 	defer func() {
@@ -82,7 +71,7 @@ func (s *GripInternalSuite) TestConditionalSend() {
 	// is exported, we can't pass the sink between functions.
 	sink, err := send.NewInternalLogger("sink", s.grip.GetSender().Level())
 	s.NoError(err)
-	s.NoError(s.grip.SetSender(sink))
+	s.grip.impl = sink
 
 	msg := message.NewLineMessage(level.Info, "foo")
 	msgTwo := message.NewLineMessage(level.Notice, "bar")
@@ -116,7 +105,7 @@ func (s *GripInternalSuite) TestConditionalSend() {
 func (s *GripInternalSuite) TestCatchMethods() {
 	sink, err := send.NewInternalLogger("sink", send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
 	s.NoError(err)
-	s.NoError(s.grip.SetSender(sink))
+	s.grip = MakeGrip(sink)
 
 	cases := []interface{}{
 		s.grip.Alert,
@@ -226,7 +215,7 @@ func (s *GripInternalSuite) TestCatchMethods() {
 // http://stackoverflow.com/a/33404435 to test a function that exits
 // since it's impossible to "catch" an os.Exit
 func TestSendFatalExits(t *testing.T) {
-	grip := NewGrip("test")
+	grip := MakeGrip(send.MakeNative())
 	if os.Getenv("SHOULD_CRASH") == "1" {
 		grip.sendFatal(message.NewLineMessage(level.Error, "foo"))
 		return

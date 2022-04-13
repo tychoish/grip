@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip"
-	"github.com/tychoish/grip/logging"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -33,14 +32,14 @@ func (s *RecoverySuite) TearDownSuite() {
 
 func (s *RecoverySuite) SetupTest() {
 	s.sender = send.MakeInternalLogger()
-	s.globalSender = grip.GetGlobalJournaler().GetSender()
-	s.Require().NoError(grip.GetGlobalJournaler().SetSender(s.sender))
+	s.globalSender = grip.GetGlobalLogger().GetSender()
+	grip.SetGlobalLogger(grip.MakeGrip(s.sender))
 }
 
-func (s *RecoverySuite) logger() grip.Journaler { return logging.MakeGrip(s.sender) }
+func (s *RecoverySuite) logger() grip.Logger { return grip.MakeGrip(s.sender) }
 
 func (s *RecoverySuite) TearDownTest() {
-	s.Require().NoError(grip.GetGlobalJournaler().SetSender((s.globalSender)))
+	grip.SetGlobalLogger(grip.MakeGrip(s.globalSender))
 }
 
 func (s *RecoverySuite) TestWithoutPanicNoErrorsLoged() {

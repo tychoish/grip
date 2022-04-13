@@ -21,7 +21,6 @@ import (
 	"github.com/tychoish/emt"
 	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/level"
-	"github.com/tychoish/grip/logging"
 	"github.com/tychoish/grip/message"
 )
 
@@ -33,7 +32,7 @@ const killOverrideVarName = "__GRIP_EXIT_OVERRIDE"
 // This operation also attempts to close the underlying log sender.
 func LogStackTraceAndExit(opDetails ...string) {
 	if p := recover(); p != nil {
-		logAndExit(p, logging.MakeGrip(grip.GetGlobalJournaler().GetSender()), message.MakeFields(getMessage(opDetails)))
+		logAndExit(p, grip.MakeGrip(grip.GetGlobalLogger().GetSender()), message.MakeFields(getMessage(opDetails)))
 	}
 }
 
@@ -51,7 +50,7 @@ func LogStackTraceAndExit(opDetails ...string) {
 //
 func LogStackTraceAndContinue(opDetails ...string) {
 	if p := recover(); p != nil {
-		logAndContinue(p, logging.MakeGrip(grip.GetGlobalJournaler().GetSender()), message.MakeFields(getMessage(opDetails)))
+		logAndContinue(p, grip.MakeGrip(grip.GetGlobalLogger().GetSender()), message.MakeFields(getMessage(opDetails)))
 	}
 }
 
@@ -78,7 +77,7 @@ func HandlePanicWithError(p interface{}, err error, opDetails ...string) error {
 		perr := panicError(p)
 		catcher.Add(perr)
 
-		handleWithError(perr, err, logging.MakeGrip(grip.GetGlobalJournaler().GetSender()), message.MakeFields(getMessage(opDetails)))
+		handleWithError(perr, err, grip.MakeGrip(grip.GetGlobalLogger().GetSender()), message.MakeFields(getMessage(opDetails)))
 	}
 
 	return catcher.Resolve()
@@ -93,14 +92,14 @@ func HandlePanicWithError(p interface{}, err error, opDetails ...string) error {
 // with the stack trace and panic information.
 func AnnotateMessageWithStackTraceAndContinue(m interface{}) {
 	if p := recover(); p != nil {
-		logAndContinue(p, logging.MakeGrip(grip.GetGlobalJournaler().GetSender()), message.ConvertToComposer(level.Critical, m))
+		logAndContinue(p, grip.MakeGrip(grip.GetGlobalLogger().GetSender()), message.ConvertToComposer(level.Critical, m))
 	}
 }
 
 // SendStackTraceAndContinue is similar to
 // AnnotateMessageWithStackTraceAndContinue, but allows you to inject a
 // grip.Journaler interface to receive the log message.
-func SendStackTraceAndContinue(logger grip.Journaler, m interface{}) {
+func SendStackTraceAndContinue(logger grip.Logger, m interface{}) {
 	if p := recover(); p != nil {
 		logAndContinue(p, logger, message.ConvertToComposer(level.Critical, m))
 	}
@@ -114,14 +113,14 @@ func SendStackTraceAndContinue(logger grip.Journaler, m interface{}) {
 // with the stack trace and panic information.
 func AnnotateMessageWithStackTraceAndExit(m interface{}) {
 	if p := recover(); p != nil {
-		logAndExit(p, logging.MakeGrip(grip.GetGlobalJournaler().GetSender()), message.ConvertToComposer(level.Critical, m))
+		logAndExit(p, grip.MakeGrip(grip.GetGlobalLogger().GetSender()), message.ConvertToComposer(level.Critical, m))
 	}
 }
 
 // SendStackTraceMessageAndExit is similar to
 // AnnotateMessageWithStackTraceAndExit, but allows you to inject a
 // grip.Journaler interface.
-func SendStackTraceMessageAndExit(logger grip.Journaler, m interface{}) {
+func SendStackTraceMessageAndExit(logger grip.Logger, m interface{}) {
 	if p := recover(); p != nil {
 		logAndExit(p, logger, message.ConvertToComposer(level.Critical, m))
 	}
@@ -143,7 +142,7 @@ func AnnotateMessageWithPanicError(p interface{}, err error, m interface{}) erro
 		perr := panicError(p)
 		catcher.Add(perr)
 
-		handleWithError(perr, err, logging.MakeGrip(grip.GetGlobalJournaler().GetSender()), message.ConvertToComposer(level.Critical, m))
+		handleWithError(perr, err, grip.MakeGrip(grip.GetGlobalLogger().GetSender()), message.ConvertToComposer(level.Critical, m))
 	}
 
 	return catcher.Resolve()
@@ -152,7 +151,7 @@ func AnnotateMessageWithPanicError(p interface{}, err error, m interface{}) erro
 // SendMessageWithPanicError is similar to
 // AnnotateMessageWithPanicError, but allows you to inject a custom
 // grip.Jounaler interface to receive the log message.
-func SendMessageWithPanicError(p interface{}, err error, logger grip.Journaler, m interface{}) error {
+func SendMessageWithPanicError(p interface{}, err error, logger grip.Logger, m interface{}) error {
 	catcher := emt.NewSimpleCatcher()
 	catcher.Add(err)
 
@@ -180,7 +179,7 @@ func getMessage(details []string) message.Fields {
 	return m
 }
 
-func logAndContinue(p interface{}, logger grip.Journaler, msg message.Composer) {
+func logAndContinue(p interface{}, logger grip.Logger, msg message.Composer) {
 	_ = msg.Annotate("panic", panicString(p))
 	_ = msg.Annotate("stack", message.NewStack(3, "").Raw().(message.StackTrace).Frames)
 	_ = msg.Annotate(message.FieldsMsgName, "hit panic; recovering")
@@ -188,7 +187,7 @@ func logAndContinue(p interface{}, logger grip.Journaler, msg message.Composer) 
 	logger.Alert(msg)
 }
 
-func logAndExit(p interface{}, logger grip.Journaler, msg message.Composer) {
+func logAndExit(p interface{}, logger grip.Logger, msg message.Composer) {
 	_ = msg.Annotate("panic", panicString(p))
 	_ = msg.Annotate("stack", message.NewStack(3, "").Raw().(message.StackTrace).Frames)
 	_ = msg.Annotate(message.FieldsMsgName, "hit panic; exiting")
@@ -201,7 +200,7 @@ func logAndExit(p interface{}, logger grip.Journaler, msg message.Composer) {
 	}
 }
 
-func handleWithError(p error, err error, logger grip.Journaler, msg message.Composer) {
+func handleWithError(p error, err error, logger grip.Logger, msg message.Composer) {
 	_ = msg.Annotate("panic", p.Error())
 	_ = msg.Annotate("stack", message.NewStack(3, "").Raw().(message.StackTrace).Frames)
 	_ = msg.Annotate(message.FieldsMsgName, "hit panic; adding error")
