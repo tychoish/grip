@@ -32,7 +32,7 @@ const killOverrideVarName = "__GRIP_EXIT_OVERRIDE"
 // This operation also attempts to close the underlying log sender.
 func LogStackTraceAndExit(opDetails ...string) {
 	if p := recover(); p != nil {
-		logAndExit(p, grip.NewLogger(grip.GetGlobalLogger().GetSender()), message.MakeFields(getMessage(opDetails)))
+		logAndExit(p, grip.NewLogger(grip.GetGlobalLogger().GetSender()), message.NewFields(getMessage(opDetails)))
 	}
 }
 
@@ -50,7 +50,7 @@ func LogStackTraceAndExit(opDetails ...string) {
 //
 func LogStackTraceAndContinue(opDetails ...string) {
 	if p := recover(); p != nil {
-		logAndContinue(p, grip.NewLogger(grip.GetGlobalLogger().GetSender()), message.MakeFields(getMessage(opDetails)))
+		logAndContinue(p, grip.NewLogger(grip.GetGlobalLogger().GetSender()), message.NewFields(getMessage(opDetails)))
 	}
 }
 
@@ -77,7 +77,7 @@ func HandlePanicWithError(p interface{}, err error, opDetails ...string) error {
 		perr := panicError(p)
 		catcher.Add(perr)
 
-		handleWithError(perr, err, grip.NewLogger(grip.GetGlobalLogger().GetSender()), message.MakeFields(getMessage(opDetails)))
+		handleWithError(perr, err, grip.NewLogger(grip.GetGlobalLogger().GetSender()), message.NewFields(getMessage(opDetails)))
 	}
 
 	return catcher.Resolve()

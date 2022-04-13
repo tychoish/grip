@@ -50,12 +50,6 @@ func ConvertToComposer(p level.Priority, message interface{}) Composer {
 	return convert(p, message, true)
 }
 
-// ConvertToComposerWithLevel can coerce unknown objects into
-// Composers, but will only override the priority of Composers.
-func ConvertToComposerWithLevel(p level.Priority, message interface{}) Composer {
-	return convert(p, message, false)
-}
-
 func convert(p level.Priority, message interface{}, overRideLevel bool) Composer {
 	switch message := message.(type) {
 	case Composer:
@@ -78,29 +72,29 @@ func convert(p level.Priority, message interface{}, overRideLevel bool) Composer
 	case func() Fields:
 		return NewFieldsProducerMessage(p, message)
 	case ComposerProducer:
-		return NewComposerProducerMessage(p, message)
+		return MakeComposerProducer(p, message)
 	case func() Composer:
-		return NewComposerProducerMessage(p, message)
+		return MakeComposerProducer(p, message)
 	case func() map[string]interface{}:
 		return NewConvertedFieldsProducer(p, message)
 	case ErrorProducer:
-		return NewErrorProducerMessage(p, message)
+		return MakeErrorProducer(p, message)
 	case func() error:
-		return NewErrorProducerMessage(p, message)
+		return MakeErrorProducer(p, message)
 	case []string:
-		return newLinesFromStrings(p, message)
+		return makeLinesFromStrings(p, message)
 	case []interface{}:
 		return NewLineMessage(p, message...)
 	case []byte:
 		return NewBytesMessage(p, message)
 	case Fields:
-		return NewFields(p, message)
+		return MakeFields(p, message)
 	case map[string]interface{}:
-		return NewFields(p, Fields(message))
+		return MakeFields(p, Fields(message))
 	case [][]string:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = newLinesFromStrings(p, message[idx])
+			grp[idx] = makeLinesFromStrings(p, message[idx])
 		}
 		return NewGroupComposer(grp)
 	case [][]byte:
@@ -112,14 +106,14 @@ func convert(p level.Priority, message interface{}, overRideLevel bool) Composer
 	case []map[string]interface{}:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = NewFields(p, message[idx])
+			grp[idx] = MakeFields(p, message[idx])
 		}
 		out := NewGroupComposer(grp)
 		return out
 	case []Fields:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = NewFields(p, message[idx])
+			grp[idx] = MakeFields(p, message[idx])
 		}
 		out := NewGroupComposer(grp)
 		return out
@@ -144,25 +138,25 @@ func convert(p level.Priority, message interface{}, overRideLevel bool) Composer
 	case []ComposerProducer:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = NewComposerProducerMessage(p, message[idx])
+			grp[idx] = MakeComposerProducer(p, message[idx])
 		}
 		return NewGroupComposer(grp)
 	case []func() Composer:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = NewComposerProducerMessage(p, message[idx])
+			grp[idx] = MakeComposerProducer(p, message[idx])
 		}
 		return NewGroupComposer(grp)
 	case []ErrorProducer:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = NewErrorProducerMessage(p, message[idx])
+			grp[idx] = MakeErrorProducer(p, message[idx])
 		}
 		return NewGroupComposer(grp)
 	case []func() error:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = NewErrorProducerMessage(p, message[idx])
+			grp[idx] = MakeErrorProducer(p, message[idx])
 		}
 		return NewGroupComposer(grp)
 	case nil:

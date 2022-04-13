@@ -177,7 +177,7 @@ func (j *JiraSuite) TestGetFieldsWithJiraIssue() {
 func (j *JiraSuite) TestGetFieldsWithFields() {
 	testFields := message.Fields{"key0": 12, "key1": 42}
 	msg := "Get the message"
-	m := message.MakeFieldsMessage(msg, testFields)
+	m := message.NewFieldsMessage(msg, testFields)
 
 	fields := getFields(m)
 	j.Equal(fields.Summary, msg)
@@ -276,7 +276,7 @@ func (j *JiraSuite) TestPopulateKey() {
 	issue := m.Raw().(*Issue)
 	j.Equal(mock.issueKey, issue.IssueKey)
 
-	messageFields := message.NewFieldsMessage(level.Info, "something", message.Fields{
+	messageFields := message.MakeFieldsMessage(level.Info, "something", message.Fields{
 		"message": "foo",
 	})
 	j.True(messageFields.Loggable())

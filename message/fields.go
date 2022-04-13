@@ -27,45 +27,51 @@ type fieldMessage struct {
 //     message.Fields{"key0", <value>, "key1", <value>}
 type Fields map[string]interface{}
 
-// NewFieldsMessage creates a fully configured Composer instance that
-// will attach some additional structured data. This constructor
-// allows you to include a string message as well as Fields
-// object.
-func NewFieldsMessage(p level.Priority, message string, f Fields) Composer {
-	m := MakeFieldsMessage(message, f)
-
+// NewFields constructs a full configured fields Composer.
+func MakeFields(p level.Priority, f Fields) Composer {
+	m := NewFields(f)
 	_ = m.SetPriority(p)
-
 	return m
 }
 
-// NewFields constructs a full configured fields Composer.
-func NewFields(p level.Priority, f Fields) Composer {
-	m := MakeFields(f)
-	_ = m.SetPriority(p)
-
+// MakeFields creates a composer interface from *just* a Fields instance.
+func NewFields(f Fields) Composer {
+	m := &fieldMessage{fields: f}
+	m.setup()
 	return m
 }
 
 // NewSimpleFields returns a structured Composer that does not
 // attach basic logging metadata and allows callers to configure the
 // messages' log level.
-func NewSimpleFields(p level.Priority, f Fields) Composer {
-	m := MakeSimpleFields(f)
+func MakeSimpleFields(p level.Priority, f Fields) Composer {
+	m := NewSimpleFields(f)
 	_ = m.SetPriority(p)
 	return m
 }
 
-// MakeSimpleFieldsMessage returns a structured Composer that does not attach
-// basic logging metadata, but allows callers to specify the message
-// (the "message" field) as a string.
-func MakeSimpleFieldsMessage(msg string, f Fields) Composer {
-	m := &fieldMessage{
-		message:      msg,
-		fields:       f,
-		skipMetadata: true,
-	}
+// MakeSimpleFields returns a structured Composer that does
+// not attach basic logging metadata.
+func NewSimpleFields(f Fields) Composer {
+	m := &fieldMessage{fields: f, skipMetadata: true}
+	m.setup()
+	return m
+}
 
+// NewFieldsMessage creates a fully configured Composer instance that
+// will attach some additional structured data. This constructor
+// allows you to include a string message as well as Fields
+// object.
+func MakeFieldsMessage(p level.Priority, message string, f Fields) Composer {
+	m := NewFieldsMessage(message, f)
+	_ = m.SetPriority(p)
+	return m
+}
+
+// NewFieldsMessage constructs a fields Composer from a message string and
+// Fields object, without specifying the priority of the message.
+func NewFieldsMessage(message string, f Fields) Composer {
+	m := &fieldMessage{message: message, fields: f}
 	m.setup()
 	return m
 }
@@ -73,31 +79,17 @@ func MakeSimpleFieldsMessage(msg string, f Fields) Composer {
 // NewSimpleFieldsMessage returns a structured Composer that does not attach
 // basic logging metadata, but allows callers to specify the message
 // (the "message" field) as well as the message's log-level.
-func NewSimpleFieldsMessage(p level.Priority, msg string, f Fields) Composer {
-	m := MakeSimpleFieldsMessage(msg, f)
+func MakeSimpleFieldsMessage(p level.Priority, msg string, f Fields) Composer {
+	m := NewSimpleFieldsMessage(msg, f)
 	_ = m.SetPriority(p)
 	return m
 }
 
-// MakeFields creates a composer interface from *just* a Fields instance.
-func MakeFields(f Fields) Composer {
-	m := &fieldMessage{fields: f}
-	m.setup()
-	return m
-}
-
-// MakeFieldsMessage constructs a fields Composer from a message string and
-// Fields object, without specifying the priority of the message.
-func MakeFieldsMessage(message string, f Fields) Composer {
-	m := &fieldMessage{message: message, fields: f}
-	m.setup()
-	return m
-}
-
-// MakeSimpleFields returns a structured Composer that does
-// not attach basic logging metadata.
-func MakeSimpleFields(f Fields) Composer {
-	m := &fieldMessage{fields: f, skipMetadata: true}
+// NewSimpleFieldsMessage returns a structured Composer that does not attach
+// basic logging metadata, but allows callers to specify the message
+// (the "message" field) as a string.
+func NewSimpleFieldsMessage(msg string, f Fields) Composer {
+	m := &fieldMessage{message: msg, fields: f, skipMetadata: true}
 	m.setup()
 	return m
 }
@@ -127,6 +119,14 @@ func GetDefaultFieldsMessage(msg Composer, val string) string {
 	default:
 		return val
 	}
+}
+
+func fromStrMap(in map[string]string) Fields {
+	out := make(Fields, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
 }
 
 ////////////////////////////////////////////////////////////////////////

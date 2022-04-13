@@ -36,9 +36,15 @@ func NewLine(args ...interface{}) Composer {
 	return m
 }
 
-func newLinesFromStrings(p level.Priority, args []string) Composer {
-	m := &lineMessenger{}
+func makeLinesFromStrings(p level.Priority, args []string) Composer {
+	m := newLinesFromStrings(args)
 	_ = m.SetPriority(p)
+
+	return m
+}
+
+func newLinesFromStrings(args []string) Composer {
+	m := &lineMessenger{}
 	for _, arg := range args {
 		if arg != "" {
 			m.lines = append(m.lines, arg)

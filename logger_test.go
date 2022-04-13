@@ -105,7 +105,7 @@ func (s *GripInternalSuite) TestConditionalSend() {
 func (s *GripInternalSuite) TestCatchMethods() {
 	sink, err := send.NewInternalLogger("sink", send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
 	s.NoError(err)
-	s.grip = NewLogger(sink)
+	s.grip = NewLogger(sink).(*loggerImpl)
 
 	cases := []interface{}{
 		s.grip.Alert,
@@ -215,7 +215,7 @@ func (s *GripInternalSuite) TestCatchMethods() {
 // http://stackoverflow.com/a/33404435 to test a function that exits
 // since it's impossible to "catch" an os.Exit
 func TestSendFatalExits(t *testing.T) {
-	grip := NewLogger(send.MakeNative())
+	grip := NewLogger(send.MakeNative()).(*loggerImpl)
 	if os.Getenv("SHOULD_CRASH") == "1" {
 		grip.sendFatal(message.NewLineMessage(level.Error, "foo"))
 		return

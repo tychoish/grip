@@ -191,28 +191,28 @@ func (s *SlackSuite) TestFieldsMessageTypeIntegration() {
 	s.Len(params.Attachments[0].Fields, 0)
 
 	// if the fields are nil, then we end up ignoring things, except the message
-	msg, params = opts.produceMessage(message.NewFieldsMessage(level.Alert, "foo", message.Fields{}))
+	msg, params = opts.produceMessage(message.MakeFieldsMessage(level.Alert, "foo", message.Fields{}))
 	s.Equal("", msg)
 	s.Len(params.Attachments[0].Fields, 1)
 
 	// when msg and the message match we ignore
-	msg, params = opts.produceMessage(message.NewFieldsMessage(level.Alert, "foo", message.Fields{"msg": "foo"}))
+	msg, params = opts.produceMessage(message.MakeFieldsMessage(level.Alert, "foo", message.Fields{"msg": "foo"}))
 	s.Equal("", msg)
 	s.Len(params.Attachments[0].Fields, 1)
 
-	msg, params = opts.produceMessage(message.NewFieldsMessage(level.Alert, "foo", message.Fields{"foo": "bar"}))
+	msg, params = opts.produceMessage(message.MakeFieldsMessage(level.Alert, "foo", message.Fields{"foo": "bar"}))
 	s.Equal("", msg)
 	s.Len(params.Attachments[0].Fields, 2)
 
-	msg, params = opts.produceMessage(message.NewFieldsMessage(level.Alert, "foo", message.Fields{"other": "baz"}))
+	msg, params = opts.produceMessage(message.MakeFieldsMessage(level.Alert, "foo", message.Fields{"other": "baz"}))
 	s.Equal("", msg)
 	s.Len(params.Attachments[0].Fields, 2)
 
-	msg, params = opts.produceMessage(message.NewFieldsMessage(level.Alert, "foo", message.Fields{"untracked": "false", "other": "bar"}))
+	msg, params = opts.produceMessage(message.MakeFieldsMessage(level.Alert, "foo", message.Fields{"untracked": "false", "other": "bar"}))
 	s.Equal("", msg)
 	s.Len(params.Attachments[0].Fields, 2)
 
-	msg, params = opts.produceMessage(message.NewFieldsMessage(level.Alert, "foo", message.Fields{"foo": "false", "other": "bass"}))
+	msg, params = opts.produceMessage(message.MakeFieldsMessage(level.Alert, "foo", message.Fields{"foo": "false", "other": "bass"}))
 	s.Equal("", msg)
 	s.Len(params.Attachments[0].Fields, 3)
 }
