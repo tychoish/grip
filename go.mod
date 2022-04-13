@@ -12,7 +12,6 @@ require (
 	github.com/gen2brain/beeep v0.0.0-20200420150314-13046a26d502
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/mattn/go-xmpp v0.0.0-20220410054612-99ddfc1aa46a
-	github.com/montanaflynn/stats v0.6.3
 	github.com/shirou/gopsutil v3.20.11+incompatible
 	github.com/stretchr/testify v1.7.0
 	github.com/tychoish/emt v0.0.0-20220306153139-74b97c67f209
