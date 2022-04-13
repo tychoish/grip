@@ -37,22 +37,21 @@ func MakeStandardLogger(p level.Priority) *log.Logger {
 	return send.MakeStandardLogger(std.GetSender(), p)
 }
 
-// NewJournaler creates a new Journaler instance. The Sender method is a
-// non-operational bootstrap method that stores default and threshold
-// types, as needed. You must use SetSender() or the
-// UseSystemdLogger(), UseNativeLogger(), or UseFileLogger() methods
-// to configure the backend.
+// NewJournaler creates a new Journaler instance. The Sender method is
+// a non-operational bootstrap method that stores default and
+// threshold types, as needed. You must use journaler.SetSender() to
+// configure the backend.
 func NewJournaler(name string) Journaler { return logging.NewGrip(name) }
 
 // GetGlobalJournaler returns the global journal instance used by
 // this library. This call is not thread safe relative to other
-// logging calls, or SetDefaultJournaler call, although all journaling
+// logging calls, or SetGlobalJournaler call, although all journaling
 // methods are safe.
 func GetGlobalJournaler() Journaler { return std }
 
 // SetGlobalJournaler allows you to override the standard logger,
 // that is used by calls in the grip package. This call is not thread
-// safe relative to other logging calls, or the GetDefaultJournaler
+// safe relative to other logging calls, or the GetGlobalJournaler
 // call, although all journaling methods are safe: as a result be sure
 // to only call this method during package and process initialization.
 func SetGlobalJournaler(l Journaler) { std = l }

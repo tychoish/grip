@@ -8,9 +8,9 @@ Basic Logging
 Loging helpers exist for the following levels:
 
    Emergency + (fatal/panic)
-   Alert + (fatal/panic)
-   Critical + (fatal/panic)
-   Error + (fatal/panic)
+   Alert
+   Critical
+   Error
    Warning
    Notice
    Info
