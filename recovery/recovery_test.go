@@ -33,14 +33,14 @@ func (s *RecoverySuite) TearDownSuite() {
 
 func (s *RecoverySuite) SetupTest() {
 	s.sender = send.MakeInternalLogger()
-	s.globalSender = grip.GetSender()
-	s.Require().NoError(grip.SetSender(s.sender))
+	s.globalSender = grip.GetGlobalJournaler().GetSender()
+	s.Require().NoError(grip.GetGlobalJournaler().SetSender(s.sender))
 }
 
 func (s *RecoverySuite) logger() grip.Journaler { return logging.MakeGrip(s.sender) }
 
 func (s *RecoverySuite) TearDownTest() {
-	s.Require().NoError(grip.SetSender(s.globalSender))
+	s.Require().NoError(grip.GetGlobalJournaler().SetSender((s.globalSender)))
 }
 
 func (s *RecoverySuite) TestWithoutPanicNoErrorsLoged() {

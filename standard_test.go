@@ -36,8 +36,8 @@ func (s *LoggingMethodSuite) SetupTest() {
 	s.logger = logging.NewGrip("test")
 
 	s.stdSender = send.MakeInternalLogger()
-	s.NoError(SetSender(s.stdSender))
-	s.Exactly(GetSender(), s.stdSender)
+	s.NoError(GetGlobalJournaler().SetSender(s.stdSender))
+	s.Exactly(GetGlobalJournaler().GetSender(), s.stdSender)
 
 	s.loggingSender = send.MakeInternalLogger()
 	s.NoError(s.logger.SetSender(s.loggingSender))
