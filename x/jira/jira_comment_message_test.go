@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -115,7 +116,7 @@ func (j *JiraCommentSuite) TestCreateMethodChangesClientState() {
 }
 
 func (j *JiraCommentSuite) TestSendWithJiraIssueComposer() {
-	c := message.NewJIRACommentMessage(level.Notice, "ABC-123", "Hi")
+	c := NewComment(level.Notice, "ABC-123", "Hi")
 
 	sender, err := NewCommentSender(context.Background(), "XYZ-123", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.NoError(err)
@@ -127,4 +128,36 @@ func (j *JiraCommentSuite) TestSendWithJiraIssueComposer() {
 	j.True(ok)
 	j.Equal(1, mock.numSent)
 	j.Equal("ABC-123", mock.lastIssue)
+}
+
+func TestJiraMessageComposerConstructor(t *testing.T) {
+	const testMsg = "hello"
+	assert := assert.New(t) // nolint
+	reporterField := Field{Key: "Reporter", Value: "Annie"}
+	assigneeField := Field{Key: "Assignee", Value: "Sejin"}
+	typeField := Field{Key: "Type", Value: "Bug"}
+	labelsField := Field{Key: "Labels", Value: []string{"Soul", "Pop"}}
+	unknownField := Field{Key: "Artist", Value: "Adele"}
+	msg := NewIssue("project", testMsg, reporterField, assigneeField, typeField, labelsField, unknownField)
+	issue := msg.Raw().(*Issue)
+
+	assert.Equal(issue.Project, "project")
+	assert.Equal(issue.Summary, testMsg)
+	assert.Equal(issue.Reporter, reporterField.Value)
+	assert.Equal(issue.Assignee, assigneeField.Value)
+	assert.Equal(issue.Type, typeField.Value)
+	assert.Equal(issue.Labels, labelsField.Value)
+	assert.Equal(issue.Fields[unknownField.Key], unknownField.Value)
+}
+
+func TestJiraIssueAnnotationOnlySupportsStrings(t *testing.T) {
+	assert := assert.New(t) // nolint
+
+	m := &jiraMessage{
+		issue: &Issue{},
+	}
+
+	assert.Error(m.Annotate("k", 1))
+	assert.Error(m.Annotate("k", true))
+	assert.Error(m.Annotate("k", nil))
 }

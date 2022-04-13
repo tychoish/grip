@@ -43,6 +43,7 @@ func (c *condComposer) Raw() interface{}                       { return c.msg.Ra
 func (c *condComposer) Priority() level.Priority               { return c.msg.Priority() }
 func (c *condComposer) SetPriority(p level.Priority) error     { return c.msg.SetPriority(p) }
 func (c *condComposer) Annotate(k string, v interface{}) error { return c.msg.Annotate(k, v) }
+func (c *condComposer) Structured() bool                       { return c.msg.Structured() }
 func (c *condComposer) Loggable() bool {
 	if c.cond {
 		return c.msg.Loggable()

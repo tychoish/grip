@@ -291,7 +291,7 @@ func (s *SMTPSuite) TestSendMethodWithEmailComposerOverridesSMTPOptions() {
 	mock, ok := s.opts.client.(*smtpClientMock)
 	s.True(ok)
 	s.Equal(0, mock.numMsgs)
-	m := message.NewEmailMessage(level.Notice, message.Email{
+	m := NewMessage(level.Notice, Message{
 		From:              "Mr Super Powers <from@example.com>",
 		Recipients:        []string{"to@example.com"},
 		Subject:           "Test",

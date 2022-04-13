@@ -39,14 +39,7 @@ func MakeComment(issueID, body string) message.Composer {
 	}
 }
 
-func (c *jiraComment) Loggable() bool {
-	return len(c.Payload.IssueID) > 0 && len(c.Payload.Body) > 0
-}
-
-func (c *jiraComment) String() string {
-	return c.Payload.Body
-}
-
-func (c *jiraComment) Raw() interface{} {
-	return &c.Payload
-}
+func (c *jiraComment) Loggable() bool   { return len(c.Payload.IssueID) > 0 && len(c.Payload.Body) > 0 }
+func (*jiraComment) Structured() bool   { return false }
+func (c *jiraComment) String() string   { return c.Payload.Body }
+func (c *jiraComment) Raw() interface{} { return &c.Payload }

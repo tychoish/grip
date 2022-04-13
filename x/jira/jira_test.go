@@ -138,14 +138,14 @@ func (j *JiraSuite) TestGetFieldsWithJiraIssue() {
 	summary := "it's me"
 
 	// Test fields
-	reporterField := message.JiraField{Key: "Reporter", Value: "Annie"}
-	assigneeField := message.JiraField{Key: "Assignee", Value: "Sejin"}
-	typeField := message.JiraField{Key: "Type", Value: "Bug"}
-	labelsField := message.JiraField{Key: "Labels", Value: []string{"Soul", "Pop"}}
-	unknownField := message.JiraField{Key: "Artist", Value: "Adele"}
+	reporterField := Field{Key: "Reporter", Value: "Annie"}
+	assigneeField := Field{Key: "Assignee", Value: "Sejin"}
+	typeField := Field{Key: "Type", Value: "Bug"}
+	labelsField := Field{Key: "Labels", Value: []string{"Soul", "Pop"}}
+	unknownField := Field{Key: "Artist", Value: "Adele"}
 
 	// Test One: Only Summary and Project
-	m1 := message.NewJiraMessage(project, summary)
+	m1 := NewIssue(project, summary)
 	fields := getFields(m1)
 
 	j.Equal(fields.Project.Key, project)
@@ -157,7 +157,7 @@ func (j *JiraSuite) TestGetFieldsWithJiraIssue() {
 	j.Nil(fields.Unknowns)
 
 	// Test Two: with reporter, assignee and type
-	m2 := message.NewJiraMessage(project, summary, reporterField, assigneeField,
+	m2 := NewIssue(project, summary, reporterField, assigneeField,
 		typeField, labelsField)
 	fields = getFields(m2)
 
@@ -168,7 +168,7 @@ func (j *JiraSuite) TestGetFieldsWithJiraIssue() {
 	j.Nil(fields.Unknowns)
 
 	// Test Three: everything plus Unknown fields
-	m3 := message.NewJiraMessage(project, summary, reporterField, assigneeField,
+	m3 := NewIssue(project, summary, reporterField, assigneeField,
 		typeField, unknownField)
 	fields = getFields(m3)
 	j.Equal(fields.Unknowns["Artist"], "Adele")
@@ -228,7 +228,7 @@ func (j *JiraSuite) TestCustomFields() {
 	j.True(ok)
 	j.Equal(mock.numSent, 0)
 
-	jiraIssue := &message.JiraIssue{
+	jiraIssue := &Issue{
 		Summary: "test",
 		Type:    "type",
 		Fields: map[string]interface{}{
@@ -236,7 +236,7 @@ func (j *JiraSuite) TestCustomFields() {
 		},
 	}
 
-	m := message.MakeJiraMessage(jiraIssue)
+	m := MakeIssue(jiraIssue)
 	j.NoError(m.SetPriority(level.Warning))
 	j.True(m.Loggable())
 	sender.Send(m)
@@ -259,7 +259,7 @@ func (j *JiraSuite) TestPopulateKey() {
 	j.Equal(mock.numSent, 0)
 
 	count := 0
-	jiraIssue := &message.JiraIssue{
+	jiraIssue := &Issue{
 		Summary: "foo",
 		Type:    "bug",
 		Callback: func(_ string) {
@@ -268,12 +268,12 @@ func (j *JiraSuite) TestPopulateKey() {
 	}
 
 	j.Equal(0, count)
-	m := message.MakeJiraMessage(jiraIssue)
+	m := MakeIssue(jiraIssue)
 	j.NoError(m.SetPriority(level.Alert))
 	j.True(m.Loggable())
 	sender.Send(m)
 	j.Equal(1, count)
-	issue := m.Raw().(*message.JiraIssue)
+	issue := m.Raw().(*Issue)
 	j.Equal(mock.issueKey, issue.IssueKey)
 
 	messageFields := message.NewFieldsMessage(level.Info, "something", message.Fields{
@@ -293,12 +293,12 @@ func (j *JiraSuite) TestWhenCallbackNil() {
 	j.True(ok)
 	j.Equal(mock.numSent, 0)
 
-	jiraIssue := &message.JiraIssue{
+	jiraIssue := &Issue{
 		Summary: "foo",
 		Type:    "bug",
 	}
 
-	m := message.MakeJiraMessage(jiraIssue)
+	m := MakeIssue(jiraIssue)
 	j.NoError(m.SetPriority(level.Alert))
 	j.True(m.Loggable())
 	j.NotPanics(func() {

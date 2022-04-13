@@ -76,7 +76,7 @@ func (s *slackJournal) Send(m message.Composer) {
 		var params *slack.ChatPostMessageOpt
 		channel := s.opts.Channel
 
-		if slackMsg, ok := m.Raw().(*message.Slack); ok {
+		if slackMsg, ok := m.Raw().(*Message); ok {
 			channel = slackMsg.Target
 			msg, params = slackMsg.Msg, &slack.ChatPostMessageOpt{
 				Attachments: slackMsg.Attachments,

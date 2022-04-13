@@ -3,13 +3,10 @@ package message
 import (
 	"errors"
 	"fmt"
-	"os"
-	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/tychoish/grip/level"
 )
 
@@ -18,58 +15,58 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 	assert := assert.New(t)
 	// map objects to output
 	cases := map[Composer]string{
-		NewString(testMsg):                                                                     testMsg,
-		NewDefaultMessage(level.Error, testMsg):                                                testMsg,
-		NewBytes([]byte(testMsg)):                                                              testMsg,
-		NewBytesMessage(level.Error, []byte(testMsg)):                                          testMsg,
-		NewError(errors.New(testMsg)):                                                          testMsg,
-		NewErrorMessage(level.Error, errors.New(testMsg)):                                      testMsg,
-		NewErrorWrap(errors.New(testMsg), ""):                                                  testMsg,
-		NewErrorWrapMessage(level.Error, errors.New(testMsg), ""):                              testMsg,
-		NewFormatted(string(testMsg[0])+"%s", testMsg[1:]):                                     testMsg,
-		NewFormattedMessage(level.Error, string(testMsg[0])+"%s", testMsg[1:]):                 testMsg,
-		WrapError(errors.New(testMsg), ""):                                                     testMsg,
-		WrapErrorf(errors.New(testMsg), ""):                                                    testMsg,
-		NewLine(testMsg, ""):                                                                   testMsg,
-		NewLineMessage(level.Error, testMsg, ""):                                               testMsg,
-		NewLine(testMsg):                                                                       testMsg,
-		NewLineMessage(level.Error, testMsg):                                                   testMsg,
-		MakeGroupComposer(NewString(testMsg)):                                                  testMsg,
-		NewGroupComposer([]Composer{NewString(testMsg)}):                                       testMsg,
-		MakeJiraMessage(&JiraIssue{Summary: testMsg, Type: "Something"}):                       testMsg,
-		NewJiraMessage("", testMsg, JiraField{Key: "type", Value: "Something"}):                testMsg,
-		NewFieldsMessage(level.Error, testMsg, Fields{}):                                       fmt.Sprintf("[message='%s']", testMsg),
-		NewFields(level.Error, Fields{"test": testMsg}):                                        fmt.Sprintf("[test='%s']", testMsg),
-		MakeFieldsMessage(testMsg, Fields{}):                                                   fmt.Sprintf("[message='%s']", testMsg),
-		MakeFields(Fields{"test": testMsg}):                                                    fmt.Sprintf("[test='%s']", testMsg),
-		NewErrorWrappedComposer(errors.New("hello"), NewString("world")):                       "world: hello",
-		When(true, testMsg):                                                                    testMsg,
-		Whenf(true, testMsg):                                                                   testMsg,
-		Whenln(true, testMsg):                                                                  testMsg,
-		Whenln(true, testMsg):                                                                  testMsg,
-		MakeComposerProducerMessage(func() Composer { return NewString(testMsg) }):             testMsg,
-		NewComposerProducerMessage(level.Error, func() Composer { return NewString(testMsg) }): testMsg,
-		MakeErrorProducerMessage(func() error { return errors.New(testMsg) }):                  testMsg,
-		NewErrorProducerMessage(level.Error, func() error { return errors.New(testMsg) }):      testMsg,
-		NewFieldsProducerMessage(level.Error, func() Fields { return Fields{"pro": "ducer"} }): "[pro='ducer']",
+		NewString(testMsg):                                                     testMsg,
+		NewDefaultMessage(level.Error, testMsg):                                testMsg,
+		NewBytes([]byte(testMsg)):                                              testMsg,
+		NewBytesMessage(level.Error, []byte(testMsg)):                          testMsg,
+		NewError(errors.New(testMsg)):                                          testMsg,
+		NewErrorMessage(level.Error, errors.New(testMsg)):                      testMsg,
+		NewErrorWrap(errors.New(testMsg), ""):                                  testMsg,
+		NewErrorWrapMessage(level.Error, errors.New(testMsg), ""):              testMsg,
+		NewFormatted(string(testMsg[0])+"%s", testMsg[1:]):                     testMsg,
+		NewFormattedMessage(level.Error, string(testMsg[0])+"%s", testMsg[1:]): testMsg,
+		WrapError(errors.New(testMsg), ""):                                     testMsg,
+		WrapErrorf(errors.New(testMsg), ""):                                    testMsg,
+		NewLine(testMsg, ""):                                                   testMsg,
+		NewLineMessage(level.Error, testMsg, ""):                               testMsg,
+		NewLine(testMsg):                                                       testMsg,
+		NewLineMessage(level.Error, testMsg):                                   testMsg,
+		MakeGroupComposer(NewString(testMsg)):                                  testMsg,
+		NewGroupComposer([]Composer{NewString(testMsg)}):                       testMsg,
+		// MakeJiraMessage(&JiraIssue{Summary: testMsg, Type: "Something"}):                       testMsg,
+		// NewJiraMessage("", testMsg, JiraField{Key: "type", Value: "Something"}):                testMsg,
+		NewFieldsMessage(level.Error, testMsg, Fields{}):                           fmt.Sprintf("[message='%s']", testMsg),
+		NewFields(level.Error, Fields{"test": testMsg}):                            fmt.Sprintf("[test='%s']", testMsg),
+		MakeFieldsMessage(testMsg, Fields{}):                                       fmt.Sprintf("[message='%s']", testMsg),
+		MakeFields(Fields{"test": testMsg}):                                        fmt.Sprintf("[test='%s']", testMsg),
+		NewErrorWrappedComposer(errors.New("hello"), NewString("world")):           "world: hello",
+		When(true, testMsg):                                                        testMsg,
+		Whenf(true, testMsg):                                                       testMsg,
+		Whenln(true, testMsg):                                                      testMsg,
+		Whenln(true, testMsg):                                                      testMsg,
+		MakeComposerProducerMessage(func() Composer { return NewString(testMsg) }): testMsg,
+		NewComposerProducerMessage(level.Error, func() Composer { return NewString(testMsg) }):                                   testMsg,
+		MakeErrorProducerMessage(func() error { return errors.New(testMsg) }):                                                    testMsg,
+		NewErrorProducerMessage(level.Error, func() error { return errors.New(testMsg) }):                                        testMsg,
+		NewFieldsProducerMessage(level.Error, func() Fields { return Fields{"pro": "ducer"} }):                                   "[pro='ducer']",
 		NewConvertedFieldsProducer(level.Error, func() map[string]interface{} { return map[string]interface{}{"pro": "ducer"} }): "[pro='ducer']",
-		NewEmailMessage(level.Error, Email{
-			Recipients: []string{"someone@example.com"},
-			Subject:    "Test msg",
-			Body:       testMsg,
-		}): fmt.Sprintf("To: someone@example.com; Body: %s", testMsg),
-		NewGithubStatusMessage(level.Error, "tests", GithubStateError, "https://example.com", testMsg): fmt.Sprintf("tests error: %s (https://example.com)", testMsg),
-		NewGithubStatusMessageWithRepo(level.Error, GithubStatus{
-			Owner:       "tychoish",
-			Repo:        "grip",
-			Ref:         "master",
-			Context:     "tests",
-			State:       GithubStateError,
-			URL:         "https://example.com",
-			Description: testMsg,
-		}): fmt.Sprintf("tychoish/grip@master tests error: %s (https://example.com)", testMsg),
-		NewJIRACommentMessage(level.Error, "ABC-123", testMsg): testMsg,
-		NewSlackMessage(level.Error, "@someone", testMsg, nil): fmt.Sprintf("@someone: %s", testMsg),
+		// NewEmailMessage(level.Error, Email{
+		// 	Recipients: []string{"someone@example.com"},
+		// 	Subject:    "Test msg",
+		// 	Body:       testMsg,
+		// }): fmt.Sprintf("To: someone@example.com; Body: %s", testMsg),
+		// NewGithubStatusMessage(level.Error, "tests", GithubStateError, "https://example.com", testMsg): fmt.Sprintf("tests error: %s (https://example.com)", testMsg),
+		// NewGithubStatusMessageWithRepo(level.Error, GithubStatus{
+		// 	Owner:       "tychoish",
+		// 	Repo:        "grip",
+		// 	Ref:         "master",
+		// 	Context:     "tests",
+		// 	State:       GithubStateError,
+		// 	URL:         "https://example.com",
+		// 	Description: testMsg,
+		// }): fmt.Sprintf("tychoish/grip@master tests error: %s (https://example.com)", testMsg),
+		// NewJIRACommentMessage(level.Error, "ABC-123", testMsg): testMsg,
+		// NewSlackMessage(level.Error, "@someone", testMsg, nil): fmt.Sprintf("@someone: %s", testMsg),
 	}
 
 	for msg, output := range cases {
@@ -97,8 +94,6 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		switch msg.(type) {
 		case *GroupComposer:
 			continue
-		case *slackMessage:
-			continue
 		default:
 			assert.NoError(msg.Annotate("k1", "foo"), "%T", msg)
 			assert.Error(msg.Annotate("k1", "foo"), "%T", msg)
@@ -117,8 +112,8 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 		&bytesMessage{},
 		NewBytes([]byte{}),
 		NewBytesMessage(level.Error, []byte{}),
-		&ProcessInfo{},
-		&SystemInfo{},
+		// &ProcessInfo{},
+		// &SystemInfo{},
 		&lineMessenger{},
 		NewLine(),
 		NewLineMessage(level.Error),
@@ -130,15 +125,15 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 		NewStackFormatted(1, ""),
 		MakeGroupComposer(),
 		&GroupComposer{},
-		&GoRuntimeInfo{},
+		// &GoRuntimeInfo{},
 		When(false, ""),
 		Whenf(false, "", ""),
 		Whenln(false, "", ""),
-		NewEmailMessage(level.Error, Email{}),
-		NewGithubStatusMessage(level.Error, "", GithubState(""), "", ""),
-		NewGithubStatusMessageWithRepo(level.Error, GithubStatus{}),
-		NewJIRACommentMessage(level.Error, "", ""),
-		NewSlackMessage(level.Error, "", "", nil),
+		// NewEmailMessage(level.Error, Email{}),
+		// NewGithubStatusMessage(level.Error, "", GithubState(""), "", ""),
+		// NewGithubStatusMessageWithRepo(level.Error, GithubStatus{}),
+		// NewJIRACommentMessage(level.Error, "", ""),
+		// NewSlackMessage(level.Error, "", "", nil),
 		MakeComposerProducerMessage(nil),
 		MakeComposerProducerMessage(func() Composer { return nil }),
 		MakeFieldsProducerMessage(nil),
@@ -151,142 +146,6 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 	for idx, msg := range cases {
 		assert.False(msg.Loggable(), "%d:%T", idx, msg)
 	}
-}
-
-func TestDataCollecterComposerConstructors(t *testing.T) {
-	const testMsg = "hello"
-	// map objects to output (prefix)
-
-	t.Run("Single", func(t *testing.T) {
-		for _, test := range []struct {
-			Name       string
-			Msg        Composer
-			Expected   string
-			ShouldSkip bool
-		}{
-			{
-				Name: "ProcessInfoCurrentProc",
-				Msg:  NewProcessInfo(level.Error, int32(os.Getpid()), testMsg),
-			},
-			{
-				Name:     "NewSystemInfo",
-				Msg:      NewSystemInfo(level.Error, testMsg),
-				Expected: testMsg,
-			},
-
-			{
-				Name:     "MakeSystemInfo",
-				Msg:      MakeSystemInfo(testMsg),
-				Expected: testMsg,
-			},
-			{
-				Name:       "CollectProcInfoPidOne",
-				Msg:        CollectProcessInfo(int32(1)),
-				ShouldSkip: runtime.GOOS == "windows",
-			},
-			{
-				Name: "CollectProcInfoSelf",
-				Msg:  CollectProcessInfoSelf(),
-			},
-			{
-				Name: "CollectSystemInfo",
-				Msg:  CollectSystemInfo(),
-			},
-			{
-				Name: "CollectBasicGoStats",
-				Msg:  CollectBasicGoStats(),
-			},
-			{
-				Name: "CollectGoStatsDeltas",
-				Msg:  CollectGoStatsDeltas(),
-			},
-			{
-				Name: "CollectGoStatsRates",
-				Msg:  CollectGoStatsRates(),
-			},
-			{
-				Name: "CollectGoStatsTotals",
-				Msg:  CollectGoStatsTotals(),
-			},
-			{
-				Name:     "MakeGoStatsDelta",
-				Msg:      MakeGoStatsDeltas(testMsg),
-				Expected: testMsg,
-			},
-			{
-				Name:     "MakeGoStatsRates",
-				Msg:      MakeGoStatsRates(testMsg),
-				Expected: testMsg,
-			},
-			{
-				Name:     "MakeGoStatsTotals",
-				Msg:      MakeGoStatsTotals(testMsg),
-				Expected: testMsg,
-			},
-			{
-				Name:     "NewGoStatsDeltas",
-				Msg:      NewGoStatsDeltas(level.Error, testMsg),
-				Expected: testMsg,
-			},
-			{
-				Name:     "NewGoStatsRates",
-				Msg:      NewGoStatsRates(level.Error, testMsg),
-				Expected: testMsg,
-			},
-			{
-				Name:     "NewGoStatsTotals",
-				Msg:      NewGoStatsTotals(level.Error, testMsg),
-				Expected: testMsg,
-			},
-		} {
-			if test.ShouldSkip {
-				continue
-			}
-			t.Run(test.Name, func(t *testing.T) {
-				assert.NotNil(t, test.Msg)
-				assert.NotNil(t, test.Msg.Raw())
-				assert.Implements(t, (*Composer)(nil), test.Msg)
-				assert.True(t, test.Msg.Loggable())
-				assert.True(t, strings.HasPrefix(test.Msg.String(), test.Expected), "%T: %s", test.Msg, test.Msg)
-			})
-		}
-	})
-
-	t.Run("Multi", func(t *testing.T) {
-		for _, test := range []struct {
-			Name       string
-			Group      []Composer
-			ShouldSkip bool
-		}{
-			{
-				Name:  "SelfWithChildren",
-				Group: CollectProcessInfoSelfWithChildren(),
-			},
-			{
-				Name:       "PidOneWithChildren",
-				Group:      CollectProcessInfoWithChildren(int32(1)),
-				ShouldSkip: runtime.GOOS == "windows",
-			},
-			{
-				Name:  "AllProcesses",
-				Group: CollectAllProcesses(),
-			},
-		} {
-			if test.ShouldSkip {
-				continue
-			}
-			t.Run(test.Name, func(t *testing.T) {
-				require.True(t, len(test.Group) >= 1)
-				for _, msg := range test.Group {
-					assert.NotNil(t, msg)
-					assert.Implements(t, (*Composer)(nil), msg)
-					assert.NotEqual(t, "", msg.String())
-					assert.True(t, msg.Loggable())
-				}
-			})
-
-		}
-	})
 }
 
 func TestStackMessages(t *testing.T) {
@@ -373,53 +232,6 @@ func TestComposerConverter(t *testing.T) {
 		assert.True(strings.HasPrefix(comp.String(), out))
 	}
 
-}
-
-func TestJiraMessageComposerConstructor(t *testing.T) {
-	const testMsg = "hello"
-	assert := assert.New(t) // nolint
-	reporterField := JiraField{Key: "Reporter", Value: "Annie"}
-	assigneeField := JiraField{Key: "Assignee", Value: "Sejin"}
-	typeField := JiraField{Key: "Type", Value: "Bug"}
-	labelsField := JiraField{Key: "Labels", Value: []string{"Soul", "Pop"}}
-	unknownField := JiraField{Key: "Artist", Value: "Adele"}
-	msg := NewJiraMessage("project", testMsg, reporterField, assigneeField, typeField, labelsField, unknownField)
-	issue := msg.Raw().(*JiraIssue)
-
-	assert.Equal(issue.Project, "project")
-	assert.Equal(issue.Summary, testMsg)
-	assert.Equal(issue.Reporter, reporterField.Value)
-	assert.Equal(issue.Assignee, assigneeField.Value)
-	assert.Equal(issue.Type, typeField.Value)
-	assert.Equal(issue.Labels, labelsField.Value)
-	assert.Equal(issue.Fields[unknownField.Key], unknownField.Value)
-}
-
-func TestProcessTreeDoesNotHaveDuplicates(t *testing.T) {
-	assert := assert.New(t) // nolint
-
-	procs := CollectProcessInfoWithChildren(1)
-	seen := make(map[int32]struct{})
-
-	for _, p := range procs {
-		pinfo, ok := p.(*ProcessInfo)
-		assert.True(ok)
-		seen[pinfo.Pid] = struct{}{}
-	}
-
-	assert.Equal(len(seen), len(procs))
-}
-
-func TestJiraIssueAnnotationOnlySupportsStrings(t *testing.T) {
-	assert := assert.New(t) // nolint
-
-	m := &jiraMessage{
-		issue: &JiraIssue{},
-	}
-
-	assert.Error(m.Annotate("k", 1))
-	assert.Error(m.Annotate("k", true))
-	assert.Error(m.Annotate("k", nil))
 }
 
 type causer interface {

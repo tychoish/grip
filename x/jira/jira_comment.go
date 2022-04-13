@@ -73,7 +73,7 @@ func NewCommentSender(ctx context.Context, id string, opts *Options, l send.Leve
 func (j *jiraCommentJournal) Send(m message.Composer) {
 	if j.Level().ShouldLog(m) {
 		issue := j.issueID
-		if c, ok := m.Raw().(*message.JIRAComment); ok {
+		if c, ok := m.Raw().(*Comment); ok {
 			issue = c.IssueID
 		}
 		if err := j.opts.client.PostComment(issue, m.String()); err != nil {

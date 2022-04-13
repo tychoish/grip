@@ -133,7 +133,7 @@ func (fp *fieldsProducerMessage) Loggable() bool {
 	fp.resolve()
 	return fp.cached.Loggable()
 }
-
+func (*fieldsProducerMessage) Structured() bool            { return true }
 func (fp *fieldsProducerMessage) Priority() level.Priority { return fp.level }
 func (fp *fieldsProducerMessage) String() string           { fp.resolve(); return fp.cached.String() }
 func (fp *fieldsProducerMessage) Raw() interface{}         { fp.resolve(); return fp.cached.Raw() }
@@ -220,6 +220,7 @@ func (cp *composerProducerMessage) Loggable() bool {
 	return cp.cached.Loggable()
 }
 
+func (*composerProducerMessage) Structured() bool            { return true }
 func (cp *composerProducerMessage) Priority() level.Priority { return cp.level }
 func (cp *composerProducerMessage) String() string           { cp.resolve(); return cp.cached.String() }
 func (cp *composerProducerMessage) Raw() interface{}         { cp.resolve(); return cp.cached.Raw() }
@@ -311,6 +312,7 @@ func (ep *errorProducerMessage) Loggable() bool {
 	return ep.cached.Loggable()
 }
 
+func (*errorProducerMessage) Structured() bool            { return true }
 func (ep *errorProducerMessage) Priority() level.Priority { return ep.level }
 func (ep *errorProducerMessage) String() string           { ep.resolve(); return ep.cached.String() }
 func (ep *errorProducerMessage) Raw() interface{}         { ep.resolve(); return ep.cached.Raw() }

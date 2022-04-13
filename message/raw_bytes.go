@@ -46,7 +46,7 @@ func (s *bytesMessage) String() string {
 func (s *bytesMessage) Loggable() bool {
 	return len(s.data) > 0
 }
-
+func (*bytesMessage) Structured() bool { return false }
 func (s *bytesMessage) Raw() interface{} {
 	if !s.skipMetadata {
 		_ = s.Collect()

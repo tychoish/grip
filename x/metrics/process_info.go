@@ -8,6 +8,7 @@ import (
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
 	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
 // ProcessInfo holds the data for per-process statistics (e.g. cpu,
@@ -25,7 +26,7 @@ type ProcessInfo struct {
 	Memory         process.MemoryInfoStat   `json:"mem" bson:"mem"`
 	MemoryPlatform process.MemoryInfoExStat `json:"memExtra" bson:"memExtra"`
 	Errors         []string                 `json:"errors" bson:"errors"`
-	Base           `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	message.Base   `json:"metadata,omitempty" bson:"metadata,omitempty"`
 	loggable       bool
 	rendered       string
 }
@@ -38,28 +39,28 @@ type ProcessInfo struct {
 
 // CollectProcessInfo returns a populated ProcessInfo message.Composer
 // instance for the specified pid.
-func CollectProcessInfo(pid int32) Composer {
+func CollectProcessInfo(pid int32) message.Composer {
 	return NewProcessInfo(level.Trace, pid, "")
 }
 
 // CollectProcessInfoSelf returns a populated ProcessInfo message.Composer
 // for the pid of the current process.
-func CollectProcessInfoSelf() Composer {
+func CollectProcessInfoSelf() message.Composer {
 	return NewProcessInfo(level.Trace, int32(os.Getpid()), "")
 }
 
 // CollectProcessInfoSelfWithChildren returns a slice of populated
 // ProcessInfo message.Composer instances for the current process and
 // all children processes.
-func CollectProcessInfoSelfWithChildren() []Composer {
+func CollectProcessInfoSelfWithChildren() []message.Composer {
 	return CollectProcessInfoWithChildren(int32(os.Getpid()))
 }
 
 // CollectProcessInfoWithChildren returns a slice of populated
 // ProcessInfo message.Composer instances for the process with the
 // specified pid and all children processes for that process.
-func CollectProcessInfoWithChildren(pid int32) []Composer {
-	var results []Composer
+func CollectProcessInfoWithChildren(pid int32) []message.Composer {
+	var results []message.Composer
 	parent, err := process.NewProcess(pid)
 	if err != nil {
 		return results
@@ -83,17 +84,17 @@ func CollectProcessInfoWithChildren(pid int32) []Composer {
 // CollectAllProcesses returns a slice of populated ProcessInfo
 // message.Composer interfaces for all processes currently running on
 // a system.
-func CollectAllProcesses() []Composer {
+func CollectAllProcesses() []message.Composer {
 	numThreads := 32
 	procs, err := process.Processes()
 	if err != nil {
-		return []Composer{}
+		return []message.Composer{}
 	}
 	if len(procs) < numThreads {
 		numThreads = len(procs)
 	}
 
-	results := []Composer{}
+	results := []message.Composer{}
 	procChan := make(chan *process.Process, len(procs))
 	for _, p := range procs {
 		procChan <- p
@@ -140,7 +141,7 @@ func getChildrenRecursively(proc *process.Process) []*process.Process {
 
 // NewProcessInfo constructs a fully configured and populated
 // Processinfo message.Composer instance for the specified process.
-func NewProcessInfo(priority level.Priority, pid int32, message string) Composer {
+func NewProcessInfo(priority level.Priority, pid int32, message string) message.Composer {
 	p := &ProcessInfo{
 		Message: message,
 		Pid:     pid,
@@ -172,6 +173,7 @@ func NewProcessInfo(priority level.Priority, pid int32, message string) Composer
 // Loggable returns true when the Processinfo structure has been
 // populated.
 func (p *ProcessInfo) Loggable() bool { return p.loggable }
+func (*ProcessInfo) Structured() bool { return true }
 
 // Raw always returns the ProcessInfo object, however it will call the
 // Collect method of the base operation first.

@@ -146,8 +146,8 @@ type GoRuntimeInfo struct {
 	Goroutines  int64         `bson:"goroutines.total" json:"goroutines.total" yaml:"goroutines.total"`
 	CgoCalls    int64         `bson:"cgo.calls" json:"cgo.calls" yaml:"cgo.calls"`
 
-	Message string `bson:"message" json:"message" yaml:"message"`
-	Base    `json:"metadata,omitempty" bson:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Message      string `bson:"message" json:"message" yaml:"message"`
+	message.Base `json:"metadata,omitempty" bson:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	loggable  bool
 	useDeltas bool
@@ -162,7 +162,7 @@ type GoRuntimeInfo struct {
 // The data reported for the runtime event metrics (e.g. mallocs,
 // frees, gcs, and cgo calls,) are totals collected since the
 // beginning on the runtime.
-func CollectGoStatsTotals() Composer {
+func CollectGoStatsTotals() message.Composer {
 	s := &GoRuntimeInfo{}
 	s.build()
 
@@ -172,7 +172,7 @@ func CollectGoStatsTotals() Composer {
 // MakeGoStatsTotals has the same semantics as CollectGoStatsTotals,
 // but additionally allows you to set a message string to annotate the
 // data.
-func MakeGoStatsTotals(msg string) Composer {
+func MakeGoStatsTotals(msg string) message.Composer {
 	s := &GoRuntimeInfo{Message: msg}
 	s.build()
 
@@ -182,7 +182,7 @@ func MakeGoStatsTotals(msg string) Composer {
 // NewGoStatsTotals has the same semantics as CollectGoStatsTotals,
 // but additionally allows you to set a message string and log level
 // to annotate the data.
-func NewGoStatsTotals(p level.Priority, msg string) Composer {
+func NewGoStatsTotals(p level.Priority, msg string) message.Composer {
 	s := &GoRuntimeInfo{Message: msg}
 	s.build()
 	_ = s.SetPriority(p)
@@ -199,7 +199,7 @@ func NewGoStatsTotals(p level.Priority, msg string) Composer {
 //
 // Values are cached between calls, to produce the deltas. For the
 // best results, collect these messages on a regular interval.
-func CollectGoStatsDeltas() Composer {
+func CollectGoStatsDeltas() message.Composer {
 	s := &GoRuntimeInfo{useDeltas: true}
 	s.build()
 
@@ -209,7 +209,7 @@ func CollectGoStatsDeltas() Composer {
 // MakeGoStatsDeltas has the same semantics as CollectGoStatsDeltas,
 // but additionally allows you to set a message string to annotate the
 // data.
-func MakeGoStatsDeltas(msg string) Composer {
+func MakeGoStatsDeltas(msg string) message.Composer {
 	s := &GoRuntimeInfo{Message: msg, useDeltas: true}
 	s.build()
 	return s
@@ -218,7 +218,7 @@ func MakeGoStatsDeltas(msg string) Composer {
 // NewGoStatsDeltas has the same semantics as CollectGoStatsDeltas,
 // but additionally allows you to set a message string to annotate the
 // data.
-func NewGoStatsDeltas(p level.Priority, msg string) Composer {
+func NewGoStatsDeltas(p level.Priority, msg string) message.Composer {
 	s := &GoRuntimeInfo{Message: msg, useDeltas: true}
 	s.build()
 	_ = s.SetPriority(p)
@@ -236,7 +236,7 @@ func NewGoStatsDeltas(p level.Priority, msg string) Composer {
 // calculated using integer division.
 //
 // For the best results, collect these messages on a regular interval.
-func CollectGoStatsRates() Composer {
+func CollectGoStatsRates() message.Composer {
 	s := &GoRuntimeInfo{useRates: true}
 	s.build()
 
@@ -246,7 +246,7 @@ func CollectGoStatsRates() Composer {
 // MakeGoStatsRates has the same semantics as CollectGoStatsRates,
 // but additionally allows you to set a message string to annotate the
 // data.
-func MakeGoStatsRates(msg string) Composer {
+func MakeGoStatsRates(msg string) message.Composer {
 	s := &GoRuntimeInfo{Message: msg, useRates: true}
 	s.build()
 	return s
@@ -255,7 +255,7 @@ func MakeGoStatsRates(msg string) Composer {
 // NewGoStatsRates has the same semantics as CollectGoStatsRates,
 // but additionally allows you to set a message string to annotate the
 // data.
-func NewGoStatsRates(p level.Priority, msg string) Composer {
+func NewGoStatsRates(p level.Priority, msg string) message.Composer {
 	s := &GoRuntimeInfo{Message: msg, useRates: true}
 	s.build()
 	_ = s.SetPriority(p)
@@ -302,6 +302,7 @@ func (s *GoRuntimeInfo) build() {
 // Loggable returns true when the GoRuntimeInfo structure is
 // populated. Loggable is part of the Composer interface.
 func (s *GoRuntimeInfo) Loggable() bool { return s.loggable }
+func (*GoRuntimeInfo) Structured() bool { return true }
 
 // Raw is part of the Composer interface and returns the GoRuntimeInfo
 // object itself.

@@ -269,7 +269,7 @@ func (s *SlackSuite) TestSendMethod() {
 	s.Equal(mock.numSent, 1)
 	s.Equal("#test", mock.lastTarget)
 
-	m = message.NewSlackMessage(level.Alert, "#somewhere", "Hi", nil)
+	m = NewMessage(level.Alert, "#somewhere", "Hi", nil)
 	sender.Send(m)
 	s.Equal(mock.numSent, 2)
 	s.Equal("#somewhere", mock.lastTarget)
@@ -295,7 +295,7 @@ func (s *SlackSuite) TestSendMethodWithError() {
 
 	// sender should not panic with empty attachments
 	s.NotPanics(func() {
-		m = message.NewSlackMessage(level.Alert, "#general", "I am a formatted slack message", nil)
+		m = NewMessage(level.Alert, "#general", "I am a formatted slack message", nil)
 		sender.Send(m)
 		s.Equal(mock.numSent, 1)
 	})

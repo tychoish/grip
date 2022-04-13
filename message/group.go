@@ -105,6 +105,22 @@ func (g *GroupComposer) Loggable() bool {
 	return false
 }
 
+func (g *GroupComposer) Structured() bool {
+	g.mutex.RLock()
+	defer g.mutex.RUnlock()
+
+	for _, m := range g.messages {
+		if m == nil {
+			continue
+		}
+		if m.Structured() {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Priority returns the highest priority of the constituent Composers.
 func (g *GroupComposer) Priority() level.Priority {
 	var highest level.Priority

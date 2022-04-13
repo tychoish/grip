@@ -1,4 +1,4 @@
-package message
+package metrics
 
 import (
 	"encoding/json"
@@ -10,25 +10,26 @@ import (
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
 	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
 // SystemInfo is a type that implements message.Composer but also
 // collects system-wide resource utilization statistics about memory,
 // CPU, and network use, along with an optional message.
 type SystemInfo struct {
-	Message    string                `json:"message" bson:"message"`
-	CPU        StatCPUTimes          `json:"cpu" bson:"cpu"`
-	CPUPercent float64               `json:"cpu_percent" bson:"cpu_percent"`
-	NumCPU     int                   `json:"num_cpus" bson:"num_cpus"`
-	VMStat     mem.VirtualMemoryStat `json:"vmstat" bson:"vmstat"`
-	NetStat    net.IOCountersStat    `json:"netstat" bson:"netstat"`
-	Partitions []disk.PartitionStat  `json:"partitions" bson:"partitions"`
-	Usage      []disk.UsageStat      `json:"usage" bson:"usage"`
-	IOStat     []disk.IOCountersStat `json:"iostat" bson:"iostat"`
-	Errors     []string              `json:"errors" bson:"errors"`
-	Base       `json:"metadata,omitempty" bson:"metadata,omitempty"`
-	loggable   bool
-	rendered   string
+	Message      string                `json:"message" bson:"message"`
+	CPU          StatCPUTimes          `json:"cpu" bson:"cpu"`
+	CPUPercent   float64               `json:"cpu_percent" bson:"cpu_percent"`
+	NumCPU       int                   `json:"num_cpus" bson:"num_cpus"`
+	VMStat       mem.VirtualMemoryStat `json:"vmstat" bson:"vmstat"`
+	NetStat      net.IOCountersStat    `json:"netstat" bson:"netstat"`
+	Partitions   []disk.PartitionStat  `json:"partitions" bson:"partitions"`
+	Usage        []disk.UsageStat      `json:"usage" bson:"usage"`
+	IOStat       []disk.IOCountersStat `json:"iostat" bson:"iostat"`
+	Errors       []string              `json:"errors" bson:"errors"`
+	message.Base `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	loggable     bool
+	rendered     string
 }
 
 // StatCPUTimes provides a mirror of gopsutil/cpu.TimesStat with
@@ -63,19 +64,19 @@ func convertCPUTimes(in cpu.TimesStat) StatCPUTimes {
 
 // CollectSystemInfo returns a populated SystemInfo object,
 // without a message.
-func CollectSystemInfo() Composer {
+func CollectSystemInfo() message.Composer {
 	return NewSystemInfo(level.Trace, "")
 }
 
 // MakeSystemInfo builds a populated SystemInfo object with the
 // specified message.
-func MakeSystemInfo(message string) Composer {
+func MakeSystemInfo(message string) message.Composer {
 	return NewSystemInfo(level.Info, message)
 }
 
 // NewSystemInfo returns a fully configured and populated SystemInfo
 // object.
-func NewSystemInfo(priority level.Priority, message string) Composer {
+func NewSystemInfo(priority level.Priority, message string) message.Composer {
 	var err error
 	s := &SystemInfo{
 		Message: message,
@@ -148,6 +149,7 @@ func NewSystemInfo(priority level.Priority, message string) Composer {
 // Loggable returns true when the Processinfo structure has been
 // populated.
 func (s *SystemInfo) Loggable() bool { return s.loggable }
+func (*SystemInfo) Structured() bool { return true }
 
 // Raw always returns the SystemInfo object.
 func (s *SystemInfo) Raw() interface{} { return s }

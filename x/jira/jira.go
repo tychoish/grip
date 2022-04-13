@@ -156,7 +156,7 @@ func getFields(m message.Composer) *jira.IssueFields {
 	var issueFields *jira.IssueFields
 
 	switch msg := m.Raw().(type) {
-	case *message.JiraIssue:
+	case *Issue:
 		issueFields = &jira.IssueFields{
 			Project:     jira.Project{Key: msg.Project},
 			Summary:     msg.Summary,
@@ -219,7 +219,7 @@ func getFields(m message.Composer) *jira.IssueFields {
 
 func populateKey(m message.Composer, issueKey string) {
 	switch msg := m.Raw().(type) {
-	case *message.JiraIssue:
+	case *Issue:
 		msg.IssueKey = issueKey
 		if msg.Callback != nil {
 			msg.Callback(issueKey)

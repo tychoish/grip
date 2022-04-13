@@ -50,9 +50,8 @@ func (e *errorMessage) String() string {
 	return e.ErrorValue
 }
 
-func (e *errorMessage) Loggable() bool {
-	return e.err != nil
-}
+func (e *errorMessage) Loggable() bool { return e.err != nil }
+func (*errorMessage) Structured() bool { return false }
 
 func (e *errorMessage) Raw() interface{} {
 	_ = e.Collect()

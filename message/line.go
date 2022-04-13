@@ -62,6 +62,8 @@ func (l *lineMessenger) Loggable() bool {
 	return false
 }
 
+func (*lineMessenger) Structured() bool { return false }
+
 func (l *lineMessenger) String() string {
 	if l.Message == "" {
 		l.Message = strings.Trim(fmt.Sprintln(l.lines...), "\n ")

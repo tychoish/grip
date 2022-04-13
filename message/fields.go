@@ -157,6 +157,8 @@ func (m *fieldMessage) setup() {
 	}
 }
 
+func (*fieldMessage) Structured() bool { return true }
+
 func (m *fieldMessage) Loggable() bool {
 	if m.message == "" && len(m.fields) == 0 {
 		return false

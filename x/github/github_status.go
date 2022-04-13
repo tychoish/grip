@@ -28,14 +28,14 @@ func (s *githubStatusMessageLogger) Send(m message.Composer) {
 		ref := ""
 
 		switch v := m.Raw().(type) {
-		case *message.GithubStatus:
+		case *Status:
 			status = githubStatusMessagePayloadToRepoStatus(v)
 			if v != nil {
 				owner = v.Owner
 				repo = v.Repo
 				ref = v.Ref
 			}
-		case message.GithubStatus:
+		case Status:
 			status = githubStatusMessagePayloadToRepoStatus(&v)
 			owner = v.Owner
 			repo = v.Repo
@@ -147,7 +147,7 @@ func getStringPtrFromField(i interface{}) (*string, bool) {
 
 	return nil, false
 }
-func githubStatusMessagePayloadToRepoStatus(c *message.GithubStatus) *github.RepoStatus {
+func githubStatusMessagePayloadToRepoStatus(c *Status) *github.RepoStatus {
 	if c == nil {
 		return nil
 	}

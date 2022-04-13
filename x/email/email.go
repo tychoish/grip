@@ -26,8 +26,8 @@ type Message struct {
 }
 
 type emailMessage struct {
-	data Message
-	Base `bson:"metadata" json:"metadata" yaml:"metadata"`
+	data         Message
+	message.Base `bson:"metadata" json:"metadata" yaml:"metadata"`
 }
 
 // NewMessage returns a composer for emails
@@ -81,6 +81,8 @@ func (e *emailMessage) Loggable() bool {
 func (e *emailMessage) Raw() interface{} {
 	return &e.data
 }
+
+func (*emailMessage) Structured() bool { return false }
 
 func (e *emailMessage) String() string {
 	const (

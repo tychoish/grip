@@ -127,6 +127,8 @@ func MakeMessage(target string, msg string, attachments []Attachment) message.Co
 	return s
 }
 
+func (c *slackMessage) Structured() bool { return len(c.raw.Attachments) > 0 }
+
 func (c *slackMessage) Loggable() bool {
 	if len(c.raw.Target) == 0 {
 		return false

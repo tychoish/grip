@@ -36,13 +36,9 @@ func NewSimpleStringMessage(p level.Priority, message string) Composer {
 	return m
 }
 
-func (s *stringMessage) String() string {
-	return s.Message
-}
-
-func (s *stringMessage) Loggable() bool {
-	return s.Message != ""
-}
+func (s *stringMessage) String() string { return s.Message }
+func (s *stringMessage) Loggable() bool { return s.Message != "" }
+func (*stringMessage) Structured() bool { return false }
 
 func (s *stringMessage) Raw() interface{} {
 	if !s.skipMetadata {

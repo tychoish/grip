@@ -28,6 +28,11 @@ type Composer interface {
 	// above the logging threshold.
 	Loggable() bool
 
+	// Returns "true" when the underlying message type has
+	// substantial structured data and should be handled by the
+	// sender as structured data.
+	Structured() bool
+
 	// Annotate makes it possible for Senders and Journalers to
 	// add structured data to a log message. May return an error
 	// when the key alrady exists.
@@ -164,56 +169,5 @@ func convert(p level.Priority, message interface{}, overRideLevel bool) Composer
 		return NewLineMessage(p)
 	default:
 		return NewFormattedMessage(p, "%+v", message)
-	}
-}
-
-// IsStructured returns false if the Composer has a string form which
-// is merely a representation of the structured form.
-//
-// Additionally, returns true for all unknown types, including all types not
-// produced by this package.
-func IsStructured(msg Composer) bool {
-	switch m := msg.(type) {
-	case *stringMessage:
-		return false
-	case *formatMessenger:
-		return false
-	case *lineMessenger:
-		return false
-	case *bytesMessage:
-		return false
-	case *SystemInfo:
-		return true
-	case *ProcessInfo:
-		return true
-	case *GoRuntimeInfo:
-		return true
-	case *jiraMessage:
-		return true
-	case *jiraComment:
-		return false
-	case *githubStatusMessage:
-		return true
-	case *errorMessage:
-		return true
-	case *emailMessage:
-		return true
-	case *fieldMessage:
-		return true
-	case *GroupComposer:
-		return true
-	case *fieldsProducerMessage:
-		m.resolve()
-		return IsStructured(m.cached)
-	case *composerProducerMessage:
-		m.resolve()
-		return IsStructured(m.cached)
-	case *errorProducerMessage:
-		m.resolve()
-		return IsStructured(m.cached)
-	case errorComposerShim:
-		return IsStructured(m.Composer)
-	default:
-		return true
 	}
 }
