@@ -81,11 +81,6 @@ func SetName(name string) {
 	std.SetName(name)
 }
 
-// SetLevel sets the default and threshold level in the underlying sender.
-func SetLevel(info send.LevelInfo) error {
-	return std.SetLevel(info)
-}
-
 // SetSender swaps send.Sender() implementations in a logging
 // instance. Calls the Close() method on the existing instance before
 // changing the implementation for the current instance.

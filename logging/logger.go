@@ -55,22 +55,6 @@ func (g *Grip) SetName(n string) {
 	g.impl.SetName(n)
 }
 
-func (g *Grip) SetLevel(info send.LevelInfo) error {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	sl := g.impl.Level()
-
-	if !info.Default.IsValid() {
-		info.Default = sl.Default
-	}
-
-	if !info.Threshold.IsValid() {
-		info.Threshold = sl.Threshold
-	}
-
-	return g.impl.SetLevel(info)
-}
-
 func (g *Grip) Send(m interface{}) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
