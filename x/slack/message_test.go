@@ -1,4 +1,4 @@
-package message
+package slack
 
 import (
 	"reflect"
@@ -11,7 +11,7 @@ import (
 func TestSlackAttachmentFieldConvert(t *testing.T) {
 	assert := assert.New(t) //nolint
 
-	gripField := SlackAttachmentField{
+	gripField := AttachmentField{
 		Title: "1",
 		Value: "2",
 		Short: true,
@@ -26,13 +26,13 @@ func TestSlackAttachmentFieldConvert(t *testing.T) {
 func TestSlackAttachmentConvert(t *testing.T) {
 	assert := assert.New(t) //nolint
 
-	af := SlackAttachmentField{
+	af := AttachmentField{
 		Title: "1",
 		Value: "2",
 		Short: true,
 	}
 
-	at := SlackAttachment{
+	at := Attachment{
 		Color:      "1",
 		Fallback:   "2",
 		AuthorName: "3",
@@ -40,7 +40,7 @@ func TestSlackAttachmentConvert(t *testing.T) {
 		Title:      "7",
 		TitleLink:  "8",
 		Text:       "10",
-		Fields:     []*SlackAttachmentField{&af},
+		Fields:     []*AttachmentField{&af},
 		MarkdownIn: []string{"15", "16"},
 	}
 	slackAttachment := at.convert()
@@ -62,7 +62,7 @@ func TestSlackAttachmentConvert(t *testing.T) {
 func TestSlackAttachmentIsSame(t *testing.T) {
 	assert := assert.New(t) //nolint
 
-	grip := SlackAttachment{}
+	grip := Attachment{}
 	slack := slack.Attachment{}
 
 	vGrip := reflect.TypeOf(grip)
@@ -90,7 +90,7 @@ func TestSlackAttachmentIsSame(t *testing.T) {
 func TestSlackAttachmentFieldIsSame(t *testing.T) {
 	assert := assert.New(t) //nolint
 
-	gripStruct := SlackAttachmentField{}
+	gripStruct := AttachmentField{}
 	slackStruct := slack.AttachmentField{}
 
 	vGrip := reflect.TypeOf(gripStruct)

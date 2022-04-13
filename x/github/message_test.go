@@ -1,4 +1,4 @@
-package message
+package github
 
 import (
 	"testing"
@@ -7,19 +7,19 @@ import (
 	"github.com/tychoish/grip/level"
 )
 
-func TestGithubStatus(t *testing.T) {
+func TestStatus(t *testing.T) {
 	assert := assert.New(t) //nolint: vetshadow
 
-	c := NewGithubStatusMessage(level.Info, "example", GithubStatePending, "https://example.com/hi", "description")
+	c := NewStatusMessage(level.Info, "example", StatePending, "https://example.com/hi", "description")
 	assert.NotNil(c)
 	assert.True(c.Loggable())
 
-	raw, ok := c.Raw().(*GithubStatus)
+	raw, ok := c.Raw().(*Status)
 	assert.True(ok)
 
 	assert.NotPanics(func() {
 		assert.Equal("example", raw.Context)
-		assert.Equal(GithubStatePending, raw.State)
+		assert.Equal(StatePending, raw.State)
 		assert.Equal("https://example.com/hi", raw.URL)
 		assert.Equal("description", raw.Description)
 	})
@@ -27,35 +27,35 @@ func TestGithubStatus(t *testing.T) {
 	assert.Equal("example pending: description (https://example.com/hi)", c.String())
 }
 
-func TestGithubStatusInvalidStatusesAreNotLoggable(t *testing.T) {
+func TestStatusInvalidStatusesAreNotLoggable(t *testing.T) {
 	assert := assert.New(t) //nolint: vetshadow
 
-	c := NewGithubStatusMessage(level.Info, "", GithubStatePending, "https://example.com/hi", "description")
+	c := NewStatusMessage(level.Info, "", StatePending, "https://example.com/hi", "description")
 	assert.False(c.Loggable())
-	c = NewGithubStatusMessage(level.Info, "example", "nope", "https://example.com/hi", "description")
+	c = NewStatusMessage(level.Info, "example", "nope", "https://example.com/hi", "description")
 	assert.False(c.Loggable())
-	c = NewGithubStatusMessage(level.Info, "example", GithubStatePending, ":foo", "description")
+	c = NewStatusMessage(level.Info, "example", StatePending, ":foo", "description")
 	assert.False(c.Loggable())
 
-	p := GithubStatus{
+	p := Status{
 		Owner:       "",
 		Repo:        "grip",
 		Ref:         "master",
 		Context:     "example",
-		State:       GithubStatePending,
+		State:       StatePending,
 		URL:         "https://example.com/hi",
 		Description: "description",
 	}
-	c = NewGithubStatusMessageWithRepo(level.Info, p)
+	c = NewStatusMessageWithRepo(level.Info, p)
 	assert.False(c.Loggable())
 
 	p.Owner = "tychoish"
 	p.Repo = ""
-	c = NewGithubStatusMessageWithRepo(level.Info, p)
+	c = NewStatusMessageWithRepo(level.Info, p)
 	assert.False(c.Loggable())
 
 	p.Repo = "grip"
 	p.Ref = ""
-	c = NewGithubStatusMessageWithRepo(level.Info, p)
+	c = NewStatusMessageWithRepo(level.Info, p)
 	assert.False(c.Loggable())
 }

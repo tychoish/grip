@@ -1,38 +1,39 @@
-package message
+package github
 
 import (
 	"fmt"
 	"net/url"
 
 	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
-// GithubState represents the 4 valid states for the Github State API in
+// State represents the 4 valid states for the Github State API in
 // a safer way
-type GithubState string
+type State string
 
 // The list of valid states for Github Status API requests
 const (
-	GithubStatePending = GithubState("pending")
-	GithubStateSuccess = GithubState("success")
-	GithubStateError   = GithubState("error")
-	GithubStateFailure = GithubState("failure")
+	StatePending = State("pending")
+	StateSuccess = State("success")
+	StateError   = State("error")
+	StateFailure = State("failure")
 )
 
-// GithubStatus is a message to be posted to Github's Status API
-type GithubStatus struct {
+// Status is a message to be posted to Github's Status API
+type Status struct {
 	Owner string `bson:"owner,omitempty" json:"owner,omitempty" yaml:"owner,omitempty"`
 	Repo  string `bson:"repo,omitempty" json:"repo,omitempty" yaml:"repo,omitempty"`
 	Ref   string `bson:"ref,omitempty" json:"ref,omitempty" yaml:"ref,omitempty"`
 
-	Context     string      `bson:"context" json:"context" yaml:"context"`
-	State       GithubState `bson:"state" json:"state" yaml:"state"`
-	URL         string      `bson:"url" json:"url" yaml:"url"`
-	Description string      `bson:"description" json:"description" yaml:"description"`
+	Context     string `bson:"context" json:"context" yaml:"context"`
+	State       State  `bson:"state" json:"state" yaml:"state"`
+	URL         string `bson:"url" json:"url" yaml:"url"`
+	Description string `bson:"description" json:"description" yaml:"description"`
 }
 
 // Valid returns true if the message is well formed
-func (p *GithubStatus) Valid() bool {
+func (p *Status) Valid() bool {
 	// owner, repo and ref must be empty or must be set
 	ownerEmpty := len(p.Owner) == 0
 	repoEmpty := len(p.Repo) == 0
@@ -42,7 +43,7 @@ func (p *GithubStatus) Valid() bool {
 	}
 
 	switch p.State {
-	case GithubStatePending, GithubStateSuccess, GithubStateError, GithubStateFailure:
+	case StatePending, StateSuccess, StateError, StateFailure:
 	default:
 		return false
 	}
@@ -56,43 +57,43 @@ func (p *GithubStatus) Valid() bool {
 }
 
 type githubStatusMessage struct {
-	raw GithubStatus
+	raw Status
 	str string
 
-	Base `bson:"metadata" json:"metadata" yaml:"metadata"`
+	message.Base `bson:"metadata" json:"metadata" yaml:"metadata"`
 }
 
-// NewGithubStatusMessageWithRepo creates a composer for sending payloads to the Github Status
+// NewStatusMessageWithRepo creates a composer for sending payloads to the Github Status
 // API, with the repository and ref stored in the composer
-func NewGithubStatusMessageWithRepo(p level.Priority, status GithubStatus) Composer {
-	s := MakeGithubStatusMessageWithRepo(status)
+func NewStatusMessageWithRepo(p level.Priority, status Status) message.Composer {
+	s := MakeStatusMessageWithRepo(status)
 	_ = s.SetPriority(p)
 
 	return s
 }
 
-// MakeGithubStatusMessageWithRepo creates a composer for sending payloads to the Github Status
+// MakeStatusMessageWithRepo creates a composer for sending payloads to the Github Status
 // API, with the repository and ref stored in the composer
-func MakeGithubStatusMessageWithRepo(status GithubStatus) Composer {
+func MakeStatusMessageWithRepo(status Status) message.Composer {
 	return &githubStatusMessage{
 		raw: status,
 	}
 }
 
-// NewGithubStatusMessage creates a composer for sending payloads to the Github Status
+// NewStatusMessage creates a composer for sending payloads to the Github Status
 // API.
-func NewGithubStatusMessage(p level.Priority, context string, state GithubState, URL, description string) Composer {
-	s := MakeGithubStatusMessage(context, state, URL, description)
+func NewStatusMessage(p level.Priority, context string, state State, URL, description string) message.Composer {
+	s := MakeStatusMessage(context, state, URL, description)
 	_ = s.SetPriority(p)
 
 	return s
 }
 
-// MakeGithubStatusMessage creates a composer for sending payloads to the Github Status
+// MakeStatusMessage creates a composer for sending payloads to the Github Status
 // API without setting a priority
-func MakeGithubStatusMessage(context string, state GithubState, URL, description string) Composer {
+func MakeStatusMessage(context string, state State, URL, description string) message.Composer {
 	return &githubStatusMessage{
-		raw: GithubStatus{
+		raw: Status{
 			Context:     context,
 			State:       state,
 			URL:         URL,
@@ -115,10 +116,8 @@ func (c *githubStatusMessage) String() string {
 		base = fmt.Sprintf("%s/%s@%s ", c.raw.Owner, c.raw.Repo, c.raw.Ref)
 	}
 	if len(c.raw.Description) == 0 {
-		// looks like: evergreen failed (https://evergreen.tychoish.com)
 		c.str = base + fmt.Sprintf("%s %s (%s)", c.raw.Context, string(c.raw.State), c.raw.URL)
 	} else {
-		// looks like: evergreen failed: 1 task failed (https://evergreen.tychoish.com)
 		c.str = base + fmt.Sprintf("%s %s: %s (%s)", c.raw.Context, string(c.raw.State), c.raw.Description, c.raw.URL)
 	}
 

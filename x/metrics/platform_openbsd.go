@@ -1,4 +1,4 @@
-package message
+package metrics
 
 import "github.com/shirou/gopsutil/cpu"
 

@@ -1,4 +1,4 @@
-package message
+package slack
 
 import (
 	"errors"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/bluele/slack"
 	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
 const (
@@ -16,16 +17,16 @@ const (
 	slackMaxAttachments = 100
 )
 
-// Slack is a message to a Slack channel or user
-type Slack struct {
+// Message is a message to a Message channel or user
+type Message struct {
 	Target      string              `bson:"target" json:"target" yaml:"target"`
 	Msg         string              `bson:"msg" json:"msg" yaml:"msg"`
 	Attachments []*slack.Attachment `bson:"attachments" json:"attachments" yaml:"attachments"`
 }
 
-// SlackAttachment is a single attachment to a slack message.
+// Attachment is a single attachment to a slack message.
 // This type is the same as bluele/slack.Attachment
-type SlackAttachment struct {
+type Attachment struct {
 	Color    string `bson:"color,omitempty" json:"color,omitempty" yaml:"color,omitempty"`
 	Fallback string `bson:"fallback" json:"fallback" yaml:"fallback"`
 
@@ -36,13 +37,13 @@ type SlackAttachment struct {
 	TitleLink string `bson:"title_link,omitempty" json:"title_link,omitempty" yaml:"title_link,omitempty"`
 	Text      string `bson:"text" json:"text" yaml:"text"`
 
-	Fields     []*SlackAttachmentField `bson:"fields,omitempty" json:"fields,omitempty" yaml:"fields,omitempty"`
-	MarkdownIn []string                `bson:"mrkdwn_in,omitempty" json:"mrkdwn_in,omitempty" yaml:"mrkdwn_in,omitempty"`
+	Fields     []*AttachmentField `bson:"fields,omitempty" json:"fields,omitempty" yaml:"fields,omitempty"`
+	MarkdownIn []string           `bson:"mrkdwn_in,omitempty" json:"mrkdwn_in,omitempty" yaml:"mrkdwn_in,omitempty"`
 
 	Footer string `bson:"footer,omitempty" json:"footer,omitempty" yaml:"footer,omitempty"`
 }
 
-func (s *SlackAttachment) convert() *slack.Attachment {
+func (s *Attachment) convert() *slack.Attachment {
 	const skipField = "Fields"
 	at := slack.Attachment{}
 
@@ -68,15 +69,15 @@ func (s *SlackAttachment) convert() *slack.Attachment {
 	return &at
 }
 
-// SlackAttachmentField is one of the optional fields that can be attached
+// AttachmentField is one of the optional fields that can be attached
 // to a slack message. This type is the same as bluele/slack.AttachmentField
-type SlackAttachmentField struct {
+type AttachmentField struct {
 	Title string `bson:"title" json:"title" yaml:"title"`
 	Value string `bson:"value" json:"value" yaml:"value"`
 	Short bool   `bson:"short" json:"short" yaml:"short"`
 }
 
-func (s *SlackAttachmentField) convert() *slack.AttachmentField {
+func (s *AttachmentField) convert() *slack.AttachmentField {
 	af := slack.AttachmentField{}
 
 	vGrip := reflect.ValueOf(s).Elem()
@@ -93,23 +94,23 @@ func (s *SlackAttachmentField) convert() *slack.AttachmentField {
 }
 
 type slackMessage struct {
-	raw Slack
+	raw Message
 
-	Base `bson:"metadata" json:"metadata" yaml:"metadata"`
+	message.Base `bson:"metadata" json:"metadata" yaml:"metadata"`
 }
 
-// NewSlackMessage creates a composer for messages to slack
-func NewSlackMessage(p level.Priority, target string, msg string, attachments []SlackAttachment) Composer {
-	s := MakeSlackMessage(target, msg, attachments)
+// NewMessage creates a composer for messages to slack
+func NewMessage(p level.Priority, target string, msg string, attachments []Attachment) message.Composer {
+	s := MakeMessage(target, msg, attachments)
 	_ = s.SetPriority(p)
 
 	return s
 }
 
-// MakeSlackMessage creates a composer for message to slack without a priority
-func MakeSlackMessage(target string, msg string, attachments []SlackAttachment) Composer {
+// MakeMessage creates a composer for message to slack without a priority
+func MakeMessage(target string, msg string, attachments []Attachment) message.Composer {
 	s := &slackMessage{
-		raw: Slack{
+		raw: Message{
 			Target: target,
 			Msg:    msg,
 		},
@@ -151,12 +152,12 @@ func (c *slackMessage) Raw() interface{} {
 // Annotate adds additional attachments to the message. The key value is ignored
 // if a SlackAttachment or *SlackAttachment is supplied
 func (c *slackMessage) Annotate(key string, data interface{}) error {
-	var annotate *SlackAttachment
+	var annotate *Attachment
 
 	switch v := data.(type) {
-	case *SlackAttachment:
+	case *Attachment:
 		annotate = v
-	case SlackAttachment:
+	case Attachment:
 		annotate = &v
 	default:
 		return c.Base.Annotate(key, data)

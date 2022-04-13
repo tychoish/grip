@@ -1,14 +1,15 @@
-package message
+package email
 
 import (
 	"fmt"
 	"net/mail"
 
 	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
-// Email represents the parameters of an email message
-type Email struct {
+// Message represents the parameters of an email message
+type Message struct {
 	From       string   `bson:"from" json:"from" yaml:"from"`
 	Recipients []string `bson:"recipients" json:"recipients" yaml:"recipients"`
 	Subject    string   `bson:"subject" json:"subject" yaml:"subject"`
@@ -25,12 +26,12 @@ type Email struct {
 }
 
 type emailMessage struct {
-	data Email
+	data Message
 	Base `bson:"metadata" json:"metadata" yaml:"metadata"`
 }
 
-// NewEmailMessage returns a composer for emails
-func NewEmailMessage(l level.Priority, e Email) Composer {
+// NewMessage returns a composer for emails
+func NewMessage(l level.Priority, e Message) message.Composer {
 	m := MakeEmailMessage(e)
 	_ = m.SetPriority(l)
 
@@ -38,7 +39,7 @@ func NewEmailMessage(l level.Priority, e Email) Composer {
 }
 
 // MakeEmailMessage creates a composer for emails without a priority set
-func MakeEmailMessage(e Email) Composer {
+func MakeEmailMessage(e Message) message.Composer {
 	return &emailMessage{
 		data: e,
 	}

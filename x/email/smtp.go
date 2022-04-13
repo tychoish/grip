@@ -297,7 +297,7 @@ func (o *SMTPOptions) sendMail(m message.Composer) error {
 	isPlainText := o.PlainTextContents
 	var headers map[string][]string
 
-	if emailMsg, ok := m.Raw().(*message.Email); ok {
+	if emailMsg, ok := m.Raw().(*Message); ok {
 		var err error
 		if len(emailMsg.From) != 0 {
 			fromAddr, err = mail.ParseAddress(emailMsg.From)

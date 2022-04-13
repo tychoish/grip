@@ -1,4 +1,4 @@
-package message
+package metrics
 
 import (
 	"runtime"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 )
 
 var goStatsCache *goStats
@@ -107,12 +108,12 @@ func (s statRate) int() int64 {
 // cannot manipulate the Raw value of this composer.
 //
 // The basic idea is taken from https://github.com/YoSmudge/go-stats.
-func CollectBasicGoStats() Composer {
+func CollectBasicGoStats() message.Composer {
 	goStatsCache.Lock()
 	defer goStatsCache.Unlock()
 	m := goStatsCache.update()
 
-	return MakeFields(Fields{
+	return message.MakeFields(message.Fields{
 		"memory.objects.HeapObjects":  m.HeapObjects,
 		"memory.summary.Alloc":        m.Alloc,
 		"memory.summary.System":       m.HeapSys,
