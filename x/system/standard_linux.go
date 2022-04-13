@@ -12,7 +12,7 @@ import (
 // otherwise.
 func MakeDefaultSystem() (send.Sender, error) {
 	if journal.Enabled() {
-		return MakeSystemd()
+		return MakeSystemdSender()
 	}
 
 	return send.MakeNative(), nil

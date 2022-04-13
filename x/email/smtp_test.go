@@ -154,11 +154,11 @@ func (s *SMTPSuite) TestAddingSingleRecipient() {
 }
 
 func (s *SMTPSuite) TestMakeConstructorFailureCases() {
-	sender, err := Make(nil)
+	sender, err := MakeSender(nil)
 	s.Nil(sender)
 	s.Error(err)
 
-	sender, err = Make(&SMTPOptions{})
+	sender, err = MakeSender(&SMTPOptions{})
 	s.Nil(sender)
 	s.Error(err)
 }
@@ -224,21 +224,21 @@ func (s *SMTPSuite) TestSendMailRecordsMessage() {
 }
 
 func (s *SMTPSuite) TestNewConstructor() {
-	sender, err := New(nil, send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(nil, send.LevelInfo{level.Trace, level.Info})
 	s.Error(err)
 	s.Nil(sender)
 
-	sender, err = New(s.opts, send.LevelInfo{level.Invalid, level.Info})
+	sender, err = NewSender(s.opts, send.LevelInfo{level.Invalid, level.Info})
 	s.Error(err)
 	s.Nil(sender)
 
-	sender, err = New(s.opts, send.LevelInfo{level.Trace, level.Info})
+	sender, err = NewSender(s.opts, send.LevelInfo{level.Trace, level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 }
 
 func (s *SMTPSuite) TestSendMethod() {
-	sender, err := New(s.opts, send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(s.opts, send.LevelInfo{level.Trace, level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 
@@ -260,7 +260,7 @@ func (s *SMTPSuite) TestSendMethod() {
 }
 
 func (s *SMTPSuite) TestSendMethodWithError() {
-	sender, err := New(s.opts, send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(s.opts, send.LevelInfo{level.Trace, level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 
@@ -279,7 +279,7 @@ func (s *SMTPSuite) TestSendMethodWithError() {
 }
 
 func (s *SMTPSuite) TestSendMethodWithEmailComposerOverridesSMTPOptions() {
-	sender, err := New(s.opts, send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(s.opts, send.LevelInfo{level.Trace, level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 

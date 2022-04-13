@@ -1,4 +1,4 @@
-package send
+package jira
 
 import (
 	"context"
@@ -17,16 +17,16 @@ type jiraCommentJournal struct {
 	*send.Base
 }
 
-// MakeComment is the same as NewJiraCommentLogger but uses a warning
+// MakeCommentSender is the same as NewJiraCommentLogger but uses a warning
 // level of Trace
-func MakeComment(ctx context.Context, id string, opts *Options) (send.Sender, error) {
-	return NewComment(ctx, id, opts, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
+func MakeCommentSender(ctx context.Context, id string, opts *Options) (send.Sender, error) {
+	return NewCommentSender(ctx, id, opts, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
 }
 
-// NewComment constructs a Sender that creates issues to jira, given
+// NewCommentSender constructs a Sender that creates issues to jira, given
 // options defined in a JiraOptions struct. id parameter is the ID of the issue.
 // ctx is used as the request context in the OAuth HTTP client
-func NewComment(ctx context.Context, id string, opts *Options, l send.LevelInfo) (send.Sender, error) {
+func NewCommentSender(ctx context.Context, id string, opts *Options, l send.LevelInfo) (send.Sender, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, err
 	}

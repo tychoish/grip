@@ -1,4 +1,4 @@
-package send
+package jira
 
 import (
 	"context"

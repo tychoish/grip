@@ -23,12 +23,12 @@ type smtpLogger struct {
 	*send.Base
 }
 
-// NewSMTPLogger constructs a Sender implementation that delivers mail
+// NewSender constructs a Sender implementation that delivers mail
 // for every loggable message. The configuration of the outgoing SMTP
 // server, and the formatting of the log message is handled by the
 // SMTPOptions structure, which you must use to configure this sender.
-func New(opts *SMTPOptions, l send.LevelInfo) (send.Sender, error) {
-	s, err := Make(opts)
+func NewSender(opts *SMTPOptions, l send.LevelInfo) (send.Sender, error) {
+	s, err := MakeSender(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -40,12 +40,12 @@ func New(opts *SMTPOptions, l send.LevelInfo) (send.Sender, error) {
 	return s, nil
 }
 
-// MakeSMTPLogger constructs an unconfigured (e.g. without level information)
+// MakeSender constructs an unconfigured (e.g. without level information)
 // SMTP Sender implementation that delivers mail for every loggable message.
 // The configuration of the outgoing SMTP server, and the formatting of the
 // log message is handled by the SMTPOptions structure, which you must use
 // to configure this sender.
-func Make(opts *SMTPOptions) (send.Sender, error) {
+func MakeSender(opts *SMTPOptions) (send.Sender, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, err
 	}

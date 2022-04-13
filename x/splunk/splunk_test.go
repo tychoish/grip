@@ -49,7 +49,7 @@ func (s *SplunkSuite) TestEnvironmentVariableReader() {
 }
 
 func (s *SplunkSuite) TestNewConstructor() {
-	sender, err := New("name", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender, err := NewSender("name", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 }
@@ -64,7 +64,7 @@ func (s *SplunkSuite) TestAutoConstructor() {
 	s.NoError(os.Setenv(splunkServerURL, serverVal))
 	s.NoError(os.Setenv(splunkClientToken, tokenVal))
 
-	sender, err := Make("name")
+	sender, err := MakeSender("name")
 	s.NoError(err)
 	s.NotNil(sender)
 }
@@ -79,14 +79,14 @@ func (s *SplunkSuite) TestAutoConstructorFailsWhenEnvVarFails() {
 	s.NoError(os.Setenv(splunkServerURL, serverVal))
 	s.NoError(os.Setenv(splunkClientToken, tokenVal))
 
-	sender, err := Make("name")
+	sender, err := MakeSender("name")
 	s.Error(err)
 	s.Nil(sender)
 
 	serverVal = "serverVal"
 
 	s.NoError(os.Setenv(splunkServerURL, serverVal))
-	sender, err = Make("name")
+	sender, err = MakeSender("name")
 	s.Error(err)
 	s.Nil(sender)
 }

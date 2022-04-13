@@ -18,15 +18,15 @@ type syslogger struct {
 	*send.Base
 }
 
-// NewSyslog creates a new Sender object that writes all
+// NewSyslogSender creates a new Sender object that writes all
 // loggable messages to a syslog instance on the specified
 // network. Uses the Go standard library syslog implementation that is
 // only available on Unix systems. Use this constructor to return a
 // connection to a remote Syslog interface, but will fall back first
 // to the local syslog interface before writing messages to standard
 // output.
-func NewSyslog(name, network, raddr string, l send.LevelInfo) (send.Sender, error) {
-	s := MakeSyslog(network, raddr)
+func NewSyslogSender(name, network, raddr string, l send.LevelInfo) (send.Sender, error) {
+	s := MakeSyslogSender(network, raddr)
 
 	if err := s.SetLevel(l); err != nil {
 		return nil, err
@@ -37,10 +37,10 @@ func NewSyslog(name, network, raddr string, l send.LevelInfo) (send.Sender, erro
 	return s, nil
 }
 
-// MakeSyslog constructs a minimal and unconfigured logger that
+// MakeSyslogSender constructs a minimal and unconfigured logger that
 // posts to systemd's journal.
 // Pass to Journaler.SetSender or call SetName before using.
-func MakeSyslog(network, raddr string) send.Sender {
+func MakeSyslogSender(network, raddr string) send.Sender {
 	s := &syslogger{Base: send.NewBase("")}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
@@ -78,7 +78,7 @@ func MakeSyslog(network, raddr string) send.Sender {
 // the local syslog service. If there is no local syslog service, or
 // there are issues connecting to it, writes logging messages to
 // standard error. Pass to Journaler.SetSender or call SetName before using.
-func MakeLocalSyslog() send.Sender { return MakeSyslog("", "") }
+func MakeLocalSyslog() send.Sender { return MakeSyslogSender("", "") }
 func (s *syslogger) Close() error  { return s.logger.Close() }
 func (s *syslogger) Send(m message.Composer) {
 	defer func() {

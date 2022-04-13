@@ -35,15 +35,15 @@ func TestTwitter(t *testing.T) {
 
 	t.Run("Constructors", func(t *testing.T) {
 		t.Run("NilCredentialsPanic", func(t *testing.T) {
-			assert.Panics(t, func() { _, _ = Make(ctx, nil) })
+			assert.Panics(t, func() { _, _ = MakeSender(ctx, nil) })
 		})
 		t.Run("EmptyCredentialsError", func(t *testing.T) {
-			s, err := Make(ctx, &TwitterOptions{})
+			s, err := MakeSender(ctx, &TwitterOptions{})
 			assert.Error(t, err)
 			assert.Nil(t, s)
 		})
 		t.Run("SetInvalidLevel", func(t *testing.T) {
-			s, err := New(ctx, &TwitterOptions{}, send.LevelInfo{Default: -1, Threshold: -1})
+			s, err := NewSender(ctx, &TwitterOptions{}, send.LevelInfo{Default: -1, Threshold: -1})
 			assert.Error(t, err)
 			assert.Nil(t, s)
 		})

@@ -69,9 +69,9 @@ func (s *githubStatusMessageLogger) Send(m message.Composer) {
 	}
 }
 
-// NewStatusLogger returns a Sender to send payloads to the Github Status
+// NewStatusSender returns a Sender to send payloads to the Github Status
 // API. Statuses will be attached to the given ref.
-func NewStatusLogger(name string, opts *GithubOptions, ref string) (send.Sender, error) {
+func NewStatusSender(name string, opts *GithubOptions, ref string) (send.Sender, error) {
 	s := &githubStatusMessageLogger{
 		Base: send.NewBase(name),
 		gh:   &githubClientImpl{},

@@ -1,4 +1,4 @@
-package send
+package jira
 
 import (
 	"context"
@@ -50,16 +50,16 @@ type Oauth1 struct {
 	ConsumerKey string
 }
 
-// Make is the same as NewJiraLogger but uses a warning
+// MakeIssueSender is the same as NewJiraLogger but uses a warning
 // level of Trace
-func Make(ctx context.Context, opts *Options) (send.Sender, error) {
-	return New(ctx, opts, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
+func MakeIssueSender(ctx context.Context, opts *Options) (send.Sender, error) {
+	return NewIssueSender(ctx, opts, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
 }
 
-// New constructs a Sender that creates issues to jira, given
+// NewIssueSender constructs a Sender that creates issues to jira, given
 // options defined in a JiraOptions struct. ctx is used as the request context
 // in the OAuth HTTP client
-func New(ctx context.Context, opts *Options, l send.LevelInfo) (send.Sender, error) {
+func NewIssueSender(ctx context.Context, opts *Options, l send.LevelInfo) (send.Sender, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, err
 	}

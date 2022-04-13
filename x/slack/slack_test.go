@@ -32,15 +32,15 @@ func (s *SlackSuite) SetupTest() {
 }
 
 func (s *SlackSuite) TestMakeSlackConstructorErrorsWithUnsetEnvVar() {
-	sender, err := Make(nil)
+	sender, err := MakeSender(nil)
 	s.Error(err)
 	s.Nil(sender)
 
-	sender, err = Make(&SlackOptions{})
+	sender, err = MakeSender(&SlackOptions{})
 	s.Error(err)
 	s.Nil(sender)
 
-	sender, err = Make(&SlackOptions{Channel: "#meta"})
+	sender, err = MakeSender(&SlackOptions{Channel: "#meta"})
 	s.Error(err)
 	s.Nil(sender)
 }
@@ -49,11 +49,11 @@ func (s *SlackSuite) TestMakeSlackConstructorErrorsWithInvalidConfigs() {
 	defer os.Setenv(slackClientToken, os.Getenv(slackClientToken))
 	s.NoError(os.Setenv(slackClientToken, "foo"))
 
-	sender, err := Make(nil)
+	sender, err := MakeSender(nil)
 	s.Error(err)
 	s.Nil(sender)
 
-	sender, err = Make(&SlackOptions{})
+	sender, err = MakeSender(&SlackOptions{})
 	s.Error(err)
 	s.Nil(sender)
 }
@@ -221,34 +221,34 @@ func (s *SlackSuite) TestMockSenderWithMakeConstructor() {
 	defer os.Setenv(slackClientToken, os.Getenv(slackClientToken))
 	s.NoError(os.Setenv(slackClientToken, "foo"))
 
-	sender, err := Make(s.opts)
+	sender, err := MakeSender(s.opts)
 	s.NotNil(sender)
 	s.NoError(err)
 }
 
 func (s *SlackSuite) TestMockSenderWithNewConstructor() {
-	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 	s.NotNil(sender)
 	s.NoError(err)
 
 }
 
 func (s *SlackSuite) TestInvaldLevelCausesConstructionErrors() {
-	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Invalid})
+	sender, err := NewSender(s.opts, "foo", send.LevelInfo{level.Trace, level.Invalid})
 	s.Nil(sender)
 	s.Error(err)
 }
 
 func (s *SlackSuite) TestConstructorMustPassAuthTest() {
 	s.opts.client = &slackClientMock{failAuthTest: true}
-	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 
 	s.Nil(sender)
 	s.Error(err)
 }
 
 func (s *SlackSuite) TestSendMethod() {
-	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 	s.NotNil(sender)
 	s.NoError(err)
 
@@ -276,7 +276,7 @@ func (s *SlackSuite) TestSendMethod() {
 }
 
 func (s *SlackSuite) TestSendMethodWithError() {
-	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 	s.NotNil(sender)
 	s.NoError(err)
 
@@ -311,7 +311,7 @@ func (s *SlackSuite) TestCreateMethodChangesClientState() {
 }
 
 func (s *SlackSuite) TestSendMethodDoesIncorrectlyAllowTooLowMessages() {
-	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 	s.NotNil(sender)
 	s.NoError(err)
 
@@ -330,7 +330,7 @@ func (s *SlackSuite) TestSendMethodDoesIncorrectlyAllowTooLowMessages() {
 }
 
 func (s *SlackSuite) TestSettingBotIdentity() {
-	sender, err := New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 
@@ -347,7 +347,7 @@ func (s *SlackSuite) TestSettingBotIdentity() {
 
 	s.opts.Username = "Grip"
 	s.opts.IconURL = "https://example.com/icon.ico"
-	sender, err = New(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
+	sender, err = NewSender(s.opts, "foo", send.LevelInfo{level.Trace, level.Info})
 	s.NoError(err)
 	sender.Send(m)
 	s.Equal(2, mock.numSent)

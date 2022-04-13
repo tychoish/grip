@@ -48,7 +48,7 @@ func (s *XMPPSuite) TestEnvironmentVariableReader() {
 }
 
 func (s *XMPPSuite) TestNewConstructor() {
-	sender, err := NewXMPPLogger("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender, err := NewXMPPSender("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 }
@@ -56,13 +56,13 @@ func (s *XMPPSuite) TestNewConstructor() {
 func (s *XMPPSuite) TestNewConstructorFailsWhenClientCreateFails() {
 	s.info.client = &xmppClientMock{failCreate: true}
 
-	sender, err := NewXMPPLogger("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender, err := NewXMPPSender("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
 	s.Error(err)
 	s.Nil(sender)
 }
 
 func (s *XMPPSuite) TestCloseMethod() {
-	sender, err := NewXMPPLogger("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender, err := NewXMPPSender("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 
@@ -74,17 +74,17 @@ func (s *XMPPSuite) TestCloseMethod() {
 }
 
 func (s *XMPPSuite) TestAutoConstructorErrorsWithoutValidEnvVar() {
-	sender, err := MakeXMPP("target")
+	sender, err := MakeXMPPSender("target")
 	s.Error(err)
 	s.Nil(sender)
 
-	sender, err = NewXMPP("target", "name", send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender, err = NewDefaultXMPPSender("target", "name", send.LevelInfo{Default: level.Debug, Threshold: level.Info})
 	s.Error(err)
 	s.Nil(sender)
 }
 
 func (s *XMPPSuite) TestSendMethod() {
-	sender, err := NewXMPPLogger("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender, err := NewXMPPSender("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 
@@ -106,7 +106,7 @@ func (s *XMPPSuite) TestSendMethod() {
 }
 
 func (s *XMPPSuite) TestSendMethodWithError() {
-	sender, err := NewXMPPLogger("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender, err := NewXMPPSender("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 

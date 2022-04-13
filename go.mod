@@ -13,7 +13,6 @@ require (
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/mattn/go-xmpp v0.0.0-20220410054612-99ddfc1aa46a
 	github.com/montanaflynn/stats v0.6.3
-	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.20.11+incompatible
 	github.com/stretchr/testify v1.7.0
 	github.com/tychoish/emt v0.0.0-20220306153139-74b97c67f209
@@ -36,6 +35,7 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20180825215210-0210a2f0f73c // indirect
 	github.com/gopherjs/gopherwasm v1.1.0 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
 	github.com/trivago/tgo v1.0.7 // indirect

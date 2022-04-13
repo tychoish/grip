@@ -19,13 +19,13 @@ type githubCommentLogger struct {
 	*send.Base
 }
 
-// NewCommentLogger creates a new Sender implementation that
+// NewCommentSender creates a new Sender implementation that
 // adds a comment to a github issue (or pull request) for every log
 // message sent.
 //
 // Specify the credentials to use the GitHub via the GithubOptions
 // structure, and the issue number as an argument to the constructor.
-func NewCommentLogger(name string, issueID int, opts *GithubOptions) (send.Sender, error) {
+func NewCommentSender(name string, issueID int, opts *GithubOptions) (send.Sender, error) {
 	s := &githubCommentLogger{
 		Base:  send.NewBase(name),
 		opts:  opts,

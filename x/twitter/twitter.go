@@ -35,19 +35,19 @@ func (opts *TwitterOptions) resolve(ctx context.Context) *twitter.Client {
 		Client(ctx, oauth1.NewToken(opts.AccessToken, opts.AccessSecret)))
 }
 
-// Make constructs a default sender implementation that
+// MakeSender constructs a default sender implementation that
 // posts messages to a twitter account. The implementation does not
 // rate limit outgoing messages, which should be the responsibility of
 // the caller.
-func Make(ctx context.Context, opts *TwitterOptions) (send.Sender, error) {
-	return New(ctx, opts, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
+func MakeSender(ctx context.Context, opts *TwitterOptions) (send.Sender, error) {
+	return NewSender(ctx, opts, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
 }
 
-// New constructs a sender implementation that posts
+// NewSender constructs a sender implementation that posts
 // messages to a twitter account, with configurable level
 // information. The implementation does not rate limit outgoing
 // messages, which should be the responsibility of the caller.
-func New(ctx context.Context, opts *TwitterOptions, l send.LevelInfo) (send.Sender, error) {
+func NewSender(ctx context.Context, opts *TwitterOptions, l send.LevelInfo) (send.Sender, error) {
 	s := &twitterLogger{
 		twitter: newTwitterClient(ctx, opts),
 		Base:    send.NewBase(opts.Name),

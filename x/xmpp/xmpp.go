@@ -47,12 +47,12 @@ func GetXMPPConnectionInfo() XMPPConnectionInfo {
 	}
 }
 
-// NewXMPPLogger constructs a new Sender implementation that sends
+// NewXMPPSender constructs a new Sender implementation that sends
 // messages to an XMPP user, "target", using the credentials specified in
 // the XMPPConnectionInfo struct. The constructor will attempt to exablish
 // a connection to the server via SSL, falling back automatically to an
 // unencrypted connection if the the first attempt fails.
-func NewXMPPLogger(name, target string, info XMPPConnectionInfo, l send.LevelInfo) (send.Sender, error) {
+func NewXMPPSender(name, target string, info XMPPConnectionInfo, l send.LevelInfo) (send.Sender, error) {
 	s, err := constructXMPPLogger(name, target, info)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func NewXMPPLogger(name, target string, info XMPPConnectionInfo, l send.LevelInf
 	return s, nil
 }
 
-// MakeXMPP constructs an XMPP logging backend that reads the
+// MakeXMPPSender constructs an XMPP logging backend that reads the
 // hostname, username, and password from environment variables:
 //
 //    - GRIP_XMPP_HOSTNAME
@@ -76,7 +76,7 @@ func NewXMPPLogger(name, target string, info XMPPConnectionInfo, l send.LevelInf
 //
 // The instance is otherwise unconquered. Call SetName or inject it
 // into a Journaler instance using SetSender before using.
-func MakeXMPP(target string) (send.Sender, error) {
+func MakeXMPPSender(target string) (send.Sender, error) {
 	info := GetXMPPConnectionInfo()
 
 	s, err := constructXMPPLogger("", target, info)
@@ -87,7 +87,7 @@ func MakeXMPP(target string) (send.Sender, error) {
 	return s, nil
 }
 
-// NewXMPP constructs an XMPP logging backend that reads the
+// NewDefaultXMPPSender constructs an XMPP logging backend that reads the
 // hostname, username, and password from environment variables:
 //
 //    - GRIP_XMPP_HOSTNAME
@@ -95,10 +95,10 @@ func MakeXMPP(target string) (send.Sender, error) {
 //    - GRIP_XMPP_PASSWORD
 //
 // Otherwise, the semantics of NewXMPPDefault are the same as NewXMPPLogger.
-func NewXMPP(name, target string, l send.LevelInfo) (send.Sender, error) {
+func NewDefaultXMPPSender(name, target string, l send.LevelInfo) (send.Sender, error) {
 	info := GetXMPPConnectionInfo()
 
-	return NewXMPPLogger(name, target, info, l)
+	return NewXMPPSender(name, target, info, l)
 }
 
 func constructXMPPLogger(name, target string, info XMPPConnectionInfo) (send.Sender, error) {

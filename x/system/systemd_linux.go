@@ -17,12 +17,12 @@ type systemdJournal struct {
 	*send.Base
 }
 
-// NewSystemd creates a Sender object that writes log messages
+// NewSystemdSender creates a Sender object that writes log messages
 // to the system's systemd journald logging facility. If there's an
 // error with the sending to the journald, messages fallback to
 // writing to standard output.
-func NewSystemd(name string, l send.LevelInfo) (send.Sender, error) {
-	s, err := MakeSystemd()
+func NewSystemdSender(name string, l send.LevelInfo) (send.Sender, error) {
+	s, err := MakeSystemdSender()
 	if err != nil {
 		return nil, err
 	}
@@ -35,9 +35,9 @@ func NewSystemd(name string, l send.LevelInfo) (send.Sender, error) {
 	return s, nil
 }
 
-// MakeSystemd constructs an unconfigured systemd journald
+// MakeSystemdSender constructs an unconfigured systemd journald
 // logger. Pass to Journaler.SetSender or call SetName before using.
-func MakeSystemd() (send.Sender, error) {
+func MakeSystemdSender() (send.Sender, error) {
 	if !journal.Enabled() {
 		return nil, errors.New("systemd journal logging is not available on this platform")
 	}

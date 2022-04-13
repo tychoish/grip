@@ -30,7 +30,7 @@ type GithubOptions struct {
 
 // NewIssuesLogger builds a sender implementation that creates a
 // new issue in a Github Project for each log message.
-func NewIssues(name string, opts *GithubOptions) (send.Sender, error) {
+func NewIssueSender(name string, opts *GithubOptions) (send.Sender, error) {
 	s := &githubLogger{
 		Base: send.NewBase(name),
 		opts: opts,

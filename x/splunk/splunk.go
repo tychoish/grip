@@ -92,10 +92,10 @@ func (s *splunkLogger) Send(m message.Composer) {
 	}
 }
 
-// New constructs a new Sender implementation that sends
+// NewSender constructs a new Sender implementation that sends
 // messages to a Splunk event collector using the credentials specified
 // in the SplunkConnectionInfo struct.
-func New(name string, info ConnectionInfo, l send.LevelInfo) (send.Sender, error) {
+func NewSender(name string, info ConnectionInfo, l send.LevelInfo) (send.Sender, error) {
 	client := (&http.Client{
 		Transport: &http.Transport{
 			Proxy:               http.ProxyFromEnvironment,
@@ -155,19 +155,19 @@ func buildSplunkLogger(name string, client *http.Client, info ConnectionInfo, l 
 	return s, nil
 }
 
-// Make constructs a new Sender implementation that reads
+// MakeSender constructs a new Sender implementation that reads
 // the hostname, username, and password from environment variables:
 //
 //		GRIP_SPLUNK_SERVER_URL
 //		GRIP_SPLUNK_CLIENT_TOKEN
 //		GRIP_SPLUNK_CLIENT_CHANNEL
-func Make(name string) (send.Sender, error) {
+func MakeSender(name string) (send.Sender, error) {
 	info := GetConnectionInfo()
 	if err := info.validateFromEnv(); err != nil {
 		return nil, err
 	}
 
-	return New(name, info, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
+	return NewSender(name, info, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
 }
 
 // MakeWithClient is identical to MakeSplunkLogger but

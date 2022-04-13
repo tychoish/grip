@@ -23,9 +23,9 @@ type slackJournal struct {
 	*send.Base
 }
 
-// New constructs a Sender that posts messages to a slack,
+// NewSender constructs a Sender that posts messages to a slack,
 // given a slack API token. Configure the slack sender using a SlackOptions struct.
-func New(opts *SlackOptions, token string, l send.LevelInfo) (send.Sender, error) {
+func NewSender(opts *SlackOptions, token string, l send.LevelInfo) (send.Sender, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, err
 	}
@@ -60,14 +60,14 @@ func New(opts *SlackOptions, token string, l send.LevelInfo) (send.Sender, error
 // MakeSlackLogger is equivalent to NewSlackLogger, but constructs a
 // Sender reading the slack token from the environment variable
 // "GRIP_SLACK_CLIENT_TOKEN".
-func Make(opts *SlackOptions) (send.Sender, error) {
+func MakeSender(opts *SlackOptions) (send.Sender, error) {
 	token := os.Getenv(slackClientToken)
 	if token == "" {
 		return nil, fmt.Errorf("environment variable %s not defined, cannot create slack client",
 			slackClientToken)
 	}
 
-	return New(opts, token, send.LevelInfo{level.Trace, level.Trace})
+	return NewSender(opts, token, send.LevelInfo{level.Trace, level.Trace})
 }
 
 func (s *slackJournal) Send(m message.Composer) {

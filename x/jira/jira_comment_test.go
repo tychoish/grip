@@ -1,4 +1,4 @@
-package send
+package jira
 
 import (
 	"context"
@@ -32,38 +32,38 @@ func (j *JiraCommentSuite) SetupTest() {
 }
 
 func (j *JiraCommentSuite) TestMockSenderWithNewConstructor() {
-	sender, err := NewComment(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := NewCommentSender(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.NotNil(sender)
 	j.NoError(err)
 }
 
 func (j *JiraCommentSuite) TestConstructorMustCreate() {
 	j.opts.client = &jiraClientMock{failCreate: true}
-	sender, err := NewComment(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := NewCommentSender(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.Nil(sender)
 	j.Error(err)
 }
 
 func (j *JiraCommentSuite) TestConstructorMustPassAuthTest() {
 	j.opts.client = &jiraClientMock{failAuth: true}
-	sender, err := NewComment(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := NewCommentSender(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.Nil(sender)
 	j.Error(err)
 }
 
 func (j *JiraCommentSuite) TestConstructorErrorsWithInvalidConfigs() {
-	sender, err := NewComment(context.Background(), "1234", nil, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := NewCommentSender(context.Background(), "1234", nil, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.Nil(sender)
 	j.Error(err)
 
-	sender, err = New(context.Background(), &Options{}, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err = NewIssueSender(context.Background(), &Options{}, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.Nil(sender)
 	j.Error(err)
 }
 
 func (j *JiraCommentSuite) TestSendMethod() {
 	numShouldHaveSent := 0
-	sender, err := NewComment(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := NewCommentSender(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.NoError(err)
 	j.Require().NotNil(sender)
 
@@ -87,7 +87,7 @@ func (j *JiraCommentSuite) TestSendMethod() {
 }
 
 func (j *JiraCommentSuite) TestSendMethodWithError() {
-	sender, err := NewComment(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := NewCommentSender(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.NotNil(sender)
 	j.NoError(err)
 
@@ -117,7 +117,7 @@ func (j *JiraCommentSuite) TestCreateMethodChangesClientState() {
 func (j *JiraCommentSuite) TestSendWithJiraIssueComposer() {
 	c := message.NewJIRACommentMessage(level.Notice, "ABC-123", "Hi")
 
-	sender, err := NewComment(context.Background(), "XYZ-123", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := NewCommentSender(context.Background(), "XYZ-123", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	j.NoError(err)
 	j.Require().NotNil(sender)
 
