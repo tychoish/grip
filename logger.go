@@ -103,8 +103,8 @@ type loggerImpl struct {
 	impl send.Sender
 }
 
-// MakeGrip builds a new logging interface from a sender implementation.
-func MakeGrip(s send.Sender) *loggerImpl { return &loggerImpl{impl: s} }
+// NewLogger builds a new logging interface from a sender implementation.
+func NewLogger(s send.Sender) Logger { return &loggerImpl{impl: s} }
 
 func (g *loggerImpl) GetSender() send.Sender { return g.impl }
 func (g *loggerImpl) Send(m interface{}) {

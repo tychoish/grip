@@ -34,14 +34,14 @@ func TestLoggingMethodSuite(t *testing.T) {
 func (s *LoggingMethodSuite) SetupTest() {
 	s.defaultSender = GetGlobalLogger().GetSender()
 	s.stdSender = send.MakeInternalLogger()
-	SetGlobalLogger(MakeGrip(s.stdSender))
+	SetGlobalLogger(NewLogger(s.stdSender))
 
 	s.loggingSender = send.MakeInternalLogger()
-	s.logger = MakeGrip(s.loggingSender)
+	s.logger = NewLogger(s.loggingSender)
 }
 
 func (s *LoggingMethodSuite) TeardownTest() {
-	SetGlobalLogger(MakeGrip(s.defaultSender))
+	SetGlobalLogger(NewLogger(s.defaultSender))
 }
 
 func (s *LoggingMethodSuite) TestWhenMethods() {
@@ -211,7 +211,7 @@ func TestGripSuite(t *testing.T) {
 }
 
 func (s *GripSuite) SetupSuite() {
-	s.grip = MakeGrip(send.MakeNative())
+	s.grip = NewLogger(send.MakeNative())
 	s.grip.GetSender().SetName(s.name)
 	s.Equal(s.grip.GetSender().Name(), s.name)
 }

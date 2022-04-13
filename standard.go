@@ -20,7 +20,7 @@ func init() {
 		sender.SetName("grip")
 	}
 
-	std = MakeGrip(sender)
+	std = NewLogger(sender)
 }
 
 // SetDefaultStandardLogger set's the standard library's global
