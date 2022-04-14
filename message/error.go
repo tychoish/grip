@@ -19,14 +19,14 @@ type errorMessage struct {
 	Base       `bson:"metadata" json:"metadata" yaml:"metadata"`
 }
 
-// NewErrorMessage takes an error object and returns a Composer
+// NewError takes an error object and returns a Composer
 // instance that only renders a loggable message when the error is
 // non-nil.
 //
 // These composers also implement the error interface and the
 // pkg/errors.Causer interface and so can be passed as errors and used
 // with existing error-wrapping mechanisms.
-func NewErrorMessage(p level.Priority, err error) Composer {
+func NewError(p level.Priority, err error) Composer {
 	m := &errorMessage{
 		err: err,
 	}
@@ -35,10 +35,10 @@ func NewErrorMessage(p level.Priority, err error) Composer {
 	return m
 }
 
-// NewError returns an error composer, like NewErrorMessage, but
+// MakeError returns an error composer, like NewErrorMessage, but
 // without the requirement to specify priority, which you may wish to
 // specify directly.
-func NewError(err error) Composer {
+func MakeError(err error) Composer {
 	return &errorMessage{err: err}
 }
 
@@ -51,7 +51,6 @@ func (e *errorMessage) String() string {
 }
 
 func (e *errorMessage) Loggable() bool { return e.err != nil }
-func (*errorMessage) Structured() bool { return false }
 
 func (e *errorMessage) Raw() interface{} {
 	_ = e.Collect()

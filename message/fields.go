@@ -28,14 +28,14 @@ type fieldMessage struct {
 type Fields map[string]interface{}
 
 // NewFields constructs a full configured fields Composer.
-func MakeFields(p level.Priority, f Fields) Composer {
-	m := NewFields(f)
+func NewFields(p level.Priority, f Fields) Composer {
+	m := MakeFields(f)
 	_ = m.SetPriority(p)
 	return m
 }
 
 // MakeFields creates a composer interface from *just* a Fields instance.
-func NewFields(f Fields) Composer {
+func MakeFields(f Fields) Composer {
 	m := &fieldMessage{fields: f}
 	m.setup()
 	return m
@@ -44,33 +44,33 @@ func NewFields(f Fields) Composer {
 // NewSimpleFields returns a structured Composer that does not
 // attach basic logging metadata and allows callers to configure the
 // messages' log level.
-func MakeSimpleFields(p level.Priority, f Fields) Composer {
-	m := NewSimpleFields(f)
+func NewSimpleFields(p level.Priority, f Fields) Composer {
+	m := MakeSimpleFields(f)
 	_ = m.SetPriority(p)
 	return m
 }
 
 // MakeSimpleFields returns a structured Composer that does
 // not attach basic logging metadata.
-func NewSimpleFields(f Fields) Composer {
+func MakeSimpleFields(f Fields) Composer {
 	m := &fieldMessage{fields: f, skipMetadata: true}
 	m.setup()
 	return m
 }
 
-// NewFieldsMessage creates a fully configured Composer instance that
+// NewAnnotated creates a fully configured Composer instance that
 // will attach some additional structured data. This constructor
 // allows you to include a string message as well as Fields
 // object.
-func MakeFieldsMessage(p level.Priority, message string, f Fields) Composer {
-	m := NewFieldsMessage(message, f)
+func NewAnnotated(p level.Priority, message string, f Fields) Composer {
+	m := MakeAnnotated(message, f)
 	_ = m.SetPriority(p)
 	return m
 }
 
-// NewFieldsMessage constructs a fields Composer from a message string and
+// MakeAnnotated constructs a fields Composer from a message string and
 // Fields object, without specifying the priority of the message.
-func NewFieldsMessage(message string, f Fields) Composer {
+func MakeAnnotated(message string, f Fields) Composer {
 	m := &fieldMessage{message: message, fields: f}
 	m.setup()
 	return m
@@ -79,16 +79,16 @@ func NewFieldsMessage(message string, f Fields) Composer {
 // NewSimpleFieldsMessage returns a structured Composer that does not attach
 // basic logging metadata, but allows callers to specify the message
 // (the "message" field) as well as the message's log-level.
-func MakeSimpleFieldsMessage(p level.Priority, msg string, f Fields) Composer {
-	m := NewSimpleFieldsMessage(msg, f)
+func NewAnnotatedSimple(p level.Priority, msg string, f Fields) Composer {
+	m := MakeAnnotatedSimple(msg, f)
 	_ = m.SetPriority(p)
 	return m
 }
 
-// NewSimpleFieldsMessage returns a structured Composer that does not attach
+// MakeAnnotatedSimple returns a structured Composer that does not attach
 // basic logging metadata, but allows callers to specify the message
 // (the "message" field) as a string.
-func NewSimpleFieldsMessage(msg string, f Fields) Composer {
+func MakeAnnotatedSimple(msg string, f Fields) Composer {
 	m := &fieldMessage{message: msg, fields: f, skipMetadata: true}
 	m.setup()
 	return m

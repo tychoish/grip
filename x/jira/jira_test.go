@@ -91,15 +91,15 @@ func (j *JiraSuite) TestSendMethod() {
 	j.True(ok)
 	j.Equal(mock.numSent, 0)
 
-	m := message.NewDefaultMessage(level.Debug, "hello")
+	m := message.NewString(level.Debug, "hello")
 	sender.Send(m)
 	j.Equal(mock.numSent, 0)
 
-	m = message.NewDefaultMessage(level.Alert, "")
+	m = message.NewString(level.Alert, "")
 	sender.Send(m)
 	j.Equal(mock.numSent, 0)
 
-	m = message.NewDefaultMessage(level.Alert, "world")
+	m = message.NewString(level.Alert, "world")
 	sender.Send(m)
 	j.Equal(mock.numSent, 1)
 }
@@ -114,7 +114,7 @@ func (j *JiraSuite) TestSendMethodWithError() {
 	j.Equal(mock.numSent, 0)
 	j.False(mock.failSend)
 
-	m := message.NewDefaultMessage(level.Alert, "world")
+	m := message.NewString(level.Alert, "world")
 	sender.Send(m)
 	j.Equal(mock.numSent, 1)
 
@@ -177,7 +177,7 @@ func (j *JiraSuite) TestGetFieldsWithJiraIssue() {
 func (j *JiraSuite) TestGetFieldsWithFields() {
 	testFields := message.Fields{"key0": 12, "key1": 42}
 	msg := "Get the message"
-	m := message.NewFieldsMessage(msg, testFields)
+	m := message.MakeAnnotated(msg, testFields)
 
 	fields := getFields(m)
 	j.Equal(fields.Summary, msg)
@@ -193,7 +193,7 @@ func (j *JiraSuite) TestTruncate() {
 	j.True(ok)
 	j.Equal(mock.numSent, 0)
 
-	m := message.NewDefaultMessage(level.Info, "aaa")
+	m := message.NewString(level.Info, "aaa")
 	j.True(m.Loggable())
 	sender.Send(m)
 	j.Len(mock.lastSummary, 3)
@@ -202,7 +202,7 @@ func (j *JiraSuite) TestTruncate() {
 	for i := 0; i < 1000; i++ {
 		longString.WriteString("a")
 	}
-	m = message.NewDefaultMessage(level.Info, longString.String())
+	m = message.NewString(level.Info, longString.String())
 	j.True(m.Loggable())
 	sender.Send(m)
 	j.Len(mock.lastSummary, 254)
@@ -213,7 +213,7 @@ func (j *JiraSuite) TestTruncate() {
 		buffer.WriteString("a")
 	}
 
-	m = message.NewDefaultMessage(level.Info, buffer.String())
+	m = message.NewString(level.Info, buffer.String())
 	j.True(m.Loggable())
 	sender.Send(m)
 	j.Len(mock.lastDescription, 32767)
@@ -276,7 +276,7 @@ func (j *JiraSuite) TestPopulateKey() {
 	issue := m.Raw().(*Issue)
 	j.Equal(mock.issueKey, issue.IssueKey)
 
-	messageFields := message.MakeFieldsMessage(level.Info, "something", message.Fields{
+	messageFields := message.NewAnnotated(level.Info, "something", message.Fields{
 		"message": "foo",
 	})
 	j.True(messageFields.Loggable())

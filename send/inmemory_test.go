@@ -54,7 +54,7 @@ func (s *InMemorySuite) SetupTest() {
 
 	s.msgs = make([]message.Composer, 2*s.maxCap)
 	for i := range s.msgs {
-		s.msgs[i] = message.NewDefaultMessage(info.Default, fmt.Sprint(i))
+		s.msgs[i] = message.NewString(info.Default, fmt.Sprint(i))
 	}
 }
 
@@ -66,7 +66,7 @@ func (s *InMemorySuite) TestInvalidCapacityErrors() {
 }
 
 func (s *InMemorySuite) TestSendIgnoresMessagesWithPrioritiesBelowThreshold() {
-	msg := message.NewDefaultMessage(level.Trace, "foo")
+	msg := message.NewString(level.Trace, "foo")
 	s.sender.Send(msg)
 	s.Assert().Equal(0, len(s.sender.buffer))
 }

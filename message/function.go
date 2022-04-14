@@ -58,7 +58,7 @@ type fieldsProducerMessage struct {
 	level  level.Priority
 }
 
-// NewFieldsProducerMessage constructs a lazy FieldsProducer wrapping
+// NewFieldsProducer constructs a lazy FieldsProducer wrapping
 // message at the specified level.
 //
 // FieldsProducer functions are only called, before calling the
@@ -66,31 +66,26 @@ type fieldsProducerMessage struct {
 // does not call the function. In practice, if the priority of the
 // message is below the logging threshold, then the function will
 // never be called.
-func NewFieldsProducerMessage(p level.Priority, fp FieldsProducer) Composer {
+func NewFieldsProducer(p level.Priority, fp FieldsProducer) Composer {
 	return &fieldsProducerMessage{level: p, fp: fp}
 }
 
-// NewFieldsProducer constructs an unleveled field producer message.
-func NewFieldsProducer(fp FieldsProducer) Composer {
-	return &fieldsProducerMessage{fp: fp}
-}
-
-// MakeFieldsProducerMessage constructs a lazy FieldsProducer wrapping
+// MakeFieldsProducer constructs a lazy FieldsProducer wrapping
 // message at the specified level.
 //
-// FieldsProducer functions are only called, before calling the
+// FieldsProducer functions are only called before calling the
 // Loggable, String, Raw, or Annotate methods. Changing the priority
 // does not call the function. In practice, if the priority of the
 // message is below the logging threshold, then the function will
 // never be called.
-func MakeFieldsProducerMessage(fp FieldsProducer) Composer {
+func MakeFieldsProducer(fp FieldsProducer) Composer {
 	return &fieldsProducerMessage{fp: fp}
 }
 
 // MakeConvertedFieldsProducer converts a generic map to a fields
 // producer, as the message types are equivalent.
 func MakeConvertedFieldsProducer(mp func() map[string]interface{}) Composer {
-	return MakeFieldsProducerMessage(func() Fields {
+	return MakeFieldsProducer(func() Fields {
 		return mp()
 	})
 }
@@ -98,7 +93,7 @@ func MakeConvertedFieldsProducer(mp func() map[string]interface{}) Composer {
 // NewConvertedFieldsProducer converts a generic map to a fields
 // producer at the specified priority, as the message types are equivalent,
 func NewConvertedFieldsProducer(p level.Priority, mp func() map[string]interface{}) Composer {
-	return NewFieldsProducerMessage(p, func() Fields {
+	return NewFieldsProducer(p, func() Fields {
 		return mp()
 	})
 }
@@ -106,9 +101,9 @@ func NewConvertedFieldsProducer(p level.Priority, mp func() map[string]interface
 func (fp *fieldsProducerMessage) resolve() {
 	if fp.cached == nil {
 		if fp.fp == nil {
-			fp.cached = MakeFields(fp.level, Fields{})
+			fp.cached = NewFields(fp.level, Fields{})
 		} else {
-			fp.cached = MakeFields(fp.level, fp.fp())
+			fp.cached = NewFields(fp.level, fp.fp())
 		}
 	}
 }
@@ -138,7 +133,16 @@ func (fp *fieldsProducerMessage) Loggable() bool {
 	fp.resolve()
 	return fp.cached.Loggable()
 }
-func (*fieldsProducerMessage) Structured() bool            { return true }
+
+func (fp *fieldsProducerMessage) Structured() bool {
+	if fp.fp == nil {
+		return false
+	}
+
+	fp.resolve()
+	return fp.cached.Structured()
+}
+
 func (fp *fieldsProducerMessage) Priority() level.Priority { return fp.level }
 func (fp *fieldsProducerMessage) String() string           { fp.resolve(); return fp.cached.String() }
 func (fp *fieldsProducerMessage) Raw() interface{}         { fp.resolve(); return fp.cached.Raw() }
@@ -171,7 +175,7 @@ type composerProducerMessage struct {
 // does not call the function. In practice, if the priority of the
 // message is below the logging threshold, then the function will
 // never be called.
-func MakeComposerProducer(p level.Priority, cp ComposerProducer) Composer {
+func NewProducer(p level.Priority, cp ComposerProducer) Composer {
 	return &composerProducerMessage{level: p, cp: cp}
 }
 
@@ -183,7 +187,7 @@ func MakeComposerProducer(p level.Priority, cp ComposerProducer) Composer {
 // does not call the function. In practice, if the priority of the
 // message is below the logging threshold, then the function will
 // never be called.
-func NewComposerProducer(cp ComposerProducer) Composer {
+func MakeProducer(cp ComposerProducer) Composer {
 	return &composerProducerMessage{cp: cp}
 }
 
@@ -191,7 +195,7 @@ func (cp *composerProducerMessage) resolve() {
 	if cp.cached == nil {
 		cp.cached = cp.cp()
 		if cp.cached == nil {
-			cp.cached = MakeSimpleFields(cp.level, Fields{})
+			cp.cached = NewSimpleFields(cp.level, Fields{})
 		} else {
 			_ = cp.cached.SetPriority(cp.level)
 		}
@@ -258,7 +262,7 @@ type errorProducerMessage struct {
 	level  level.Priority
 }
 
-// MakeErrorProducer returns a mesage that wrapps an error
+// NewErrorProducer returns a mesage that wrapps an error
 // producing function, at the specified level. If the function returns
 // then there is never a message logged.
 //
@@ -267,11 +271,11 @@ type errorProducerMessage struct {
 // does not call the function. In practice, if the priority of the
 // message is below the logging threshold, then the function will
 // never be called.
-func MakeErrorProducer(p level.Priority, ep ErrorProducer) Composer {
+func NewErrorProducer(p level.Priority, ep ErrorProducer) Composer {
 	return &errorProducerMessage{level: p, ep: ep}
 }
 
-// NewErrorProducer returns a mesage that wrapps an error
+// MakeErrorProducer returns a mesage that wrapps an error
 // producing function. If the function returns then there is never a
 // message logged.
 //
@@ -280,13 +284,13 @@ func MakeErrorProducer(p level.Priority, ep ErrorProducer) Composer {
 // does not call the function. In practice, if the priority of the
 // message is below the logging threshold, then the function will
 // never be called.
-func NewErrorProducer(ep ErrorProducer) Composer {
+func MakeErrorProducer(ep ErrorProducer) Composer {
 	return &errorProducerMessage{ep: ep}
 }
 
 func (ep *errorProducerMessage) resolve() {
 	if ep.cached == nil {
-		ep.cached = NewErrorMessage(ep.level, ep.ep())
+		ep.cached = NewError(ep.level, ep.ep())
 	}
 }
 
@@ -317,7 +321,15 @@ func (ep *errorProducerMessage) Loggable() bool {
 	return ep.cached.Loggable()
 }
 
-func (*errorProducerMessage) Structured() bool            { return true }
+func (ep *errorProducerMessage) Structured() bool {
+	if ep.ep == nil {
+		return false
+	}
+
+	ep.resolve()
+	return ep.cached.Structured()
+}
+
 func (ep *errorProducerMessage) Priority() level.Priority { return ep.level }
 func (ep *errorProducerMessage) String() string           { ep.resolve(); return ep.cached.String() }
 func (ep *errorProducerMessage) Raw() interface{}         { ep.resolve(); return ep.cached.Raw() }
@@ -361,7 +373,7 @@ func (ep *errorProducerMessage) Format(s fmt.State, verb rune) {
 // return the result of this function as an error to avoid needing to
 // manage multiple error annotations.
 func WrapErrorFunc(ep ErrorProducer, m interface{}) Composer {
-	return errorComposerShim{NewComposerProducer(func() Composer { return WrapError(ep(), m) })}
+	return errorComposerShim{MakeProducer(func() Composer { return WrapError(ep(), m) })}
 }
 
 type errorComposerShim struct {

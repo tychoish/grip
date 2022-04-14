@@ -21,7 +21,7 @@ func TestBufferedSend(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
 		defer bs.cancel()
 
-		bs.Send(message.ConvertToComposer(level.Trace, fmt.Sprintf("should not send")))
+		bs.Send(message.ConvertWithPriority(level.Trace, fmt.Sprintf("should not send")))
 		assert.Empty(t, bs.buffer)
 		_, ok := s.GetMessageSafe()
 		assert.False(t, ok)
@@ -32,7 +32,7 @@ func TestBufferedSend(t *testing.T) {
 
 		for i := 0; i < 12; i++ {
 			require.Len(t, bs.buffer, i%10)
-			bs.Send(message.ConvertToComposer(level.Debug, fmt.Sprintf("message %d", i+1)))
+			bs.Send(message.ConvertWithPriority(level.Debug, fmt.Sprintf("message %d", i+1)))
 		}
 		assert.Len(t, bs.buffer, 2)
 		msg, ok := s.GetMessageSafe()
@@ -47,7 +47,7 @@ func TestBufferedSend(t *testing.T) {
 		bs := newBufferedSender(s, 5*time.Second, 10)
 		defer bs.cancel()
 
-		bs.Send(message.ConvertToComposer(level.Debug, "should flush"))
+		bs.Send(message.ConvertWithPriority(level.Debug, "should flush"))
 		time.Sleep(6 * time.Second)
 		bs.mu.Lock()
 		assert.True(t, time.Since(bs.lastFlush) <= 2*time.Second)
@@ -61,7 +61,7 @@ func TestBufferedSend(t *testing.T) {
 		bs.closed = true
 		defer bs.cancel()
 
-		bs.Send(message.ConvertToComposer(level.Debug, "should not send"))
+		bs.Send(message.ConvertWithPriority(level.Debug, "should not send"))
 		assert.Empty(t, bs.buffer)
 		_, ok := s.GetMessageSafe()
 		assert.False(t, ok)
@@ -76,7 +76,7 @@ func TestFlush(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
 		defer bs.cancel()
 
-		bs.Send(message.ConvertToComposer(level.Debug, "message"))
+		bs.Send(message.ConvertWithPriority(level.Debug, "message"))
 		assert.Len(t, bs.buffer, 1)
 		require.NoError(t, bs.Flush(context.TODO()))
 		bs.mu.Lock()
@@ -89,7 +89,7 @@ func TestFlush(t *testing.T) {
 	})
 	t.Run("ClosedSender", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
-		bs.buffer = append(bs.buffer, message.ConvertToComposer(level.Debug, "message"))
+		bs.buffer = append(bs.buffer, message.ConvertWithPriority(level.Debug, "message"))
 		bs.cancel()
 		bs.closed = true
 
@@ -116,9 +116,9 @@ func TestBufferedClose(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
 		bs.buffer = append(
 			bs.buffer,
-			message.ConvertToComposer(level.Debug, "message1"),
-			message.ConvertToComposer(level.Debug, "message2"),
-			message.ConvertToComposer(level.Debug, "message3"),
+			message.ConvertWithPriority(level.Debug, "message1"),
+			message.ConvertWithPriority(level.Debug, "message2"),
+			message.ConvertWithPriority(level.Debug, "message3"),
 		)
 
 		assert.Nil(t, bs.Close())

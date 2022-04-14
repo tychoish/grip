@@ -13,10 +13,10 @@ type formatMessenger struct {
 	Message string `bson:"message" json:"message" yaml:"message"`
 }
 
-// NewFormattedMessage takes arguments as fmt.Sprintf(), and returns
+// NewFormat takes arguments as fmt.Sprintf(), and returns
 // an object that only runs the format operation as part of the
 // String() method.
-func NewFormattedMessage(p level.Priority, base string, args ...interface{}) Composer {
+func NewFormat(p level.Priority, base string, args ...interface{}) Composer {
 	m := &formatMessenger{
 		base: base,
 		args: args,
@@ -26,9 +26,9 @@ func NewFormattedMessage(p level.Priority, base string, args ...interface{}) Com
 	return m
 }
 
-// NewFormatted returns a message.Composer roughly equivalent to an
+// MakeFormat returns a message.Composer roughly equivalent to an
 // fmt.Sprintf().
-func NewFormatted(base string, args ...interface{}) Composer {
+func MakeFormat(base string, args ...interface{}) Composer {
 	return &formatMessenger{
 		base: base,
 		args: args,
@@ -43,11 +43,5 @@ func (f *formatMessenger) String() string {
 	return f.Message
 }
 
-func (f *formatMessenger) Loggable() bool { return f.base != "" }
-func (*formatMessenger) Structured() bool { return false }
-func (f *formatMessenger) Raw() interface{} {
-	_ = f.Collect()
-	_ = f.String()
-
-	return f
-}
+func (f *formatMessenger) Loggable() bool   { return f.base != "" }
+func (f *formatMessenger) Raw() interface{} { _ = f.Collect(); _ = f.String(); return f }

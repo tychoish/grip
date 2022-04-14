@@ -32,7 +32,7 @@ func TestLoggingMethodSuite(t *testing.T) {
 }
 
 func (s *LoggingMethodSuite) SetupTest() {
-	s.defaultSender = GetGlobalLogger().GetSender()
+	s.defaultSender = GetGlobalLogger().Sender()
 	s.stdSender = send.MakeInternalLogger()
 	SetGlobalLogger(NewLogger(s.stdSender))
 
@@ -212,27 +212,27 @@ func TestGripSuite(t *testing.T) {
 
 func (s *GripSuite) SetupSuite() {
 	s.grip = NewLogger(send.MakeNative())
-	s.grip.GetSender().SetName(s.name)
-	s.Equal(s.grip.GetSender().Name(), s.name)
+	s.grip.Sender().SetName(s.name)
+	s.Equal(s.grip.Sender().Name(), s.name)
 }
 
 func (s *GripSuite) SetupTest() {}
 
 func (s *GripSuite) TestDefaultJournalerIsBootstrap() {
-	firstName := s.grip.GetSender().Name()
+	firstName := s.grip.Sender().Name()
 	// the bootstrap sender is a bit special because you can't
 	// change it's name, therefore:
 	secondName := "something_else"
-	s.grip.GetSender().SetName(secondName)
+	s.grip.Sender().SetName(secondName)
 
-	s.Equal(s.grip.GetSender().Name(), secondName)
-	s.NotEqual(s.grip.GetSender().Name(), firstName)
+	s.Equal(s.grip.Sender().Name(), secondName)
+	s.NotEqual(s.grip.Sender().Name(), firstName)
 	s.NotEqual(firstName, secondName)
 }
 
 func (s *GripSuite) TestNameSetterAndGetter() {
 	for _, name := range []string{"a", "a39df", "a@)(*E)"} {
-		s.grip.GetSender().SetName(name)
-		s.Equal(s.grip.GetSender().Name(), name)
+		s.grip.Sender().SetName(name)
+		s.Equal(s.grip.Sender().Name(), name)
 	}
 }

@@ -43,125 +43,126 @@ type Composer interface {
 	SetPriority(level.Priority) error
 }
 
-// ConvertToComposer can coerce unknown objects into Composer
+// ConvertWithPriority can coerce unknown objects into Composer
 // instances, as possible. This method will override the priority of
 // composers set to it.
-func ConvertToComposer(p level.Priority, message interface{}) Composer {
-	return convert(p, message, true)
+func ConvertWithPriority(p level.Priority, message interface{}) Composer {
+	if cmp, ok := message.(Composer); ok {
+		if pri := cmp.Priority(); pri != level.Invalid {
+			p = pri
+		}
+	}
+
+	out := Convert(message)
+	_ = out.SetPriority(p)
+
+	return out
 }
 
-func convert(p level.Priority, message interface{}, overRideLevel bool) Composer {
+// Convert produces a composer interface for arbitrary input.
+func Convert(message interface{}) Composer {
 	switch message := message.(type) {
 	case Composer:
-		if overRideLevel || message.Priority() != level.Invalid {
-			_ = message.SetPriority(p)
-		}
 		return message
 	case []Composer:
-		out := NewGroupComposer(message)
-		// this only sets constituent
-		// messages priority when its not otherwise set.
-		_ = out.SetPriority(p)
-		return out
+		return MakeGroupComposer(message)
 	case string:
-		return NewDefaultMessage(p, message)
+		return MakeString(message)
 	case error:
-		return NewErrorMessage(p, message)
+		return MakeError(message)
 	case FieldsProducer:
-		return NewFieldsProducerMessage(p, message)
+		return MakeFieldsProducer(message)
 	case func() Fields:
-		return NewFieldsProducerMessage(p, message)
+		return MakeFieldsProducer(message)
 	case ComposerProducer:
-		return MakeComposerProducer(p, message)
+		return MakeProducer(message)
 	case func() Composer:
-		return MakeComposerProducer(p, message)
+		return MakeProducer(message)
 	case func() map[string]interface{}:
-		return NewConvertedFieldsProducer(p, message)
+		return MakeConvertedFieldsProducer(message)
 	case ErrorProducer:
-		return MakeErrorProducer(p, message)
+		return MakeErrorProducer(message)
 	case func() error:
-		return MakeErrorProducer(p, message)
+		return MakeErrorProducer(message)
 	case []string:
-		return makeLinesFromStrings(p, message)
+		return newLinesFromStrings(message)
 	case []interface{}:
-		return NewLineMessage(p, message...)
+		return MakeLines(message...)
 	case []byte:
-		return NewBytesMessage(p, message)
+		return MakeBytes(message)
 	case Fields:
-		return MakeFields(p, message)
+		return MakeFields(message)
 	case map[string]interface{}:
-		return MakeFields(p, Fields(message))
+		return MakeFields(Fields(message))
 	case [][]string:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = makeLinesFromStrings(p, message[idx])
+			grp[idx] = newLinesFromStrings(message[idx])
 		}
-		return NewGroupComposer(grp)
+		return MakeGroupComposer(grp)
 	case [][]byte:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = NewBytesMessage(p, message[idx])
+			grp[idx] = MakeBytes(message[idx])
 		}
-		return NewGroupComposer(grp)
+		return MakeGroupComposer(grp)
 	case []map[string]interface{}:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = MakeFields(p, message[idx])
+			grp[idx] = MakeFields(message[idx])
 		}
-		out := NewGroupComposer(grp)
-		return out
+		return MakeGroupComposer(grp)
 	case []Fields:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = MakeFields(p, message[idx])
+			grp[idx] = MakeFields(message[idx])
 		}
-		out := NewGroupComposer(grp)
-		return out
+		return MakeGroupComposer(grp)
 	case []FieldsProducer:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = NewFieldsProducerMessage(p, message[idx])
+			grp[idx] = MakeFieldsProducer(message[idx])
 		}
-		return NewGroupComposer(grp)
+		return MakeGroupComposer(grp)
 	case []func() Fields:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = NewFieldsProducerMessage(p, message[idx])
+			grp[idx] = MakeFieldsProducer(message[idx])
 		}
-		return NewGroupComposer(grp)
+		return MakeGroupComposer(grp)
 	case []func() map[string]interface{}:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = NewConvertedFieldsProducer(p, message[idx])
+			grp[idx] = MakeConvertedFieldsProducer(message[idx])
 		}
-		return NewGroupComposer(grp)
+		return MakeGroupComposer(grp)
 	case []ComposerProducer:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = MakeComposerProducer(p, message[idx])
+			grp[idx] = MakeProducer(message[idx])
 		}
-		return NewGroupComposer(grp)
+		return MakeGroupComposer(grp)
 	case []func() Composer:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = MakeComposerProducer(p, message[idx])
+			grp[idx] = MakeProducer(message[idx])
 		}
-		return NewGroupComposer(grp)
+		return MakeGroupComposer(grp)
 	case []ErrorProducer:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = MakeErrorProducer(p, message[idx])
+			grp[idx] = MakeErrorProducer(message[idx])
 		}
-		return NewGroupComposer(grp)
+		return MakeGroupComposer(grp)
 	case []func() error:
 		grp := make([]Composer, len(message))
 		for idx := range message {
-			grp[idx] = MakeErrorProducer(p, message[idx])
+			grp[idx] = MakeErrorProducer(message[idx])
 		}
-		return NewGroupComposer(grp)
+		return MakeGroupComposer(grp)
 	case nil:
-		return NewLineMessage(p)
+		return MakeLines()
 	default:
-		return NewFormattedMessage(p, "%+v", message)
+		return MakeFormat("%+v", message)
 	}
 }

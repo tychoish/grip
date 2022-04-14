@@ -71,16 +71,16 @@ func (j *CommentSenderSuite) TestSendMethod() {
 	j.True(ok)
 	j.Equal(mock.numSent, 0)
 
-	m := message.NewDefaultMessage(level.Debug, "sending debug level comment")
+	m := message.NewString(level.Debug, "sending debug level comment")
 	sender.Send(m)
 	j.Equal(mock.numSent, numShouldHaveSent)
 
-	m = message.NewDefaultMessage(level.Alert, "sending alert level comment")
+	m = message.NewString(level.Alert, "sending alert level comment")
 	sender.Send(m)
 	numShouldHaveSent++
 	j.Equal(mock.numSent, numShouldHaveSent)
 
-	m = message.NewDefaultMessage(level.Emergency, "sending emergency level comment")
+	m = message.NewString(level.Emergency, "sending emergency level comment")
 	sender.Send(m)
 	numShouldHaveSent++
 	j.Equal(mock.numSent, numShouldHaveSent)
@@ -96,7 +96,7 @@ func (j *CommentSenderSuite) TestSendMethodWithError() {
 	j.Equal(mock.numSent, 0)
 	j.False(mock.failSend)
 
-	m := message.NewDefaultMessage(level.Alert, "test")
+	m := message.NewString(level.Alert, "test")
 	sender.Send(m)
 	j.Equal(mock.numSent, 1)
 

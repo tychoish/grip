@@ -127,7 +127,7 @@ func (s *bufferedSender) flush() {
 	if len(s.buffer) == 1 {
 		s.Sender.Send(s.buffer[0])
 	} else {
-		s.Sender.Send(message.NewGroupComposer(s.buffer))
+		s.Sender.Send(message.MakeGroupComposer(s.buffer))
 	}
 
 	s.buffer = []message.Composer{}

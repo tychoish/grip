@@ -28,14 +28,12 @@ func init() {
 // level.
 func SetDefaultStandardLogger(p level.Priority) {
 	log.SetFlags(0)
-	log.SetOutput(send.MakeWriterSender(std.GetSender(), p))
+	log.SetOutput(send.MakeWriterSender(std.Sender(), p))
 }
 
-// MakeStandardLogger constructs a standard library logging instance
+// GetStandardLogger constructs a standard library logging instance
 // that logs all messages to the global grip logging instance.
-func MakeStandardLogger(p level.Priority) *log.Logger {
-	return send.MakeStandardLogger(std.GetSender(), p)
-}
+func GetStandardLogger() *log.Logger { return send.NewStandardLogger(std.Sender()) }
 
 // GetGlobalLogger returns the global journal instance used by
 // this library. This call is not thread safe relative to other

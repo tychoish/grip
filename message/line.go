@@ -13,19 +13,19 @@ type lineMessenger struct {
 	Message string `bson:"message" json:"message" yaml:"message"`
 }
 
-// NewLineMessage is a basic constructor for a type that, given a
+// NewLines is a basic constructor for a type that, given a
 // bunch of arguments, calls fmt.Sprintln() on the arguments passed to
 // the constructor during the String() operation. Use in combination
 // with Compose[*] logging methods.
-func NewLineMessage(p level.Priority, args ...interface{}) Composer {
-	m := NewLine(args...)
+func NewLines(p level.Priority, args ...interface{}) Composer {
+	m := MakeLines(args...)
 	_ = m.SetPriority(p)
 	return m
 }
 
-// NewLine returns a message Composer roughly equivalent to
+// MakeLines returns a message Composer roughly equivalent to
 // fmt.Sprintln().
-func NewLine(args ...interface{}) Composer {
+func MakeLines(args ...interface{}) Composer {
 	m := &lineMessenger{}
 	for _, arg := range args {
 		if arg != nil {
@@ -67,8 +67,6 @@ func (l *lineMessenger) Loggable() bool {
 
 	return false
 }
-
-func (*lineMessenger) Structured() bool { return false }
 
 func (l *lineMessenger) String() string {
 	if l.Message == "" {

@@ -19,11 +19,11 @@ func TestInterceptor(t *testing.T) {
 	icept := NewInterceptor(base, filter)
 
 	assert.Equal(t, 0, base.Len())
-	icept.Send(message.NewSimpleStringMessage(level.Info, "hello"))
+	icept.Send(message.NewSimpleString(level.Info, "hello"))
 	assert.Equal(t, 1, base.Len())
 	assert.Equal(t, 1, count)
 
-	icept.Send(message.NewSimpleStringMessage(level.Trace, "hello"))
+	icept.Send(message.NewSimpleString(level.Trace, "hello"))
 	assert.Equal(t, 2, base.Len())
 	assert.Equal(t, 2, count)
 }

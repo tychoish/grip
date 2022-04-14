@@ -52,6 +52,8 @@ func (b *Base) Priority() level.Priority {
 	return b.Level
 }
 
+func (b *Base) Structured() bool { return len(b.Context) >= 1 }
+
 // SetPriority allows you to configure the priority of the
 // message. Returns an error if the priority is not valid.
 func (b *Base) SetPriority(l level.Priority) error {

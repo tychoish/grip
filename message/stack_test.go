@@ -23,7 +23,7 @@ func funcB() string {
 }
 
 func funcC() string {
-	return NewStack(0, "").String()
+	return MakeStack(0, "").String()
 }
 
 // don't add any code above this line unless you modify the line numbers in TestPrintStack

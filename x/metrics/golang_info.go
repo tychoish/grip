@@ -113,7 +113,7 @@ func CollectBasicGoStats() message.Composer {
 	defer goStatsCache.Unlock()
 	m := goStatsCache.update()
 
-	return message.NewFields(message.Fields{
+	return message.MakeFields(message.Fields{
 		"memory.objects.HeapObjects":  m.HeapObjects,
 		"memory.summary.Alloc":        m.Alloc,
 		"memory.summary.System":       m.HeapSys,

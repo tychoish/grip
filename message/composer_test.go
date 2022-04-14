@@ -15,40 +15,40 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 	assert := assert.New(t)
 	// map objects to output
 	cases := map[Composer]string{
-		NewString(testMsg):                                                     testMsg,
-		NewDefaultMessage(level.Error, testMsg):                                testMsg,
-		NewBytes([]byte(testMsg)):                                              testMsg,
-		NewBytesMessage(level.Error, []byte(testMsg)):                          testMsg,
-		NewError(errors.New(testMsg)):                                          testMsg,
-		NewErrorMessage(level.Error, errors.New(testMsg)):                      testMsg,
-		NewErrorWrap(errors.New(testMsg), ""):                                  testMsg,
-		NewErrorWrapMessage(level.Error, errors.New(testMsg), ""):              testMsg,
-		NewFormatted(string(testMsg[0])+"%s", testMsg[1:]):                     testMsg,
-		NewFormattedMessage(level.Error, string(testMsg[0])+"%s", testMsg[1:]): testMsg,
-		WrapError(errors.New(testMsg), ""):                                     testMsg,
-		WrapErrorf(errors.New(testMsg), ""):                                    testMsg,
-		NewLine(testMsg, ""):                                                   testMsg,
-		NewLineMessage(level.Error, testMsg, ""):                               testMsg,
-		NewLine(testMsg):                                                       testMsg,
-		NewLineMessage(level.Error, testMsg):                                   testMsg,
-		MakeGroupComposer(NewString(testMsg)):                                  testMsg,
-		NewGroupComposer([]Composer{NewString(testMsg)}):                       testMsg,
+		MakeString(testMsg):                                          testMsg,
+		NewString(level.Error, testMsg):                              testMsg,
+		MakeBytes([]byte(testMsg)):                                   testMsg,
+		NewBytes(level.Error, []byte(testMsg)):                       testMsg,
+		MakeError(errors.New(testMsg)):                               testMsg,
+		NewError(level.Error, errors.New(testMsg)):                   testMsg,
+		NewErrorWrap(errors.New(testMsg), ""):                        testMsg,
+		NewErrorWrapMessage(level.Error, errors.New(testMsg), ""):    testMsg,
+		MakeFormat(string(testMsg[0])+"%s", testMsg[1:]):             testMsg,
+		NewFormat(level.Error, string(testMsg[0])+"%s", testMsg[1:]): testMsg,
+		WrapError(errors.New(testMsg), ""):                           testMsg,
+		WrapErrorf(errors.New(testMsg), ""):                          testMsg,
+		MakeLines(testMsg, ""):                                       testMsg,
+		NewLines(level.Error, testMsg, ""):                           testMsg,
+		MakeLines(testMsg):                                           testMsg,
+		NewLines(level.Error, testMsg):                               testMsg,
+		BuildGroupComposer(MakeString(testMsg)):                      testMsg,
+		MakeGroupComposer([]Composer{MakeString(testMsg)}):           testMsg,
 		// MakeJiraMessage(&JiraIssue{Summary: testMsg, Type: "Something"}):                       testMsg,
 		// NewJiraMessage("", testMsg, JiraField{Key: "type", Value: "Something"}):                testMsg,
-		MakeFieldsMessage(level.Error, testMsg, Fields{}):                                      fmt.Sprintf("[message='%s']", testMsg),
-		MakeFields(level.Error, Fields{"test": testMsg}):                                       fmt.Sprintf("[test='%s']", testMsg),
-		NewFieldsMessage(testMsg, Fields{}):                                                    fmt.Sprintf("[message='%s']", testMsg),
-		NewFields(Fields{"test": testMsg}):                                                     fmt.Sprintf("[test='%s']", testMsg),
-		NewErrorWrappedComposer(errors.New("hello"), NewString("world")):                       "world: hello",
-		When(true, testMsg):                                                                    testMsg,
-		Whenf(true, testMsg):                                                                   testMsg,
-		Whenln(true, testMsg):                                                                  testMsg,
-		Whenln(true, testMsg):                                                                  testMsg,
-		NewComposerProducer(func() Composer { return NewString(testMsg) }):                     testMsg,
-		MakeComposerProducer(level.Error, func() Composer { return NewString(testMsg) }):       testMsg,
-		NewErrorProducer(func() error { return errors.New(testMsg) }):                          testMsg,
-		MakeErrorProducer(level.Error, func() error { return errors.New(testMsg) }):            testMsg,
-		NewFieldsProducerMessage(level.Error, func() Fields { return Fields{"pro": "ducer"} }): "[pro='ducer']",
+		NewAnnotated(level.Error, testMsg, Fields{}):                                    fmt.Sprintf("[message='%s']", testMsg),
+		NewFields(level.Error, Fields{"test": testMsg}):                                 fmt.Sprintf("[test='%s']", testMsg),
+		MakeAnnotated(testMsg, Fields{}):                                                fmt.Sprintf("[message='%s']", testMsg),
+		MakeFields(Fields{"test": testMsg}):                                             fmt.Sprintf("[test='%s']", testMsg),
+		NewErrorWrappedComposer(errors.New("hello"), MakeString("world")):               "world: hello",
+		When(true, testMsg):                                                             testMsg,
+		Whenf(true, testMsg):                                                            testMsg,
+		Whenln(true, testMsg):                                                           testMsg,
+		Whenln(true, testMsg):                                                           testMsg,
+		MakeProducer(func() Composer { return MakeString(testMsg) }):                    testMsg,
+		NewProducer(level.Error, func() Composer { return MakeString(testMsg) }):        testMsg,
+		MakeErrorProducer(func() error { return errors.New(testMsg) }):                  testMsg,
+		NewErrorProducer(level.Error, func() error { return errors.New(testMsg) }):      testMsg,
+		NewFieldsProducer(level.Error, func() Fields { return Fields{"pro": "ducer"} }): "[pro='ducer']",
 		NewConvertedFieldsProducer(level.Error, func() map[string]interface{} { return map[string]interface{}{"pro": "ducer"} }): "[pro='ducer']",
 		// NewEmailMessage(level.Error, Email{
 		// 	Recipients: []string{"someone@example.com"},
@@ -107,23 +107,21 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 	// map objects to output
 	cases := []Composer{
 		&stringMessage{},
-		NewString(""),
-		NewDefaultMessage(level.Error, ""),
+		MakeString(""),
+		NewString(level.Error, ""),
 		&bytesMessage{},
-		NewBytes([]byte{}),
-		NewBytesMessage(level.Error, []byte{}),
+		MakeBytes([]byte{}),
+		NewBytes(level.Error, []byte{}),
 		// &ProcessInfo{},
 		// &SystemInfo{},
 		&lineMessenger{},
-		NewLine(),
-		NewLineMessage(level.Error),
+		MakeLines(),
+		NewLines(level.Error),
 		&formatMessenger{},
-		NewFormatted(""),
-		NewFormattedMessage(level.Error, ""),
-		NewStack(1, ""),
-		NewStackLines(1),
-		NewStackFormatted(1, ""),
-		MakeGroupComposer(),
+		MakeFormat(""),
+		NewFormat(level.Error, ""),
+		MakeStack(1, ""),
+		BuildGroupComposer(),
 		&GroupComposer{},
 		// &GoRuntimeInfo{},
 		When(false, ""),
@@ -134,13 +132,13 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 		// NewGithubStatusMessageWithRepo(level.Error, GithubStatus{}),
 		// NewJIRACommentMessage(level.Error, "", ""),
 		// NewSlackMessage(level.Error, "", "", nil),
-		NewComposerProducer(nil),
-		NewComposerProducer(func() Composer { return nil }),
-		MakeFieldsProducerMessage(nil),
-		MakeFieldsProducerMessage(func() Fields { return nil }),
-		MakeFieldsProducerMessage(func() Fields { return Fields{} }),
-		NewErrorProducer(nil),
-		NewErrorProducer(func() error { return nil }),
+		MakeProducer(nil),
+		MakeProducer(func() Composer { return nil }),
+		MakeFieldsProducer(nil),
+		MakeFieldsProducer(func() Fields { return nil }),
+		MakeFieldsProducer(func() Fields { return Fields{} }),
+		MakeErrorProducer(nil),
+		MakeErrorProducer(func() error { return nil }),
 	}
 
 	for idx, msg := range cases {
@@ -155,18 +153,10 @@ func TestStackMessages(t *testing.T) {
 	assert := assert.New(t) // nolint
 	// map objects to output (prefix)
 	cases := map[Composer]string{
-		NewStack(1, testMsg):                testMsg,
-		NewStackLines(1, testMsg):           testMsg,
-		NewStackLines(1):                    "",
-		NewStackFormatted(1, "%s", testMsg): testMsg,
-		NewStackFormatted(1, string(testMsg[0])+"%s", testMsg[1:]): testMsg,
+		MakeStack(1, testMsg): testMsg,
 
 		// with 0 frame
-		NewStack(0, testMsg):                testMsg,
-		NewStackLines(0, testMsg):           testMsg,
-		NewStackLines(0):                    "",
-		NewStackFormatted(0, "%s", testMsg): testMsg,
-		NewStackFormatted(0, string(testMsg[0])+"%s", testMsg[1:]): testMsg,
+		MakeStack(0, testMsg): testMsg,
 	}
 
 	for msg, text := range cases {
@@ -188,17 +178,17 @@ func TestComposerConverter(t *testing.T) {
 	assert := assert.New(t) // nolint
 
 	cases := []interface{}{
-		NewLine(testMsg),
+		MakeLines(testMsg),
 		testMsg,
 		errors.New(testMsg),
 		[]string{testMsg},
 		[]interface{}{testMsg},
 		[]byte(testMsg),
-		[]Composer{NewString(testMsg)},
+		[]Composer{MakeString(testMsg)},
 	}
 
 	for _, msg := range cases {
-		comp := ConvertToComposer(level.Error, msg)
+		comp := ConvertWithPriority(level.Error, msg)
 		assert.True(comp.Loggable())
 		assert.Equal(testMsg, comp.String(), "%T", msg)
 	}
@@ -214,7 +204,7 @@ func TestComposerConverter(t *testing.T) {
 	}
 
 	for _, msg := range cases {
-		comp := ConvertToComposer(level.Error, msg)
+		comp := ConvertWithPriority(level.Error, msg)
 		assert.False(comp.Loggable())
 		assert.Equal("", comp.String(), "%T", msg)
 	}
@@ -227,7 +217,7 @@ func TestComposerConverter(t *testing.T) {
 	}
 
 	for out, in := range outputCases {
-		comp := ConvertToComposer(level.Error, in)
+		comp := ConvertWithPriority(level.Error, in)
 		assert.True(comp.Loggable())
 		assert.True(strings.HasPrefix(comp.String(), out))
 	}
@@ -245,8 +235,8 @@ type unwrapper interface {
 func TestErrors(t *testing.T) {
 	for name, cmp := range map[string]Composer{
 		"Wrapped":         WrapError(errors.New("err"), "wrap"),
-		"Plain":           NewError(errors.New("err")),
-		"Producer":        NewErrorProducer(func() error { return errors.New("message") }),
+		"Plain":           MakeError(errors.New("err")),
+		"Producer":        MakeErrorProducer(func() error { return errors.New("message") }),
 		"WrapperProducer": WrapErrorFunc(func() error { return errors.New("message") }, Fields{"op": "wrap"}),
 	} {
 		t.Run(name, func(t *testing.T) {

@@ -32,7 +32,7 @@ func (s *RecoverySuite) TearDownSuite() {
 
 func (s *RecoverySuite) SetupTest() {
 	s.sender = send.MakeInternalLogger()
-	s.globalSender = grip.GetGlobalLogger().GetSender()
+	s.globalSender = grip.GetGlobalLogger().Sender()
 	grip.SetGlobalLogger(grip.NewLogger(s.sender))
 }
 

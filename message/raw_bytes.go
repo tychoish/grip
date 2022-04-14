@@ -11,42 +11,37 @@ type bytesMessage struct {
 	Base
 }
 
-// NewBytesMessage provides a Composer interface around a byte slice,
+// NewBytes provides a Composer interface around a byte slice,
 // which are always logable unless the string is empty.
-func NewBytesMessage(p level.Priority, b []byte) Composer {
+func NewBytes(p level.Priority, b []byte) Composer {
 	m := &bytesMessage{data: b}
 	_ = m.SetPriority(p)
 	return m
 }
 
-// NewBytes provides a basic message consisting of a single line.
-func NewBytes(b []byte) Composer {
+// MakeBytes provides a basic message consisting of a single line.
+func MakeBytes(b []byte) Composer {
 	return &bytesMessage{data: b}
 }
 
-// NewSimpleBytes produces a bytes-wrapping message but does not
+// MakeSimpleBytes produces a bytes-wrapping message but does not
 // collect metadata.
-func NewSimpleBytes(b []byte) Composer {
+func MakeSimpleBytes(b []byte) Composer {
 	return &bytesMessage{data: b, skipMetadata: true}
 }
 
-// NewSimpleBytesMessage produces a bytes-wrapping message with the
+// NewSimpleBytes produces a bytes-wrapping message with the
 // specified priority but does not collect metadata.
-func NewSimpleBytesMessage(p level.Priority, b []byte) Composer {
+func NewSimpleBytes(p level.Priority, b []byte) Composer {
 	m := &bytesMessage{data: b, skipMetadata: true}
 	_ = m.SetPriority(p)
 
 	return m
 }
 
-func (s *bytesMessage) String() string {
-	return string(s.data)
-}
+func (s *bytesMessage) String() string { return string(s.data) }
+func (s *bytesMessage) Loggable() bool { return len(s.data) > 0 }
 
-func (s *bytesMessage) Loggable() bool {
-	return len(s.data) > 0
-}
-func (*bytesMessage) Structured() bool { return false }
 func (s *bytesMessage) Raw() interface{} {
 	if !s.skipMetadata {
 		_ = s.Collect()

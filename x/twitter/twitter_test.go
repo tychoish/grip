@@ -56,7 +56,7 @@ func TestTwitter(t *testing.T) {
 		})
 		mock.reset()
 		t.Run("SendValidCase", func(t *testing.T) {
-			msg := message.NewSimpleStringMessage(level.Info, "hi")
+			msg := message.NewSimpleString(level.Info, "hi")
 			s := newMockedTwitterSender(mock)
 			s.Send(msg)
 			assert.Equal(t, msg.String(), mock.Content)
@@ -69,7 +69,7 @@ func TestTwitter(t *testing.T) {
 			require.NoError(t, s.SetErrorHandler(send.ErrorHandlerFromSender(errsender)))
 			mock.SendError = errors.New("sendERROR")
 
-			msg := message.NewSimpleStringMessage(level.Info, "hi")
+			msg := message.NewSimpleString(level.Info, "hi")
 			s.Send(msg)
 			assert.True(t, errsender.HasMessage())
 			assert.Contains(t, errsender.GetMessage().Message.String(), "sendERROR")
@@ -87,7 +87,7 @@ func TestTwitter(t *testing.T) {
 
 		require.NoError(t, s.SetErrorHandler(send.ErrorHandlerFromSender(errsender)))
 
-		msg := message.NewSimpleStringMessage(level.Info, "hi")
+		msg := message.NewSimpleString(level.Info, "hi")
 		s.Send(msg)
 		require.True(t, errsender.HasMessage())
 		assert.Contains(t, errsender.GetMessage().Message.String(), "Bad Authentication data.")

@@ -35,11 +35,15 @@ import (
 // packages.
 type Logger interface {
 	// Method to access the underlying message sending backend.
-	GetSender() send.Sender
+	Sender() send.Sender
 
 	// Send allows you to push a composer which stores its own
 	// priorty (or uses the sender's default priority).
 	Send(interface{})
+
+	// Build produces a message builder that provides a chainable
+	// interface for building logging messages.
+	Build() *message.Builder
 
 	// Specify a log level as an argument rather than a method
 	// name.
@@ -106,19 +110,30 @@ type loggerImpl struct {
 // NewLogger builds a new logging interface from a sender implementation.
 func NewLogger(s send.Sender) Logger { return &loggerImpl{impl: s} }
 
-func (g *loggerImpl) GetSender() send.Sender { return g.impl }
-func (g *loggerImpl) Send(m interface{}) {
-	g.impl.Send(message.ConvertToComposer(g.impl.Level().Default, m))
-}
+func (g *loggerImpl) Sender() send.Sender     { return g.impl }
+func (g *loggerImpl) Send(m interface{})      { g.send(g.impl.Level().Default, message.Convert(m)) }
+func (g *loggerImpl) Build() *message.Builder { return message.NewBuilder(g.impl.Send) }
 
 // implementation
 
-func (g *loggerImpl) send(m message.Composer) { g.impl.Send(m) }
+func (g *loggerImpl) send(l level.Priority, m message.Composer) {
+	if err := m.SetPriority(l); err != nil {
+		g.impl.ErrorHandler()(err, m)
+		return
+	}
+
+	g.impl.Send(m)
+}
 
 // For sending logging messages, in most cases, use the
 // Journaler.sender.Send() method, but we have a couple of methods to
 // use for the Panic/Fatal helpers.
-func (g *loggerImpl) sendPanic(m message.Composer) {
+func (g *loggerImpl) sendPanic(l level.Priority, m message.Composer) {
+	if err := m.SetPriority(l); err != nil {
+		g.impl.ErrorHandler()(err, m)
+		return
+	}
+
 	// the Send method in the Sender interface will perform this
 	// check but to add fatal methods we need to do this here.
 	if g.impl.Level().ShouldLog(m) {
@@ -127,7 +142,12 @@ func (g *loggerImpl) sendPanic(m message.Composer) {
 	}
 }
 
-func (g *loggerImpl) sendFatal(m message.Composer) {
+func (g *loggerImpl) sendFatal(l level.Priority, m message.Composer) {
+	if err := m.SetPriority(l); err != nil {
+		g.impl.ErrorHandler()(err, m)
+		return
+	}
+
 	// the Send method in the Sender interface will perform this
 	// check but to add fatal methods we need to do this here.
 	if g.impl.Level().ShouldLog(m) {
@@ -140,99 +160,35 @@ func (g *loggerImpl) sendFatal(m message.Composer) {
 //
 // method implementation
 
-func (g *loggerImpl) Log(l level.Priority, msg interface{}) {
-	g.send(message.ConvertToComposer(l, msg))
-}
-func (g *loggerImpl) Logf(l level.Priority, msg string, a ...interface{}) {
-	g.send(message.NewFormattedMessage(l, msg, a...))
-}
-func (g *loggerImpl) LogWhen(conditional bool, l level.Priority, m interface{}) {
-	g.send(message.When(conditional, message.ConvertToComposer(l, m)))
-}
+func (g *loggerImpl) Log(l level.Priority, m any)                 { g.send(l, message.Convert(m)) }
+func (g *loggerImpl) Logf(l level.Priority, msg string, a ...any) { g.send(l, composerf(msg, a)) }
+func (g *loggerImpl) LogWhen(c bool, l level.Priority, m any)     { g.send(l, makeWhen(c, m)) }
+func (g *loggerImpl) EmergencyPanic(m any)                        { g.sendPanic(level.Emergency, message.Convert(m)) }
+func (g *loggerImpl) EmergencyFatal(m any)                        { g.sendFatal(level.Emergency, message.Convert(m)) }
+func (g *loggerImpl) Emergency(m any)                             { g.send(level.Emergency, message.Convert(m)) }
+func (g *loggerImpl) Emergencyf(m string, a ...any)               { g.send(level.Emergency, composerf(m, a)) }
+func (g *loggerImpl) EmergencyWhen(c bool, m any)                 { g.send(level.Emergency, makeWhen(c, m)) }
+func (g *loggerImpl) Alert(m any)                                 { g.send(level.Alert, message.Convert(m)) }
+func (g *loggerImpl) Alertf(m string, a ...any)                   { g.send(level.Alert, composerf(m, a)) }
+func (g *loggerImpl) AlertWhen(c bool, m any)                     { g.send(level.Alert, makeWhen(c, m)) }
+func (g *loggerImpl) Critical(m any)                              { g.send(level.Critical, message.Convert(m)) }
+func (g *loggerImpl) Criticalf(m string, a ...any)                { g.send(level.Critical, composerf(m, a)) }
+func (g *loggerImpl) CriticalWhen(c bool, m any)                  { g.send(level.Critical, makeWhen(c, m)) }
+func (g *loggerImpl) Error(m any)                                 { g.send(level.Error, message.Convert(m)) }
+func (g *loggerImpl) Errorf(m string, a ...any)                   { g.send(level.Error, composerf(m, a)) }
+func (g *loggerImpl) ErrorWhen(c bool, m any)                     { g.send(level.Error, makeWhen(c, m)) }
+func (g *loggerImpl) Warning(m any)                               { g.send(level.Warning, message.Convert(m)) }
+func (g *loggerImpl) Warningf(m string, a ...any)                 { g.send(level.Warning, composerf(m, a)) }
+func (g *loggerImpl) WarningWhen(c bool, m any)                   { g.send(level.Warning, makeWhen(c, m)) }
+func (g *loggerImpl) Notice(m any)                                { g.send(level.Notice, message.Convert(m)) }
+func (g *loggerImpl) Noticef(m string, a ...any)                  { g.send(level.Notice, composerf(m, a)) }
+func (g *loggerImpl) NoticeWhen(c bool, m any)                    { g.send(level.Notice, makeWhen(c, m)) }
+func (g *loggerImpl) Info(m any)                                  { g.send(level.Info, message.Convert(m)) }
+func (g *loggerImpl) Infof(m string, a ...any)                    { g.send(level.Info, composerf(m, a)) }
+func (g *loggerImpl) InfoWhen(c bool, m any)                      { g.send(level.Info, makeWhen(c, m)) }
+func (g *loggerImpl) Debug(m any)                                 { g.send(level.Debug, message.Convert(m)) }
+func (g *loggerImpl) Debugf(m string, a ...any)                   { g.send(level.Debug, composerf(m, a)) }
+func (g *loggerImpl) DebugWhen(c bool, m any)                     { g.send(level.Debug, makeWhen(c, m)) }
 
-func (g *loggerImpl) EmergencyPanic(msg interface{}) {
-	g.sendPanic(message.ConvertToComposer(level.Emergency, msg))
-}
-func (g *loggerImpl) EmergencyFatal(msg interface{}) {
-	g.sendFatal(message.ConvertToComposer(level.Emergency, msg))
-}
-
-func (g *loggerImpl) Emergency(msg interface{}) {
-	g.send(message.ConvertToComposer(level.Emergency, msg))
-}
-func (g *loggerImpl) Emergencyf(msg string, a ...interface{}) {
-	g.send(message.NewFormattedMessage(level.Emergency, msg, a...))
-}
-func (g *loggerImpl) EmergencyWhen(conditional bool, m interface{}) {
-	g.send(message.When(conditional, message.ConvertToComposer(level.Emergency, m)))
-}
-
-func (g *loggerImpl) Alert(msg interface{}) {
-	g.send(message.ConvertToComposer(level.Alert, msg))
-}
-func (g *loggerImpl) Alertf(msg string, a ...interface{}) {
-	g.send(message.NewFormattedMessage(level.Alert, msg, a...))
-}
-func (g *loggerImpl) AlertWhen(conditional bool, m interface{}) {
-	g.send(message.When(conditional, message.ConvertToComposer(level.Alert, m)))
-}
-
-func (g *loggerImpl) Critical(msg interface{}) {
-	g.send(message.ConvertToComposer(level.Critical, msg))
-}
-func (g *loggerImpl) Criticalf(msg string, a ...interface{}) {
-	g.send(message.NewFormattedMessage(level.Critical, msg, a...))
-}
-func (g *loggerImpl) CriticalWhen(conditional bool, m interface{}) {
-	g.send(message.When(conditional, message.ConvertToComposer(level.Critical, m)))
-}
-
-func (g *loggerImpl) Error(msg interface{}) {
-	g.send(message.ConvertToComposer(level.Error, msg))
-}
-func (g *loggerImpl) Errorf(msg string, a ...interface{}) {
-	g.send(message.NewFormattedMessage(level.Error, msg, a...))
-}
-func (g *loggerImpl) ErrorWhen(conditional bool, m interface{}) {
-	g.send(message.When(conditional, message.ConvertToComposer(level.Error, m)))
-}
-
-func (g *loggerImpl) Warning(msg interface{}) {
-	g.send(message.ConvertToComposer(level.Warning, msg))
-}
-func (g *loggerImpl) Warningf(msg string, a ...interface{}) {
-	g.send(message.NewFormattedMessage(level.Warning, msg, a...))
-}
-func (g *loggerImpl) WarningWhen(conditional bool, m interface{}) {
-	g.send(message.When(conditional, message.ConvertToComposer(level.Warning, m)))
-}
-
-func (g *loggerImpl) Notice(msg interface{}) {
-	g.send(message.ConvertToComposer(level.Notice, msg))
-}
-func (g *loggerImpl) Noticef(msg string, a ...interface{}) {
-	g.send(message.NewFormattedMessage(level.Notice, msg, a...))
-}
-func (g *loggerImpl) NoticeWhen(conditional bool, m interface{}) {
-	g.send(message.When(conditional, message.ConvertToComposer(level.Notice, m)))
-}
-
-func (g *loggerImpl) Info(msg interface{}) {
-	g.send(message.ConvertToComposer(level.Info, msg))
-}
-func (g *loggerImpl) Infof(msg string, a ...interface{}) {
-	g.send(message.NewFormattedMessage(level.Info, msg, a...))
-}
-func (g *loggerImpl) InfoWhen(conditional bool, m interface{}) {
-	g.send(message.When(conditional, message.ConvertToComposer(level.Info, m)))
-}
-
-func (g *loggerImpl) Debug(msg interface{}) {
-	g.send(message.ConvertToComposer(level.Debug, msg))
-}
-func (g *loggerImpl) Debugf(msg string, a ...interface{}) {
-	g.send(message.NewFormattedMessage(level.Debug, msg, a...))
-}
-func (g *loggerImpl) DebugWhen(conditional bool, m interface{}) {
-	g.send(message.When(conditional, message.ConvertToComposer(level.Debug, m)))
-}
+func makeWhen(cond bool, m any) message.Composer         { return message.When(cond, message.Convert(m)) }
+func composerf(tmpl string, args []any) message.Composer { return message.MakeFormat(tmpl, args...) }

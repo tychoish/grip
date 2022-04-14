@@ -20,25 +20,23 @@ type GroupComposer struct {
 	mutex    sync.RWMutex
 }
 
-// NewGroupComposer returns a GroupComposer object from a slice of
-// Composers.
-func NewGroupComposer(msgs []Composer) Composer {
-	return &GroupComposer{
-		messages: msgs,
-	}
+// BuildGroupComposer provides a variadic interface for creating a
+// GroupComposer.
+func BuildGroupComposer(msgs ...Composer) *GroupComposer {
+	return &GroupComposer{messages: msgs}
 }
 
-// NewGroupComposerWithPriority constructs a group composer from a collection of composers.
-func NewGroupComposerWithPriority(p level.Priority, msgs []Composer) Composer {
-	cmp := NewGroupComposer(msgs)
+// MakeGroupComposer returns a GroupComposer object from a slice of
+// Composers.
+func MakeGroupComposer(msgs []Composer) Composer {
+	return &GroupComposer{messages: msgs}
+}
+
+// NewGroupComposer constructs a group composer from a collection of composers.
+func NewGroupComposer(p level.Priority, msgs []Composer) Composer {
+	cmp := MakeGroupComposer(msgs)
 	_ = cmp.SetPriority(p)
 	return cmp
-}
-
-// MakeGroupComposer provides a variadic interface for creating a
-// GroupComposer.
-func MakeGroupComposer(msgs ...Composer) Composer {
-	return NewGroupComposer(msgs)
 }
 
 // String satisfies the fmt.Stringer interface, and returns a string

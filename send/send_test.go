@@ -276,7 +276,7 @@ func (s *SenderSuite) TestCloserShouldUsuallyNoop() {
 func (s *SenderSuite) TestBasicNoopSendTest() {
 	for _, sender := range s.functionalMockSenders() {
 		for i := -10; i <= 110; i += 5 {
-			m := message.NewDefaultMessage(level.Priority(i), "hello world! "+randomString(10, s.rand))
+			m := message.NewString(level.Priority(i), "hello world! "+randomString(10, s.rand))
 			sender.Send(m)
 		}
 	}
@@ -302,7 +302,7 @@ func TestBaseConstructor(t *testing.T) {
 			assert.Error(s.SetFormatter(nil))
 			assert.Error(s.SetErrorHandler(nil))
 			assert.NoError(s.SetErrorHandler(handler))
-			s.ErrorHandler()(errors.New("failed"), message.NewString("fated"))
+			s.ErrorHandler()(errors.New("failed"), message.MakeString("fated"))
 		}
 	}
 

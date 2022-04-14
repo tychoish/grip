@@ -71,7 +71,7 @@ func (s *SMTPSuite) TestOptionsMustBeIValid() {
 func (s *SMTPSuite) TestDefaultGetContents() {
 	s.NotNil(s.opts)
 
-	m := message.NewString("helllooooo!")
+	m := message.MakeString("helllooooo!")
 	sbj, msg := s.opts.GetContents(s.opts, m)
 
 	s.True(s.opts.NameAsSubject)
@@ -167,7 +167,7 @@ func (s *SMTPSuite) TestSendMailErrorsIfNoAddresses() {
 	s.opts.ResetRecipients()
 	s.Len(s.opts.toAddrs, 0)
 
-	m := message.NewString("hello world!")
+	m := message.MakeString("hello world!")
 	s.Error(s.opts.sendMail(m))
 }
 
@@ -176,7 +176,7 @@ func (s *SMTPSuite) TestSendMailErrorsIfMailCallFails() {
 		failMail: true,
 	}
 
-	m := message.NewString("hello world!")
+	m := message.MakeString("hello world!")
 	s.Error(s.opts.sendMail(m))
 }
 
@@ -185,7 +185,7 @@ func (s *SMTPSuite) TestSendMailErrorsIfRecptFails() {
 		failRcpt: true,
 	}
 
-	m := message.NewString("hello world!")
+	m := message.MakeString("hello world!")
 	s.Error(s.opts.sendMail(m))
 }
 
@@ -194,7 +194,7 @@ func (s *SMTPSuite) TestSendMailErrorsIfDataFails() {
 		failData: true,
 	}
 
-	m := message.NewString("hello world!")
+	m := message.MakeString("hello world!")
 	s.Error(s.opts.sendMail(m))
 }
 
@@ -203,12 +203,12 @@ func (s *SMTPSuite) TestSendMailErrorsIfCreateFails() {
 		failCreate: true,
 	}
 
-	m := message.NewString("hello world!")
+	m := message.MakeString("hello world!")
 	s.Error(s.opts.sendMail(m))
 }
 
 func (s *SMTPSuite) TestSendMailRecordsMessage() {
-	m := message.NewString("hello world!")
+	m := message.MakeString("hello world!")
 	s.NoError(s.opts.sendMail(m))
 	mock, ok := s.opts.client.(*smtpClientMock)
 	s.Require().True(ok)
@@ -246,15 +246,15 @@ func (s *SMTPSuite) TestSendMethod() {
 	s.True(ok)
 	s.Equal(mock.numMsgs, 0)
 
-	m := message.NewDefaultMessage(level.Debug, "hello")
+	m := message.NewString(level.Debug, "hello")
 	sender.Send(m)
 	s.Equal(mock.numMsgs, 0)
 
-	m = message.NewDefaultMessage(level.Alert, "")
+	m = message.NewString(level.Alert, "")
 	sender.Send(m)
 	s.Equal(mock.numMsgs, 0)
 
-	m = message.NewDefaultMessage(level.Alert, "world")
+	m = message.NewString(level.Alert, "world")
 	sender.Send(m)
 	s.Equal(mock.numMsgs, 1)
 }
@@ -269,7 +269,7 @@ func (s *SMTPSuite) TestSendMethodWithError() {
 	s.Equal(mock.numMsgs, 0)
 	s.False(mock.failData)
 
-	m := message.NewDefaultMessage(level.Alert, "world")
+	m := message.NewString(level.Alert, "world")
 	sender.Send(m)
 	s.Equal(mock.numMsgs, 1)
 

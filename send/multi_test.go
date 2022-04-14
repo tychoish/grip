@@ -21,19 +21,19 @@ func TestMultiSenderRespectsLevel(t *testing.T) {
 	multi := NewConfiguredMultiSender(s, mock)
 
 	assert.Equal(mock.Len(), 0)
-	multi.Send(message.NewDefaultMessage(level.Info, "hello"))
+	multi.Send(message.NewString(level.Info, "hello"))
 	assert.Equal(mock.Len(), 1)
 	m, ok := mock.GetMessageSafe()
 	assert.True(ok)
 	assert.False(m.Logged)
 
-	multi.Send(message.NewDefaultMessage(level.Alert, "hello"))
+	multi.Send(message.NewString(level.Alert, "hello"))
 	assert.Equal(mock.Len(), 1)
 	m, ok = mock.GetMessageSafe()
 	assert.True(ok)
 	assert.True(m.Logged)
 
-	multi.Send(message.NewDefaultMessage(level.Alert, "hello"))
+	multi.Send(message.NewString(level.Alert, "hello"))
 	assert.Equal(mock.Len(), 1)
 	m, ok = mock.GetMessageSafe()
 	assert.True(ok)

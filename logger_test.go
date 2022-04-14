@@ -39,7 +39,7 @@ func (s *GripInternalSuite) TestPanicSenderActuallyPanics() {
 			s.Nil(recover())
 		}()
 
-		s.grip.impl.Send(message.NewLineMessage(level.Critical, "foo"))
+		s.grip.impl.Send(message.NewLines(level.Critical, "foo"))
 	}()
 
 	func() {
@@ -48,12 +48,12 @@ func (s *GripInternalSuite) TestPanicSenderActuallyPanics() {
 			s.NotNil(recover())
 		}()
 
-		s.grip.sendPanic(message.NewLineMessage(level.Info, "foo"))
+		s.grip.sendPanic(level.Info, message.MakeLines("foo"))
 	}()
 }
 
 func (s *GripInternalSuite) TestPanicSenderRespectsTThreshold() {
-	s.True(level.Debug > s.grip.GetSender().Level().Threshold)
+	s.True(level.Debug > s.grip.Sender().Level().Threshold)
 	s.NoError(s.grip.impl.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Notice}))
 	s.True(level.Debug < s.grip.impl.Level().Threshold)
 
@@ -62,19 +62,19 @@ func (s *GripInternalSuite) TestPanicSenderRespectsTThreshold() {
 		s.Nil(recover())
 	}()
 
-	s.grip.sendPanic(message.NewLineMessage(level.Debug, "foo"))
+	s.grip.sendPanic(level.Debug, message.MakeLines("foo"))
 }
 
 func (s *GripInternalSuite) TestConditionalSend() {
 	// because sink is an internal type (implementation of
 	// sender,) and "GetMessage" isn't in the interface, though it
 	// is exported, we can't pass the sink between functions.
-	sink, err := send.NewInternalLogger("sink", s.grip.GetSender().Level())
+	sink, err := send.NewInternalLogger("sink", s.grip.Sender().Level())
 	s.NoError(err)
 	s.grip.impl = sink
 
-	msg := message.NewLineMessage(level.Info, "foo")
-	msgTwo := message.NewLineMessage(level.Notice, "bar")
+	msg := message.NewLines(level.Info, "foo")
+	msgTwo := message.NewLines(level.Notice, "bar")
 
 	// when the conditional argument is true, it should work
 	s.grip.Log(msg.Priority(), message.When(true, msg))
@@ -146,11 +146,11 @@ func (s *GripInternalSuite) TestCatchMethods() {
 
 	const msg = "hello world!"
 	multiMessage := []message.Composer{
-		message.ConvertToComposer(0, nil),
-		message.ConvertToComposer(0, msg),
+		message.ConvertWithPriority(0, nil),
+		message.ConvertWithPriority(0, msg),
 	}
 
-	for _, logger := range cases {
+	for idx, logger := range cases {
 		s.Equal(0, sink.Len())
 		s.False(sink.HasMessage())
 
@@ -198,7 +198,7 @@ func (s *GripInternalSuite) TestCatchMethods() {
 				}
 			}
 
-			s.True(numLogged == 1, fmt.Sprintf("%T: %d %s", logger, numLogged, out.Priority))
+			s.True(numLogged == 1, fmt.Sprintf("[id=%d] %T: %d %s", idx, logger, numLogged, out.Priority))
 
 			continue
 		}
@@ -207,7 +207,7 @@ func (s *GripInternalSuite) TestCatchMethods() {
 		s.True(sink.HasMessage())
 		out := sink.GetMessage()
 		s.Equal(out.Rendered, msg)
-		s.True(out.Logged, fmt.Sprintf("%T %s", logger, out.Priority))
+		s.True(out.Logged, fmt.Sprintf("[id=%d] %T %s", idx, logger, out.Priority))
 	}
 }
 
@@ -217,7 +217,7 @@ func (s *GripInternalSuite) TestCatchMethods() {
 func TestSendFatalExits(t *testing.T) {
 	grip := NewLogger(send.MakeNative()).(*loggerImpl)
 	if os.Getenv("SHOULD_CRASH") == "1" {
-		grip.sendFatal(message.NewLineMessage(level.Error, "foo"))
+		grip.sendFatal(level.Error, message.MakeLines("foo"))
 		return
 	}
 

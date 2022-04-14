@@ -97,17 +97,17 @@ func (s *SplunkSuite) TestSendMethod() {
 	s.Equal(mock.numSent, 0)
 	s.Equal(mock.httpSent, 0)
 
-	m := message.NewDefaultMessage(level.Debug, "hello")
+	m := message.NewString(level.Debug, "hello")
 	s.sender.Send(m)
 	s.Equal(mock.numSent, 0)
 	s.Equal(mock.httpSent, 0)
 
-	m = message.NewDefaultMessage(level.Alert, "")
+	m = message.NewString(level.Alert, "")
 	s.sender.Send(m)
 	s.Equal(mock.numSent, 0)
 	s.Equal(mock.httpSent, 0)
 
-	m = message.NewDefaultMessage(level.Alert, "world")
+	m = message.NewString(level.Alert, "world")
 	s.sender.Send(m)
 	s.Equal(mock.numSent, 1)
 	s.Equal(mock.httpSent, 1)
@@ -120,7 +120,7 @@ func (s *SplunkSuite) TestSendMethodWithError() {
 	s.Equal(mock.httpSent, 0)
 	s.False(mock.failSend)
 
-	m := message.NewDefaultMessage(level.Alert, "world")
+	m := message.NewString(level.Alert, "world")
 	s.sender.Send(m)
 	s.Equal(mock.numSent, 1)
 	s.Equal(mock.httpSent, 1)
@@ -137,12 +137,12 @@ func (s *SplunkSuite) TestBatchSendMethod() {
 	s.Equal(mock.numSent, 0)
 	s.Equal(mock.httpSent, 0)
 
-	m1 := message.NewDefaultMessage(level.Alert, "hello")
-	m2 := message.NewDefaultMessage(level.Debug, "hello")
-	m3 := message.NewDefaultMessage(level.Alert, "")
-	m4 := message.NewDefaultMessage(level.Alert, "hello")
+	m1 := message.NewString(level.Alert, "hello")
+	m2 := message.NewString(level.Debug, "hello")
+	m3 := message.NewString(level.Alert, "")
+	m4 := message.NewString(level.Alert, "hello")
 
-	g := message.MakeGroupComposer(m1, m2, m3, m4)
+	g := message.BuildGroupComposer(m1, m2, m3, m4)
 
 	s.sender.Send(g)
 	s.Equal(mock.numSent, 2)
@@ -156,12 +156,12 @@ func (s *SplunkSuite) TestBatchSendMethodWithEror() {
 	s.Equal(mock.httpSent, 0)
 	s.False(mock.failSend)
 
-	m1 := message.NewDefaultMessage(level.Alert, "hello")
-	m2 := message.NewDefaultMessage(level.Debug, "hello")
-	m3 := message.NewDefaultMessage(level.Alert, "")
-	m4 := message.NewDefaultMessage(level.Alert, "hello")
+	m1 := message.NewString(level.Alert, "hello")
+	m2 := message.NewString(level.Debug, "hello")
+	m3 := message.NewString(level.Alert, "")
+	m4 := message.NewString(level.Alert, "hello")
 
-	g := message.MakeGroupComposer(m1, m2, m3, m4)
+	g := message.BuildGroupComposer(m1, m2, m3, m4)
 
 	s.sender.Send(g)
 	s.Equal(mock.numSent, 2)

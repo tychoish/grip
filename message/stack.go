@@ -67,37 +67,17 @@ func (s StackTrace) String() string { return s.Frames.String() }
 func WrapStack(skip int, msg interface{}) Composer {
 	return &stackMessage{
 		trace:    captureStack(skip),
-		Composer: ConvertToComposer(level.Priority(0), msg),
+		Composer: ConvertWithPriority(level.Priority(0), msg),
 	}
 }
 
-// NewStack builds a Composer implementation that captures the current
+// MakeStack builds a Composer implementation that captures the current
 // stack trace with a single string message. Use the skip argument to
 // skip frames if your embedding this in your own wrapper or wrappers.
-func NewStack(skip int, message string) Composer {
+func MakeStack(skip int, message string) Composer {
 	return &stackMessage{
 		trace:    captureStack(skip),
-		Composer: NewString(message),
-	}
-}
-
-// NewStackLines returns a composer that builds a fmt.Println style
-// message that also captures a stack trace. Use the skip argument to
-// skip frames if your embedding this in your own wrapper or wrappers.
-func NewStackLines(skip int, messages ...interface{}) Composer {
-	return &stackMessage{
-		trace:    captureStack(skip),
-		Composer: NewLine(messages...),
-	}
-}
-
-// NewStackFormatted returns a composer that builds a fmt.Printf style
-// message that also captures a stack trace. Use the skip argument to
-// skip frames if your embedding this in your own wrapper or wrappers.
-func NewStackFormatted(skip int, message string, args ...interface{}) Composer {
-	return &stackMessage{
-		trace:    captureStack(skip),
-		Composer: NewFormatted(message, args...),
+		Composer: MakeString(message),
 	}
 }
 

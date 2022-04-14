@@ -34,7 +34,7 @@ func TestAsyncGroupSender(t *testing.T) {
 	impl.level = newLevel
 	assert.Equal(newLevel, s.Level())
 
-	s.Send(message.NewDefaultMessage(level.Debug, "hello"))
+	s.Send(message.NewString(level.Debug, "hello"))
 	newLevel = LevelInfo{Default: level.Debug, Threshold: level.Alert}
 	assert.NoError(impl.SetLevel(newLevel))
 	assert.Equal(newLevel, s.Level())
