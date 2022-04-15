@@ -91,10 +91,8 @@ func NewIssueSender(ctx context.Context, opts *Options, l send.LevelInfo) (send.
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := j.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
-		return nil, err
-	}
 
+	j.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 	j.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", j.Name())) })
 	j.SetName(opts.Name)
 

@@ -33,10 +33,7 @@ func NewFile(name, filePath string, l LevelInfo) (Sender, error) {
 // Journaler.SetSender or call SetName before using.
 func MakeFile(filePath string) (Sender, error) {
 	s := &nativeLogger{Base: NewBase("")}
-
-	if err := s.SetFormatter(MakeDefaultFormatter()); err != nil {
-		return nil, err
-	}
+	s.SetFormatter(MakeDefaultFormatter())
 
 	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
@@ -48,7 +45,7 @@ func MakeFile(filePath string) (Sender, error) {
 	s.reset = func() {
 		prefix := fmt.Sprintf("[%s] ", s.Name())
 		s.logger = log.New(f, prefix, log.LstdFlags)
-		_ = s.SetErrorHandler(ErrorHandlerFromLogger(log.New(os.Stderr, prefix, log.LstdFlags)))
+		s.SetErrorHandler(ErrorHandlerFromLogger(log.New(os.Stderr, prefix, log.LstdFlags)))
 	}
 
 	s.closer = func() error {
@@ -98,14 +95,14 @@ func WrapWriter(wr io.Writer) Sender {
 	s := &nativeLogger{
 		Base: NewBase(""),
 	}
-	_ = s.SetFormatter(MakeDefaultFormatter())
+	_ = s.SetLevel(LevelInfo{level.Trace, level.Trace})
 
-	s.level = LevelInfo{level.Trace, level.Trace}
-
-	s.reset = func() {
+	s.SetResetHook(func() {
 		s.logger = log.New(wr, fmt.Sprintf("[%s] ", s.Name()), log.LstdFlags)
-		_ = s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
-	}
+		s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
+	})
+	s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
+	s.SetFormatter(MakeDefaultFormatter())
 
 	return s
 }

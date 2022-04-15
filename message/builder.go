@@ -145,7 +145,7 @@ func (b *Builder) Fields(f Fields) *Builder {
 	}
 
 	for k, v := range f {
-		b.composer.Annotate(k, v)
+		b.catcher.Add(b.composer.Annotate(k, v))
 	}
 
 	return b
@@ -162,7 +162,7 @@ func (b *Builder) Annotate(key string, val interface{}) *Builder {
 		return b.Fields(Fields{key: val})
 	}
 
-	b.composer.Annotate(key, val)
+	b.catcher.Add(b.composer.Annotate(key, val))
 	return b
 }
 

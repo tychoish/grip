@@ -116,19 +116,13 @@ func constructXMPPLogger(name, target string, info XMPPConnectionInfo) (send.Sen
 		return nil, err
 	}
 
-	s.SetCloseHook(func() error { return s.info.client.Close() })
-
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
-		return nil, err
-	}
 
-	if err := s.SetFormatter(send.MakeXMPPFormatter(s.Name())); err != nil {
-		return nil, err
-	}
-
+	s.SetCloseHook(func() error { return s.info.client.Close() })
+	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
+	s.SetFormatter(send.MakeXMPPFormatter(s.Name()))
 	s.SetResetHook(func() {
-		_ = s.SetFormatter(send.MakeXMPPFormatter(s.Name()))
+		s.SetFormatter(send.MakeXMPPFormatter(s.Name()))
 		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
 	})
 

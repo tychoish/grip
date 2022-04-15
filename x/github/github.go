@@ -41,14 +41,9 @@ func NewIssueSender(name string, opts *GithubOptions) (send.Sender, error) {
 	s.gh.Init(ctx, opts.Token)
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
-		return nil, err
-	}
 
-	if err := s.SetFormatter(send.MakeDefaultFormatter()); err != nil {
-		return nil, err
-	}
-
+	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
+	s.SetFormatter(send.MakeDefaultFormatter())
 	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] [%s/%s] ", s.Name(), opts.Account, opts.Repo)) })
 
 	return s, nil

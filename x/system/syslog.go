@@ -1,4 +1,4 @@
-// +build linux freebsd solaris darwin
+// +go:build linux freebsd solaris darwin
 
 package system
 
@@ -44,7 +44,7 @@ func MakeSyslogSender(network, raddr string) send.Sender {
 	s := &syslogger{Base: send.NewBase("")}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	_ = s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
+	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 
 	s.SetResetHook(func() {
 		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))

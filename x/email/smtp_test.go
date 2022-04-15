@@ -224,21 +224,21 @@ func (s *SMTPSuite) TestSendMailRecordsMessage() {
 }
 
 func (s *SMTPSuite) TestNewConstructor() {
-	sender, err := NewSender(nil, send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(nil, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	s.Error(err)
 	s.Nil(sender)
 
-	sender, err = NewSender(s.opts, send.LevelInfo{level.Invalid, level.Info})
+	sender, err = NewSender(s.opts, send.LevelInfo{Default: level.Invalid, Threshold: level.Info})
 	s.Error(err)
 	s.Nil(sender)
 
-	sender, err = NewSender(s.opts, send.LevelInfo{level.Trace, level.Info})
+	sender, err = NewSender(s.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 }
 
 func (s *SMTPSuite) TestSendMethod() {
-	sender, err := NewSender(s.opts, send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(s.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 
@@ -260,7 +260,7 @@ func (s *SMTPSuite) TestSendMethod() {
 }
 
 func (s *SMTPSuite) TestSendMethodWithError() {
-	sender, err := NewSender(s.opts, send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(s.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 
@@ -279,14 +279,14 @@ func (s *SMTPSuite) TestSendMethodWithError() {
 }
 
 func (s *SMTPSuite) TestSendMethodWithEmailComposerOverridesSMTPOptions() {
-	sender, err := NewSender(s.opts, send.LevelInfo{level.Trace, level.Info})
+	sender, err := NewSender(s.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 	s.NoError(err)
 	s.NotNil(sender)
 
-	s.NoError(sender.SetErrorHandler(func(err error, m message.Composer) {
+	sender.SetErrorHandler(func(err error, m message.Composer) {
 		s.T().Errorf("unexpected error in sender: %+v", err)
 		s.T().FailNow()
-	}))
+	})
 
 	mock, ok := s.opts.client.(*smtpClientMock)
 	s.True(ok)

@@ -71,7 +71,7 @@ func (s *githubStatusMessageLogger) Send(m message.Composer) {
 
 // NewStatusSender returns a Sender to send payloads to the Github Status
 // API. Statuses will be attached to the given ref.
-func NewStatusSender(name string, opts *GithubOptions, ref string) (send.Sender, error) {
+func NewStatusSender(name string, opts *GithubOptions, ref string) send.Sender {
 	s := &githubStatusMessageLogger{
 		Base: send.NewBase(name),
 		gh:   &githubClientImpl{},
@@ -82,21 +82,15 @@ func NewStatusSender(name string, opts *GithubOptions, ref string) (send.Sender,
 	s.gh.Init(ctx, opts.Token)
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
-		return nil, err
-	}
 
-	if err := s.SetFormatter(send.MakePlainFormatter()); err != nil {
-		return nil, err
-	}
-
+	s.SetName(name)
+	s.SetFormatter(send.MakePlainFormatter())
+	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 	s.SetResetHook(func() {
 		fallback.SetPrefix(fmt.Sprintf("[%s] [%s/%s] ", s.Name(), opts.Account, opts.Repo))
 	})
 
-	s.SetName(name)
-
-	return s, nil
+	return s
 }
 
 func (s *githubStatusMessageLogger) githubMessageFieldsToStatus(m *message.Fields) *github.RepoStatus {

@@ -41,7 +41,7 @@ func NewCallSit(name string, depth int, l LevelInfo) (Sender, error) {
 // before using this logger.
 func MakeCallSite(depth int) Sender {
 	s := MakeStdOutput()
-	_ = s.SetFormatter(MakeCallSiteFormatter(depth))
+	s.SetFormatter(MakeCallSiteFormatter(depth))
 
 	return s
 }
@@ -69,9 +69,6 @@ func MakeCallSiteFile(fileName string, depth int) (Sender, error) {
 		return nil, err
 	}
 
-	if err := s.SetFormatter(MakeCallSiteFormatter(depth)); err != nil {
-		return nil, err
-	}
-
+	s.SetFormatter(MakeCallSiteFormatter(depth))
 	return s, nil
 }

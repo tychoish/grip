@@ -59,12 +59,10 @@ func NewCommentSender(ctx context.Context, id string, opts *Options, l send.Leve
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := j.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
-		return nil, err
-	}
 
 	j.SetName(id)
 	j.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", j.Name())) })
+	j.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 
 	return j, nil
 }

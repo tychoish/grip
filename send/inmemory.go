@@ -46,17 +46,10 @@ func NewInMemorySender(name string, info LevelInfo, capacity int) (Sender, error
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := s.SetErrorHandler(ErrorHandlerFromLogger(fallback)); err != nil {
-		return nil, err
-	}
 
-	if err := s.SetFormatter(MakeDefaultFormatter()); err != nil {
-		return nil, err
-	}
-
-	s.reset = func() {
-		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
-	}
+	s.SetErrorHandler(ErrorHandlerFromLogger(fallback))
+	s.SetFormatter(MakeDefaultFormatter())
+	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name())) })
 
 	return s, nil
 }

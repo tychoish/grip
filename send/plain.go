@@ -22,10 +22,10 @@ func WrapWriterPlain(wr io.Writer) Sender {
 	s := &nativeLogger{
 		Base: NewBase(""),
 	}
-
-	_ = s.SetFormatter(MakePlainFormatter())
-	s.level = LevelInfo{level.Trace, level.Trace}
 	s.logger = log.New(wr, "", 0)
+
+	s.SetFormatter(MakePlainFormatter())
+	_ = s.SetLevel(LevelInfo{Default: level.Trace, Threshold: level.Trace})
 	return s
 }
 
@@ -61,14 +61,12 @@ func MakePlain() Sender {
 	s := &nativeLogger{
 		Base: NewBase(""),
 	}
-	_ = s.SetFormatter(MakePlainFormatter())
-
-	s.level = LevelInfo{level.Trace, level.Trace}
-
-	s.reset = func() {
+	_ = s.SetLevel(LevelInfo{level.Trace, level.Trace})
+	s.SetFormatter(MakePlainFormatter())
+	s.SetResetHook(func() {
 		s.logger = log.New(os.Stdout, "", 0)
-		_ = s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
-	}
+		s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
+	})
 
 	return s
 }
@@ -77,28 +75,19 @@ func MakePlain() Sender {
 // prepend any log formatting to each message.
 func MakePlainFile(filePath string) (Sender, error) {
 	s := &nativeLogger{Base: NewBase("")}
-
-	if err := s.SetFormatter(MakeDefaultFormatter()); err != nil {
-		return nil, err
-	}
+	s.SetFormatter(MakeDefaultFormatter())
+	_ = s.SetLevel(LevelInfo{level.Trace, level.Trace})
 
 	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, fmt.Errorf("error opening logging file, %s", err.Error())
 	}
 
-	s.level = LevelInfo{level.Trace, level.Trace}
-
 	fallback := log.New(os.Stderr, "", log.LstdFlags)
-	_ = s.SetErrorHandler(ErrorHandlerFromLogger(fallback))
 
-	s.reset = func() {
-		s.logger = log.New(f, "", 0)
-	}
-
-	s.closer = func() error {
-		return f.Close()
-	}
+	s.SetErrorHandler(ErrorHandlerFromLogger(fallback))
+	s.SetResetHook(func() { s.logger = log.New(f, "", 0) })
+	s.SetCloseHook(func() error { return f.Close() })
 
 	return s, nil
 }
@@ -110,14 +99,12 @@ func MakePlainStdError() Sender {
 	s := &nativeLogger{
 		Base: NewBase(""),
 	}
-	_ = s.SetFormatter(MakePlainFormatter())
-
-	s.level = LevelInfo{level.Trace, level.Trace}
-
-	s.reset = func() {
+	_ = s.SetLevel(LevelInfo{Default: level.Trace, Threshold: level.Trace})
+	s.SetFormatter(MakePlainFormatter())
+	s.SetResetHook(func() {
 		s.logger = log.New(os.Stderr, "", 0)
-		_ = s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
-	}
+		s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
+	})
 
 	return s
 }

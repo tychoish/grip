@@ -66,7 +66,7 @@ func TestTwitter(t *testing.T) {
 			errsender, err := send.NewInternalLogger("errr", send.LevelInfo{Default: level.Info, Threshold: level.Info})
 			require.NoError(t, err)
 			s := newMockedTwitterSender(mock)
-			require.NoError(t, s.SetErrorHandler(send.ErrorHandlerFromSender(errsender)))
+			s.SetErrorHandler(send.ErrorHandlerFromSender(errsender))
 			mock.SendError = errors.New("sendERROR")
 
 			msg := message.NewSimpleString(level.Info, "hi")
@@ -85,7 +85,7 @@ func TestTwitter(t *testing.T) {
 			Base:    send.NewBase("fake"),
 		}
 
-		require.NoError(t, s.SetErrorHandler(send.ErrorHandlerFromSender(errsender)))
+		s.SetErrorHandler(send.ErrorHandlerFromSender(errsender))
 
 		msg := message.NewSimpleString(level.Info, "hi")
 		s.Send(msg)

@@ -58,10 +58,7 @@ func NewSender(ctx context.Context, opts *TwitterOptions, l send.LevelInfo) (sen
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
-		return nil, err
-	}
-
+	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 	s.SetResetHook(func() {
 		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
 	})

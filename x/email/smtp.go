@@ -56,12 +56,9 @@ func MakeSender(opts *SMTPOptions) (send.Sender, error) {
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
-		return nil, err
-	}
 
+	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name())) })
-
 	s.SetName(opts.Name)
 
 	return s, nil

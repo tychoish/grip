@@ -46,12 +46,8 @@ func NewSender(opts *SlackOptions, token string, l send.LevelInfo) (send.Sender,
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	if err := s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback)); err != nil {
-		return nil, err
-	}
-
+	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name())) })
-
 	s.SetName(opts.Name)
 
 	return s, nil
@@ -67,7 +63,7 @@ func MakeSender(opts *SlackOptions) (send.Sender, error) {
 			slackClientToken)
 	}
 
-	return NewSender(opts, token, send.LevelInfo{level.Trace, level.Trace})
+	return NewSender(opts, token, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
 }
 
 func (s *slackJournal) Send(m message.Composer) {

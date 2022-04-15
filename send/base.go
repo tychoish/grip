@@ -2,7 +2,6 @@ package send
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -100,16 +99,16 @@ func (b *Base) SetCloseHook(f func() error) {
 }
 
 // SetFormatter users to set the formatting function used to construct log messages.
-func (b *Base) SetFormatter(mf MessageFormatter) error {
+func (b *Base) SetFormatter(mf MessageFormatter) {
 	if mf == nil {
-		return errors.New("cannot set message formatter to nil")
+		return
 	}
 
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 	b.formatter = mf
 
-	return nil
+	return
 }
 
 // Formatter returns the formatter, defaulting to using the string
@@ -128,16 +127,16 @@ func (b *Base) Formatter() MessageFormatter {
 }
 
 // SetErrorHandler configures the error handling function for this Sender.
-func (b *Base) SetErrorHandler(eh ErrorHandler) error {
+func (b *Base) SetErrorHandler(eh ErrorHandler) {
 	if eh == nil {
-		return errors.New("error handler must be non-nil")
+		return
 	}
 
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 	b.errHandler = eh
 
-	return nil
+	return
 }
 
 // ErrorHandler returns an error handling functioncalls the error handler, and is a wrapper around the

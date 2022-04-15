@@ -176,7 +176,7 @@ func (s *SenderSuite) SetupTest() {
 		name := fmt.Sprintf("inmemory-%d", size)
 		s.senders[name], err = NewInMemorySender(name, l, size)
 		s.Require().NoError(err)
-		s.NoError(s.senders[name].SetFormatter(MakeDefaultFormatter()))
+		s.senders[name].SetFormatter(MakeDefaultFormatter())
 	}
 }
 
@@ -299,9 +299,9 @@ func TestBaseConstructor(t *testing.T) {
 		assert.Equal(made.closer(), newed.closer())
 
 		for _, s := range []*Base{made, newed} {
-			assert.Error(s.SetFormatter(nil))
-			assert.Error(s.SetErrorHandler(nil))
-			assert.NoError(s.SetErrorHandler(handler))
+			s.SetFormatter(nil)
+			s.SetErrorHandler(nil)
+			s.SetErrorHandler(handler)
 			s.ErrorHandler()(errors.New("failed"), message.MakeString("fated"))
 		}
 	}

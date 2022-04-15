@@ -48,7 +48,7 @@ func MakeSystemdSender() (send.Sender, error) {
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	_ = s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
+	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 
 	s.SetResetHook(func() {
 		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))

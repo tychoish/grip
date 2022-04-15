@@ -12,7 +12,7 @@ func NewJSON(name string, l LevelInfo) (Sender, error) {
 // instance.
 func MakeJSON() Sender {
 	s := MakePlain()
-	_ = s.SetFormatter(MakeJSONFormatter())
+	s.SetFormatter(MakeJSONFormatter())
 
 	return s
 }
@@ -38,9 +38,7 @@ func MakeJSONFile(file string) (Sender, error) {
 		return nil, err
 	}
 
-	if err = s.SetFormatter(MakeJSONFormatter()); err != nil {
-		return nil, err
-	}
+	s.SetFormatter(MakeJSONFormatter())
 
 	return s, nil
 }
