@@ -18,6 +18,27 @@ func sizeOfGroup(t *testing.T, comp Composer) int {
 }
 
 func TestWrap(t *testing.T) {
+	t.Run("Check", func(t *testing.T) {
+		t.Run("Wrapped", func(t *testing.T) {
+			comp := MakeString("hello")
+			comp = Wrap(comp, MakeString("world"))
+
+			if !IsWrapped(comp) {
+				t.Fatal("wrapped message not detected")
+			}
+		})
+		t.Run("NilParent", func(t *testing.T) {
+			if IsWrapped(Wrap(nil, MakeString("hello"))) {
+				t.Fatal("nil parent wrapped messagese aren't wrapped")
+			}
+		})
+		t.Run(" goUnwrapped", func(t *testing.T) {
+			if IsWrapped(MakeString("hello")) {
+				t.Fatal("unwrapped messages should not be detected")
+			}
+		})
+	})
+
 	t.Run("Unwrap", func(t *testing.T) {
 		comp := MakeString("hello")
 		comp = Wrap(comp, MakeString("world"))

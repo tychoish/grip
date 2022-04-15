@@ -8,7 +8,12 @@ Priority and associated constants provide access to these values.
 */
 package level
 
-import "strings"
+import (
+	"fmt"
+	"math"
+	"strconv"
+	"strings"
+)
 
 // Priority is an integer that tracks log levels. Use with one of the
 // defined constants.
@@ -50,8 +55,10 @@ func (p Priority) String() string {
 		return "debug"
 	case 20:
 		return "trace"
-	default:
+	case 0:
 		return "invalid"
+	default:
+		return fmt.Sprintf("<%d>", p)
 	}
 }
 
@@ -63,7 +70,8 @@ func (p Priority) IsValid() bool {
 
 // FromString takes a string, (case insensitive, leading and trailing space removed, )
 func FromString(l string) Priority {
-	switch strings.TrimSpace(strings.ToLower(l)) {
+	l = strings.TrimSpace(strings.ToLower(l))
+	switch l {
 	case "emergency":
 		return Emergency
 	case "alert":
@@ -83,6 +91,18 @@ func FromString(l string) Priority {
 	case "trace":
 		return Trace
 	default:
-		return Invalid
+		switch {
+		case strings.HasPrefix(l, "<") && strings.HasSuffix(l, ">"):
+			out, err := strconv.Atoi(l[1 : len(l)-1])
+			if err != nil {
+				return Invalid
+			}
+			if out > math.MaxInt16 {
+				return Invalid
+			}
+			return Priority(out)
+		default:
+			return Invalid
+		}
 	}
 }

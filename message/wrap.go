@@ -16,6 +16,10 @@ func Wrap(parent Composer, msg interface{}) Composer {
 	}
 }
 
+// IsWrapped returns true if the composer is wrapped *and* if the
+// parent composer is non-nil.
+func IsWrapped(c Composer) bool { wc, ok := c.(*wrappedImpl); return ok && wc.parent != nil }
+
 // Unwrap takes a composer and, if it has been wrapped, unwraps it
 // and produces a group composer of all the constituent messages. If
 // there are group messages in the stack, they are added (flattened)
