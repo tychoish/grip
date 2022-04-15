@@ -61,12 +61,19 @@ func (g Logger) Build() *message.Builder { return message.NewBuilder(g.impl.Send
 //
 // method implementation
 
-func (g Logger) send(l level.Priority, m message.Composer) {
+func (g Logger) safeSetPriority(l level.Priority, m message.Composer) bool {
 	if err := m.SetPriority(l); err != nil {
 		g.impl.ErrorHandler()(err, m)
-		return
+		return true
 	}
 
+	return false
+}
+
+func (g Logger) send(l level.Priority, m message.Composer) {
+	if g.safeSetPriority(l, m) {
+		return
+	}
 	g.impl.Send(m)
 }
 
@@ -74,8 +81,7 @@ func (g Logger) send(l level.Priority, m message.Composer) {
 // Journaler.sender.Send() method, but we have a couple of methods to
 // use for the Panic/Fatal helpers.
 func (g Logger) sendPanic(l level.Priority, m message.Composer) {
-	if err := m.SetPriority(l); err != nil {
-		g.impl.ErrorHandler()(err, m)
+	if g.safeSetPriority(l, m) {
 		return
 	}
 
@@ -88,8 +94,7 @@ func (g Logger) sendPanic(l level.Priority, m message.Composer) {
 }
 
 func (g Logger) sendFatal(l level.Priority, m message.Composer) {
-	if err := m.SetPriority(l); err != nil {
-		g.impl.ErrorHandler()(err, m)
+	if g.safeSetPriority(l, m) {
 		return
 	}
 
