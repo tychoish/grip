@@ -22,7 +22,7 @@ type WriterSender struct {
 	mu       sync.Mutex
 }
 
-// NewWriterSender wraps another sender and also provides an io.Writer.
+// MakeWriter wraps another sender and also provides an io.Writer.
 // (and because Sender is an io.Closer) the type also implements
 // io.WriteCloser.
 //
@@ -39,11 +39,11 @@ type WriterSender struct {
 // called, this sender flushes the buffer. WriterSender does not own the
 // underlying Sender, so users are responsible for closing the underlying Sender
 // if/when it is appropriate to release its resources.
-func NewWriterSender(s Sender) *WriterSender { return MakeWriterSender(s, s.Level().Default) }
+func MakeWriter(s Sender) *WriterSender { return NewWriter(s, s.Level().Default) }
 
-// MakeWriterSender returns an sender interface that also implements
+// NewWriter returns an sender interface that also implements
 // io.Writer. Specify a priority used as the level for messages sent.
-func MakeWriterSender(s Sender, p level.Priority) *WriterSender {
+func NewWriter(s Sender, p level.Priority) *WriterSender {
 	buffer := new(bytes.Buffer)
 
 	return &WriterSender{

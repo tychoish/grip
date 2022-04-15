@@ -24,8 +24,8 @@ type errorMessage struct {
 // non-nil.
 //
 // These composers also implement the error interface and the
-// pkg/errors.Causer interface and so can be passed as errors and used
-// with existing error-wrapping mechanisms.
+// pkg/errors.Causer and errors.Unwrapper interface and so can be
+// passed as errors and used with existing error-wrapping mechanisms.
 func NewError(p level.Priority, err error) Composer {
 	m := &errorMessage{
 		err: err,

@@ -12,7 +12,7 @@ type annotatingSender struct {
 	annotations map[string]interface{}
 }
 
-// NewAnnotatingSender adds the annotations defined in the annotations
+// MakeAnnotating adds the annotations defined in the annotations
 // map to every argument.
 //
 // Calling code should assume that the sender owns the annotations map
@@ -23,7 +23,7 @@ type annotatingSender struct {
 // While you can wrap an existing sender with the annotator, changes
 // to the annotating sender (e.g. level, formater, error handler) will
 // propagate to the embedded sender.
-func NewAnnotatingSender(s Sender, annotations map[string]interface{}) Sender {
+func MakeAnnotating(s Sender, annotations map[string]interface{}) Sender {
 	return &annotatingSender{
 		Sender:      s,
 		annotations: annotations,

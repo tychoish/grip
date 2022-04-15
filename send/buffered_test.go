@@ -160,6 +160,6 @@ func TestIntervalFlush(t *testing.T) {
 }
 
 func newBufferedSender(sender Sender, interval time.Duration, size int) *bufferedSender {
-	bs := NewBufferedSender(sender, interval, size)
+	bs := NewBuffered(sender, interval, size)
 	return bs.(*bufferedSender)
 }

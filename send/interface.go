@@ -96,13 +96,13 @@ func setup(s Sender, name string, l LevelInfo) (Sender, error) {
 	return s, nil
 }
 
-// MakeStandardLogger creates a standard library logging instance that logs all
+// NewStandard creates a standard library logging instance that logs all
 // messages to the underlying sender directly at the specified level.
-func MakeStandardLogger(s Sender, p level.Priority) *log.Logger {
-	return log.New(MakeWriterSender(s, p), "", 0)
-}
+func NewStandard(s Sender, p level.Priority) *log.Logger { return log.New(NewWriter(s, p), "", 0) }
 
-func NewStandardLogger(s Sender) *log.Logger { return log.New(NewWriterSender(s), "", 0) }
+// MakeStandard produces a standard library logging instance that
+// write to the underlying sender.
+func MakeStandard(s Sender) *log.Logger { return log.New(MakeWriter(s), "", 0) }
 
 // FromStandard prodeces a sender implementation from the standard
 // library logger.

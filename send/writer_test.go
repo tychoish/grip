@@ -15,7 +15,7 @@ func TestSenderWriter(t *testing.T) {
 	sink, err := NewInternalLogger("sink", LevelInfo{level.Debug, level.Debug})
 	assert.NoError(err)
 
-	ws := NewWriterSender(sink)
+	ws := MakeWriter(sink)
 	assert.Equal(ws.buffer.Len(), 0)
 
 	// writing something without a new line character will cause it to not send.

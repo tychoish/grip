@@ -211,7 +211,7 @@ func TestGripSuite(t *testing.T) {
 }
 
 func (s *GripSuite) SetupSuite() {
-	s.grip = NewLogger(send.MakeNative())
+	s.grip = NewLogger(send.MakeStdOutput())
 	s.grip.Sender().SetName(s.name)
 	s.Equal(s.grip.Sender().Name(), s.name)
 }

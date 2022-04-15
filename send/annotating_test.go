@@ -13,7 +13,7 @@ func TestAnnotatingSender(t *testing.T) {
 	insend, err := NewInternalLogger("annotatingSender", LevelInfo{Threshold: level.Debug, Default: level.Debug})
 	require.NoError(t, err)
 
-	annotate := NewAnnotatingSender(insend, map[string]interface{}{"a": "b"})
+	annotate := MakeAnnotating(insend, map[string]interface{}{"a": "b"})
 
 	annotate.Send(message.NewSimpleFields(level.Notice, message.Fields{"b": "a"}))
 	msg, ok := insend.GetMessageSafe()

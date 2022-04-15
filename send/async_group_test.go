@@ -13,11 +13,11 @@ func TestAsyncGroupSender(t *testing.T) {
 	assert := assert.New(t) // nolint
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	cs := MakeErrorLogger()
+	cs := MakeStdError()
 	assert.NoError(cs.SetLevel(LevelInfo{Default: level.Debug, Threshold: level.Notice}))
 	assert.True(cs.Level().Valid())
 
-	s := NewAsyncGroupSender(ctx, 2, cs)
+	s := NewAsyncGroup(ctx, 2, cs)
 
 	// if it's not valid to start with then we shouldn't make it
 	// valid by setting it to avoid constituents being overridden,

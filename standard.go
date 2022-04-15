@@ -13,7 +13,7 @@ import (
 var std Logger
 
 func init() {
-	sender := send.WrapWriterLogger(log.Writer())
+	sender := send.WrapWriter(log.Writer())
 	if !strings.Contains(os.Args[0], "go-build") {
 		sender.SetName(filepath.Base(os.Args[0]))
 	} else {
@@ -28,12 +28,12 @@ func init() {
 // level.
 func SetDefaultStandardLogger(p level.Priority) {
 	log.SetFlags(0)
-	log.SetOutput(send.MakeWriterSender(std.Sender(), p))
+	log.SetOutput(send.NewWriter(std.Sender(), p))
 }
 
 // GetStandardLogger constructs a standard library logging instance
 // that logs all messages to the global grip logging instance.
-func GetStandardLogger() *log.Logger { return send.NewStandardLogger(std.Sender()) }
+func GetStandardLogger() *log.Logger { return send.MakeStandard(std.Sender()) }
 
 // GetGlobalLogger returns the global journal instance used by
 // this library. This call is not thread safe relative to other

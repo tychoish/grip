@@ -21,7 +21,7 @@ type bufferedSender struct {
 	Sender
 }
 
-// NewBufferedSender provides a Sender implementation that wraps an existing
+// NewBuffered provides a Sender implementation that wraps an existing
 // Sender sending messages in batches, on a specified buffer size or after an
 // interval has passed.
 //
@@ -32,7 +32,7 @@ type bufferedSender struct {
 // This Sender does not own the underlying Sender, so users are responsible for
 // closing the underlying Sender if/when it is appropriate to release its
 // resources.
-func NewBufferedSender(sender Sender, interval time.Duration, size int) Sender {
+func NewBuffered(sender Sender, interval time.Duration, size int) Sender {
 	if interval == 0 {
 		interval = time.Minute
 	} else if interval < minInterval {

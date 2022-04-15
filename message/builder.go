@@ -124,7 +124,9 @@ func (b *Builder) Composer(c Composer) *Builder                 { return b.set(c
 func (b *Builder) Any(msg interface{}) *Builder                 { return b.set(Convert(msg)) }
 func (b *Builder) StringMap(f map[string]string) *Builder       { return b.Fields(fromStrMap(f)) }
 func (b *Builder) AnyMap(f map[string]interface{}) *Builder     { return b.Fields(Fields(f)) }
-func (b *Builder) Group(sendAsGroup bool) *Builder              { b.sendAsGroup = sendAsGroup; return b }
+func (b *Builder) SetGroup(sendAsGroup bool) *Builder           { b.sendAsGroup = sendAsGroup; return b }
+func (b *Builder) Group() *Builder                              { b.sendAsGroup = true; return b }
+func (b *Builder) Ungroup() *Builder                            { b.sendAsGroup = false; return b }
 
 // Fields, creates a new fields message if no message has been
 // defined, and otherwise annotates the existing message with the

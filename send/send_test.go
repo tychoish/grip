@@ -51,65 +51,65 @@ func (s *SenderSuite) SetupTest() {
 	internal.output = make(chan *InternalMessage)
 	s.senders["internal"] = internal
 
-	native, err := NewNativeLogger("native", l)
+	native, err := NewStdOutput("native", l)
 	s.Require().NoError(err)
 	s.senders["native"] = native
 
-	s.senders["writer"] = NewWriterSender(native)
+	s.senders["writer"] = MakeWriter(native)
 
 	var plain, plainerr, plainfile Sender
-	plain, err = NewPlainLogger("plain", l)
+	plain, err = NewPlainStdOutput("plain", l)
 	s.Require().NoError(err)
 	s.senders["plain"] = plain
 
-	plainerr, err = NewPlainErrorLogger("plain.err", l)
+	plainerr, err = NewPlainStdError("plain.err", l)
 	s.Require().NoError(err)
 	s.senders["plain.err"] = plainerr
 
-	plainfile, err = NewPlainFileLogger("plain.file", filepath.Join(s.tempDir, "plain.file"), l)
+	plainfile, err = NewPlainFile("plain.file", filepath.Join(s.tempDir, "plain.file"), l)
 	s.Require().NoError(err)
 	s.senders["plain.file"] = plainfile
 
 	var asyncOne, asyncTwo Sender
-	asyncOne, err = NewNativeLogger("async-one", l)
+	asyncOne, err = NewStdOutput("async-one", l)
 	s.Require().NoError(err)
-	asyncTwo, err = NewNativeLogger("async-two", l)
+	asyncTwo, err = NewStdOutput("async-two", l)
 	s.Require().NoError(err)
-	s.senders["async"] = NewAsyncGroupSender(context.Background(), 16, asyncOne, asyncTwo)
+	s.senders["async"] = NewAsyncGroup(context.Background(), 16, asyncOne, asyncTwo)
 
-	nativeErr, err := NewErrorLogger("error", l)
+	nativeErr, err := NewStdError("error", l)
 	s.Require().NoError(err)
 	s.senders["error"] = nativeErr
 
-	nativeFile, err := NewFileLogger("native-file", filepath.Join(s.tempDir, "file"), l)
+	nativeFile, err := NewFile("native-file", filepath.Join(s.tempDir, "file"), l)
 	s.Require().NoError(err)
 	s.senders["native-file"] = nativeFile
 
-	callsite, err := NewCallSiteConsoleLogger("callsite", 1, l)
+	callsite, err := NewCallSit("callsite", 1, l)
 	s.Require().NoError(err)
 	s.senders["callsite"] = callsite
 
-	callsiteFile, err := NewCallSiteFileLogger("callsite", filepath.Join(s.tempDir, "cs"), 1, l)
+	callsiteFile, err := NewCallSiteFile("callsite", filepath.Join(s.tempDir, "cs"), 1, l)
 	s.Require().NoError(err)
 	s.senders["callsite-file"] = callsiteFile
 
-	jsons, err := NewJSONConsoleLogger("json", LevelInfo{level.Info, level.Notice})
+	jsons, err := NewJSON("json", LevelInfo{level.Info, level.Notice})
 	s.Require().NoError(err)
 	s.senders["json"] = jsons
 
-	jsonf, err := NewJSONFileLogger("json", filepath.Join(s.tempDir, "js"), l)
+	jsonf, err := NewJSONFile("json", filepath.Join(s.tempDir, "js"), l)
 	s.Require().NoError(err)
 	s.senders["json"] = jsonf
 
 	var sender Sender
 	multiSenders := []Sender{}
 	for i := 0; i < 4; i++ {
-		sender, err = NewNativeLogger(fmt.Sprintf("native-%d", i), l)
+		sender, err = NewStdOutput(fmt.Sprintf("native-%d", i), l)
 		s.Require().NoError(err)
 		multiSenders = append(multiSenders, sender)
 	}
 
-	multi, err := NewMultiSender("multi", l, multiSenders)
+	multi, err := NewMulti("multi", l, multiSenders)
 	s.Require().NoError(err)
 	s.senders["multi"] = multi
 
@@ -128,9 +128,9 @@ func (s *SenderSuite) SetupTest() {
 	// s.Require().NoError(err)
 	// s.senders["xmpp-mocked"] = xmppMocked
 
-	bufferedInternal, err := NewNativeLogger("buffered", l)
+	bufferedInternal, err := NewStdOutput("buffered", l)
 	s.Require().NoError(err)
-	s.senders["buffered"] = NewBufferedSender(bufferedInternal, minInterval, 1)
+	s.senders["buffered"] = NewBuffered(bufferedInternal, minInterval, 1)
 
 	// s.senders["github"], err = NewGithubIssuesLogger("gh", &GithubOptions{})
 	// s.Require().NoError(err)
@@ -164,9 +164,9 @@ func (s *SenderSuite) SetupTest() {
 	// }
 	// s.NoError(s.senders["gh-status-mocked"].SetFormatter(MakeDefaultFormatter()))
 
-	annotatingBase, err := NewNativeLogger("async-one", l)
+	annotatingBase, err := NewStdOutput("async-one", l)
 	s.Require().NoError(err)
-	s.senders["annotating"] = NewAnnotatingSender(annotatingBase, map[string]interface{}{
+	s.senders["annotating"] = MakeAnnotating(annotatingBase, map[string]interface{}{
 		"one":    1,
 		"true":   true,
 		"string": "string",

@@ -24,7 +24,7 @@ func TestLoggerSuite(t *testing.T) {
 }
 
 func (s *GripInternalSuite) SetupTest() {
-	sender, err := send.NewNativeLogger(s.name, send.LevelInfo{Default: level.Info, Threshold: level.Trace})
+	sender, err := send.NewStdOutput(s.name, send.LevelInfo{Default: level.Info, Threshold: level.Trace})
 	s.NoError(err)
 	s.Equal(sender.Name(), s.name)
 }
@@ -215,7 +215,7 @@ func (s *GripInternalSuite) TestCatchMethods() {
 // http://stackoverflow.com/a/33404435 to test a function that exits
 // since it's impossible to "catch" an os.Exit
 func TestSendFatalExits(t *testing.T) {
-	grip := NewLogger(send.MakeNative()).(*loggerImpl)
+	grip := NewLogger(send.MakeStdOutput()).(*loggerImpl)
 	if os.Getenv("SHOULD_CRASH") == "1" {
 		grip.sendFatal(level.Error, message.MakeLines("foo"))
 		return

@@ -15,5 +15,5 @@ func MakeDefaultSystem() (send.Sender, error) {
 		return MakeSystemdSender()
 	}
 
-	return send.MakeNative(), nil
+	return send.MakeStdOutput(), nil
 }

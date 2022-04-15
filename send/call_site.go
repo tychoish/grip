@@ -27,31 +27,31 @@ Create a call site logger with one of the following constructors:
 */
 package send
 
-// NewCallSiteConsoleLogger returns a fully configured Sender
+// NewCallSit returns a fully configured Sender
 // implementation that writes log messages to standard output in a
 // format that includes the filename and line number of the call site
 // of the logger.
-func NewCallSiteConsoleLogger(name string, depth int, l LevelInfo) (Sender, error) {
-	return setup(MakeCallSiteConsoleLogger(depth), name, l)
+func NewCallSit(name string, depth int, l LevelInfo) (Sender, error) {
+	return setup(MakeCallSite(depth), name, l)
 }
 
-// MakeCallSiteConsoleLogger constructs an unconfigured call site
+// MakeCallSite constructs an unconfigured call site
 // logger that writes output to standard output. You must set the name
 // of the logger using SetName or your Journaler's SetSender method
 // before using this logger.
-func MakeCallSiteConsoleLogger(depth int) Sender {
-	s := MakeNative()
+func MakeCallSite(depth int) Sender {
+	s := MakeStdOutput()
 	_ = s.SetFormatter(MakeCallSiteFormatter(depth))
 
 	return s
 }
 
-// NewCallSiteFileLogger returns a fully configured Sender
+// NewCallSiteFile returns a fully configured Sender
 // implementation that writes log messages to a specified file in a
 // format that includes the filename and line number of the call site
 // of the logger.
-func NewCallSiteFileLogger(name, fileName string, depth int, l LevelInfo) (Sender, error) {
-	s, err := MakeCallSiteFileLogger(fileName, depth)
+func NewCallSiteFile(name, fileName string, depth int, l LevelInfo) (Sender, error) {
+	s, err := MakeCallSiteFile(fileName, depth)
 	if err != nil {
 		return nil, err
 	}
@@ -59,12 +59,12 @@ func NewCallSiteFileLogger(name, fileName string, depth int, l LevelInfo) (Sende
 	return setup(s, name, l)
 }
 
-// MakeCallSiteFileLogger constructs an unconfigured call site logger
+// MakeCallSiteFile constructs an unconfigured call site logger
 // that writes output to the specified hours. You must set the name of
 // the logger using SetName or your Journaler's SetSender method
 // before using this logger.
-func MakeCallSiteFileLogger(fileName string, depth int) (Sender, error) {
-	s, err := MakeFileLogger(fileName)
+func MakeCallSiteFile(fileName string, depth int) (Sender, error) {
+	s, err := MakeFile(fileName)
 	if err != nil {
 		return nil, err
 	}

@@ -16,9 +16,9 @@ func TestMultiSenderRespectsLevel(t *testing.T) {
 
 	mock, err := NewInternalLogger("mock", LevelInfo{Default: level.Critical, Threshold: level.Alert})
 	assert.NoError(err)
-	s := MakeErrorLogger()
+	s := MakeStdError()
 	s.SetName("mock2")
-	multi := NewConfiguredMultiSender(s, mock)
+	multi := MakeMulti(s, mock)
 
 	assert.Equal(mock.Len(), 0)
 	multi.Send(message.NewString(level.Info, "hello"))

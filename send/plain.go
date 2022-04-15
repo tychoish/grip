@@ -2,30 +2,51 @@ package send
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 
 	"github.com/tychoish/grip/level"
 )
 
-// NewPlainLogger returns a configured sender that has no prefix and
+// WrapWriterPlain produces a simple writer that does not modify the log
+// lines passed to the writer.
+//
+// As a special case, if the writer is a *WriterSender, then this
+// method will unwrap and return the underlying sender from the writer.
+func WrapWriterPlain(wr io.Writer) Sender {
+	if s, ok := wr.(*WriterSender); ok {
+		return s.Sender
+	}
+
+	s := &nativeLogger{
+		Base: NewBase(""),
+	}
+
+	_ = s.SetFormatter(MakePlainFormatter())
+	s.level = LevelInfo{level.Trace, level.Trace}
+	s.logger = log.New(wr, "", 0)
+	return s
+}
+
+// NewPlainStdOutput returns a configured sender that has no prefix and
 // uses a plain formatter for messages, using only the string format
 // for each message. This sender writes all output to standard output.
-func NewPlainLogger(name string, l LevelInfo) (Sender, error) {
-	return setup(MakePlainLogger(), name, l)
+func NewPlainStdOutput(name string, l LevelInfo) (Sender, error) {
+	return setup(MakePlain(), name, l)
 }
 
-// NewPlainErrorLogger returns a configured sender that has no prefix and
+// NewPlainStdError returns a configured sender that has no prefix and
 // uses a plain formatter for messages, using only the string format
 // for each message. This sender writes all output to standard error.
-func NewPlainErrorLogger(name string, l LevelInfo) (Sender, error) {
-	return setup(MakePlainErrorLogger(), name, l)
+func NewPlainStdError(name string, l LevelInfo) (Sender, error) {
+	return setup(MakePlainStdError(), name, l)
 }
 
-// NewPlainFileLogger creates a new configured logger that writes log
+// NewPlainFile creates a new configured logger that writes log
 // data to a file.
-func NewPlainFileLogger(name, file string, l LevelInfo) (Sender, error) {
-	s, err := MakePlainFileLogger(file)
+func NewPlainFile(name, file string, l LevelInfo) (Sender, error) {
+	s, err := MakePlainFile(file)
 	if err != nil {
 		return nil, err
 	}
@@ -33,10 +54,10 @@ func NewPlainFileLogger(name, file string, l LevelInfo) (Sender, error) {
 	return setup(s, name, l)
 }
 
-// MakePlainLogger returns an unconfigured sender without a prefix,
+// MakePlain returns an unconfigured sender without a prefix,
 // using the plain log formatter. This Sender writes all output to
 // standard error.
-func MakePlainLogger() Sender {
+func MakePlain() Sender {
 	s := &nativeLogger{
 		Base: NewBase(""),
 	}
@@ -52,9 +73,9 @@ func MakePlainLogger() Sender {
 	return s
 }
 
-// MakePlainFileLogger writes all output to a file, but does not
+// MakePlainFile writes all output to a file, but does not
 // prepend any log formatting to each message.
-func MakePlainFileLogger(filePath string) (Sender, error) {
+func MakePlainFile(filePath string) (Sender, error) {
 	s := &nativeLogger{Base: NewBase("")}
 
 	if err := s.SetFormatter(MakeDefaultFormatter()); err != nil {
@@ -82,10 +103,10 @@ func MakePlainFileLogger(filePath string) (Sender, error) {
 	return s, nil
 }
 
-// MakePlainErrorLogger returns an unconfigured sender without a prefix,
+// MakePlainStdError returns an unconfigured sender without a prefix,
 // using the plain log formatter. This Sender writes all output to
 // standard error.
-func MakePlainErrorLogger() Sender {
+func MakePlainStdError() Sender {
 	s := &nativeLogger{
 		Base: NewBase(""),
 	}

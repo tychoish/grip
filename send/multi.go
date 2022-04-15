@@ -15,7 +15,7 @@ type multiSender struct {
 	*Base
 }
 
-// NewMultiSender configures a new sender implementation that takes a
+// NewMulti configures a new sender implementation that takes a
 // slice of Sender implementations that dispatches all messages to all
 // implementations. This constructor forces all member Senders to have
 // the same name and Level configuration. Use NewConfiguredMultiSender
@@ -26,7 +26,7 @@ type multiSender struct {
 //
 // The Sender takes ownership of the underlying Senders, so closing this Sender
 // closes all underlying Senders.
-func NewMultiSender(name string, l LevelInfo, senders []Sender) (Sender, error) {
+func NewMulti(name string, l LevelInfo, senders []Sender) (Sender, error) {
 	if !l.Valid() {
 		return nil, fmt.Errorf("invalid level specification: %+v", l)
 	}
@@ -49,7 +49,7 @@ func NewMultiSender(name string, l LevelInfo, senders []Sender) (Sender, error) 
 	return s, nil
 }
 
-// NewConfiguredMultiSender returns a multi sender implementation with
+// MakeMulti returns a multi sender implementation with
 // Sender members, but does not force the senders to have conforming
 // name or level values. Use NewMultiSender to construct a list of
 // senders with consistent names and level configurations.
@@ -59,7 +59,7 @@ func NewMultiSender(name string, l LevelInfo, senders []Sender) (Sender, error) 
 //
 // The Sender takes ownership of the underlying Senders, so closing this Sender
 // closes all underlying Senders.
-func NewConfiguredMultiSender(senders ...Sender) Sender {
+func MakeMulti(senders ...Sender) Sender {
 	s := &multiSender{senders: senders, Base: NewBase("")}
 	_ = s.Base.SetLevel(LevelInfo{Default: level.Invalid, Threshold: level.Invalid})
 
