@@ -17,6 +17,7 @@ func TestComposerBaseSuite(t *testing.T) {
 
 func (s *ComposerBaseSuite) SetupTest() {
 	s.base = &Base{}
+	s.True(s.base.IsZero())
 }
 
 func (s *ComposerBaseSuite) TestCollectWorksWithUnsetPids() {
@@ -48,8 +49,10 @@ func (s *ComposerBaseSuite) TestAnnotateErrorsForSameValue() {
 }
 
 func (s *ComposerBaseSuite) TestAnnotateMultipleValues() {
+	s.False(s.base.Structured())
 	s.NoError(s.base.Annotate("kOne", "foo"))
 	s.NoError(s.base.Annotate("kTwo", "foo"))
 	s.Equal("foo", s.base.Context["kOne"])
 	s.Equal("foo", s.base.Context["kTwo"])
+	s.True(s.base.Structured())
 }

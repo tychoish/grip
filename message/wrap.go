@@ -22,33 +22,12 @@ func Wrap(parent Composer, msg interface{}) Composer {
 // in the new output group.
 func Unwrap(comp Composer) Composer {
 	switch cp := comp.(type) {
-	case Composer:
-		return cp
 	case *wrappedImpl:
-		cps := []Composer{cp.Composer}
-
-		next := cp.parent
-	UNWRAP:
-		for {
-			switch c := next.(type) {
-			case *wrappedImpl:
-				cps = append(cps, unwindGroup(c.Composer)...)
-				if c.parent == nil {
-					break UNWRAP
-				}
-				next = c.parent
-			case Composer:
-				cps = append(cps, unwindGroup(cp)...)
-				break UNWRAP
-			default:
-				break UNWRAP
-			}
-
-		}
-
-		return MakeGroupComposer(cps)
+		return MakeGroupComposer(append(
+			unwindGroup(Unwrap(cp.Composer)),
+			unwindGroup(Unwrap(cp.parent))...))
 	default:
-		return nil
+		return cp
 	}
 }
 

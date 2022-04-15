@@ -32,7 +32,7 @@ const killOverrideVarName = "__GRIP_EXIT_OVERRIDE"
 // This operation also attempts to close the underlying log sender.
 func LogStackTraceAndExit(opDetails ...string) {
 	if p := recover(); p != nil {
-		logAndExit(p, grip.NewLogger(grip.GetGlobalLogger().Sender()), message.MakeFields(getMessage(opDetails)))
+		logAndExit(p, grip.NewLogger(grip.Sender()), message.MakeFields(getMessage(opDetails)))
 	}
 }
 
@@ -50,7 +50,7 @@ func LogStackTraceAndExit(opDetails ...string) {
 //
 func LogStackTraceAndContinue(opDetails ...string) {
 	if p := recover(); p != nil {
-		logAndContinue(p, grip.NewLogger(grip.GetGlobalLogger().Sender()), message.MakeFields(getMessage(opDetails)))
+		logAndContinue(p, grip.NewLogger(grip.Sender()), message.MakeFields(getMessage(opDetails)))
 	}
 }
 
@@ -77,7 +77,7 @@ func HandlePanicWithError(p interface{}, err error, opDetails ...string) error {
 		perr := panicError(p)
 		catcher.Add(perr)
 
-		handleWithError(perr, err, grip.NewLogger(grip.GetGlobalLogger().Sender()), message.MakeFields(getMessage(opDetails)))
+		handleWithError(perr, err, grip.NewLogger(grip.Sender()), message.MakeFields(getMessage(opDetails)))
 	}
 
 	return catcher.Resolve()
@@ -92,7 +92,7 @@ func HandlePanicWithError(p interface{}, err error, opDetails ...string) error {
 // with the stack trace and panic information.
 func AnnotateMessageWithStackTraceAndContinue(m interface{}) {
 	if p := recover(); p != nil {
-		logAndContinue(p, grip.NewLogger(grip.GetGlobalLogger().Sender()), message.ConvertWithPriority(level.Critical, m))
+		logAndContinue(p, grip.NewLogger(grip.Sender()), message.ConvertWithPriority(level.Critical, m))
 	}
 }
 
@@ -113,7 +113,7 @@ func SendStackTraceAndContinue(logger grip.Logger, m interface{}) {
 // with the stack trace and panic information.
 func AnnotateMessageWithStackTraceAndExit(m interface{}) {
 	if p := recover(); p != nil {
-		logAndExit(p, grip.NewLogger(grip.GetGlobalLogger().Sender()), message.ConvertWithPriority(level.Critical, m))
+		logAndExit(p, grip.NewLogger(grip.Sender()), message.ConvertWithPriority(level.Critical, m))
 	}
 }
 
@@ -142,7 +142,7 @@ func AnnotateMessageWithPanicError(p interface{}, err error, m interface{}) erro
 		perr := panicError(p)
 		catcher.Add(perr)
 
-		handleWithError(perr, err, grip.NewLogger(grip.GetGlobalLogger().Sender()), message.ConvertWithPriority(level.Critical, m))
+		handleWithError(perr, err, grip.NewLogger(grip.Sender()), message.ConvertWithPriority(level.Critical, m))
 	}
 
 	return catcher.Resolve()

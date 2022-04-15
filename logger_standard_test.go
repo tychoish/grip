@@ -32,7 +32,7 @@ func TestLoggingMethodSuite(t *testing.T) {
 }
 
 func (s *LoggingMethodSuite) SetupTest() {
-	s.defaultSender = GetGlobalLogger().Sender()
+	s.defaultSender = Sender()
 	s.stdSender = send.MakeInternalLogger()
 	SetGlobalLogger(NewLogger(s.stdSender))
 

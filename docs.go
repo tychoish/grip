@@ -50,9 +50,9 @@ it possible to delay generating a message unless the logger is over
 the logging threshold. Use this to avoid expensive serialization
 operations for suppressed logging operations.
 
-All levels also have additional methods with `ln` and `f` appended to
-the end of the method name which allow Println() and Printf() style
-functionality. You must pass printf/println-style arguments to these methods.
+All levels also have additional methods with `f` appended to the end
+of the method name which allow Printf() style functionality. You must
+pass printf-style arguments to these methods.
 
 Conditional Logging
 

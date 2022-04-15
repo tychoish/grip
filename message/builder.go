@@ -7,7 +7,11 @@ import (
 
 // Builder provides a chainable message building interface.
 //
-// Builders can produce multiple messages.
+// Builders can produce multiple messages. If the SetGroup value is
+// true (also controlled via the Group/Ungroup methods,) then the Send
+// operation is called once for the group of messages, and otherwise
+// the send operation is called once for every constituent message
+// (which is the default.)
 //
 // Callers must call Send() at the end of the builder chain to send
 // the message.
@@ -49,10 +53,11 @@ func (b *Builder) Send() {
 	case *GroupComposer:
 		if b.sendAsGroup {
 			b.send(msg)
-		} else {
-			for _, m := range msg.Messages() {
-				b.send(m)
-			}
+			return
+		}
+
+		for _, m := range msg.Messages() {
+			b.send(m)
 		}
 	default:
 		b.send(msg)
@@ -72,14 +77,15 @@ func (b *Builder) Send() {
 // levels, etc.) affect the most recent message, and then later
 // converted to a group.
 func (b *Builder) Message() Composer {
-	if b.catcher.HasErrors() {
-		if b.composer == nil {
-			return MakeError(b.catcher.Resolve())
-		}
-		return NewErrorWrappedComposer(b.catcher.Resolve(), b.composer)
+	if b.composer != nil {
+		b.composer = Unwrap(b.composer)
+	} else {
+		return MakeError(b.catcher.Resolve())
 	}
 
-	b.composer = Unwrap(b.composer)
+	if b.catcher.HasErrors() {
+		return NewErrorWrappedComposer(b.catcher.Resolve(), b.composer)
+	}
 
 	return b.composer
 }
