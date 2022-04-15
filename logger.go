@@ -1,4 +1,26 @@
-// Basic Journaler
+// Global Logging Infrastructure
+//
+// By default (following from the standard library logger and other
+// popular logging pacakges,) grip provides a "default" package level
+// logging instance. This logging instance is accessible via a number
+// of package functions which mirror the interface of the Logger type
+// itself.
+//
+// During init() this logging instance wraps and uses the underlying
+// writer of the standard library's logger. You can use
+// SetGlobalLogger to configure your own logging (and sender!)
+// infrastructure for default operations, though this function is not
+// thread safe.
+//
+// In many cases, it might make sense to attach a Logger instance to a
+// context, as Logging is a global concern and your application is
+// likely already using contexts. The WithLogger and Context method
+// make it possible to attach and access your logger. The Context
+// method will *always* return a Logging instance, either the instance
+// attached to a context or the global instance if one is not
+// configured.
+//
+// Basic Logger
 //
 // The Logger type provides helpers for sending messages at the
 // following levels:
