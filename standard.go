@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
 
@@ -23,24 +24,6 @@ func init() {
 	std = NewLogger(sender)
 }
 
-// SetDefaultStandardLogger set's the standard library's global
-// logging instance to use grip's global logger at the specified
-// level.
-func SetDefaultStandardLogger(p level.Priority) {
-	log.SetFlags(0)
-	log.SetOutput(send.NewWriter(std.Sender(), p))
-}
-
-// GetStandardLogger constructs a standard library logging instance
-// that logs all messages to the global grip logging instance.
-func GetStandardLogger() *log.Logger { return send.MakeStandard(std.Sender()) }
-
-// GetGlobalLogger returns the global journal instance used by
-// this library. This call is not thread safe relative to other
-// logging calls, or SetGlobalJournaler call, although all journaling
-// methods are safe.
-func GetGlobalLogger() Logger { return std }
-
 // SetGlobalJournaler allows you to override the standard logger,
 // that is used by calls in the grip package. This call is not thread
 // safe relative to other logging calls, or the GetGlobalJournaler
@@ -48,14 +31,15 @@ func GetGlobalLogger() Logger { return std }
 // to only call this method during package and process initialization.
 func SetGlobalLogger(l Logger) { std = l }
 
+func Sender() send.Sender                                       { return std.Sender() }
+func Build() *message.Builder                                   { return std.Build() }
 func Log(l level.Priority, msg interface{})                     { std.Log(l, msg) }
 func Logf(l level.Priority, msg string, a ...interface{})       { std.Logf(l, msg, a...) }
 func LogWhen(conditional bool, l level.Priority, m interface{}) { std.LogWhen(conditional, l, m) }
-func Send(msg interface{})                                      { std.Send(msg) }
+func EmergencyPanic(msg interface{})                            { std.EmergencyPanic(msg) }
 func EmergencyFatal(msg interface{})                            { std.EmergencyFatal(msg) }
 func Emergency(msg interface{})                                 { std.Emergency(msg) }
 func Emergencyf(msg string, a ...interface{})                   { std.Emergencyf(msg, a...) }
-func EmergencyPanic(msg interface{})                            { std.EmergencyPanic(msg) }
 func EmergencyWhen(conditional bool, m interface{})             { std.EmergencyWhen(conditional, m) }
 func Alert(msg interface{})                                     { std.Alert(msg) }
 func Alertf(msg string, a ...interface{})                       { std.Alertf(msg, a...) }
