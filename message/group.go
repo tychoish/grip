@@ -144,7 +144,7 @@ func (g *GroupComposer) Priority() level.Priority {
 // but will *not* unset the level of the compser and will return an error
 // in this case.
 func (g *GroupComposer) SetPriority(l level.Priority) error {
-	if l == level.Invalid {
+	if l == level.Invalid || !l.IsValid() {
 		return fmt.Errorf("cannot set priority to an invalid setting")
 	}
 

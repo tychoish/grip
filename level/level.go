@@ -65,7 +65,7 @@ func (p Priority) String() string {
 // IsValid returns false when the priority valid is not a valid
 // priority value.
 func (p Priority) IsValid() bool {
-	return p > 1 && p <= 100
+	return p >= 1 && p <= 100
 }
 
 // FromString takes a string, (case insensitive, leading and trailing space removed, )

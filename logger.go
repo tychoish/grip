@@ -18,6 +18,7 @@
 package grip
 
 import (
+	"context"
 	"log"
 	"os"
 	"path/filepath"
@@ -39,6 +40,23 @@ func init() {
 	}
 
 	std = NewLogger(sender)
+}
+
+type ctxKeyType struct{}
+
+// WithLogger attaches a Logger instance to the context
+func WithLogger(ctx context.Context, logger Logger) context.Context {
+	return context.WithValue(ctx, ctxKeyType{}, logger)
+}
+
+// Context resolves a logger from the given context, and if one does
+// not exist, produces the global Logger instance.
+func Context(ctx context.Context) Logger {
+	val := ctx.Value(ctxKeyType{})
+	if l, ok := val.(Logger); ok {
+		return l
+	}
+	return std
 }
 
 // Logger provides the public interface of the grip Logger.

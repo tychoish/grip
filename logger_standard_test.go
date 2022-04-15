@@ -54,6 +54,7 @@ func (s *LoggingMethodSuite) TestWhenMethods() {
 		"notice":    []whenMethod{NoticeWhen, s.logger.NoticeWhen},
 		"info":      []whenMethod{InfoWhen, s.logger.InfoWhen},
 		"debug":     []whenMethod{DebugWhen, s.logger.DebugWhen},
+		"trace":     []whenMethod{TraceWhen, s.logger.TraceWhen},
 	}
 
 	for kind, loggers := range cases {
@@ -92,6 +93,7 @@ func (s *LoggingMethodSuite) TestBasicMethod() {
 		"notice":    []basicMethod{Notice, s.logger.Notice},
 		"info":      []basicMethod{Info, s.logger.Info},
 		"debug":     []basicMethod{Debug, s.logger.Debug},
+		"trace":     []basicMethod{Trace, s.logger.Trace},
 	}
 
 	inputs := []interface{}{true, false, []string{"a", "b"}, message.Fields{"a": 1}, 1, "foo"}
@@ -126,6 +128,7 @@ func (s *LoggingMethodSuite) TestfMethods() {
 		"notice":    []fMethod{Noticef, s.logger.Noticef},
 		"info":      []fMethod{Infof, s.logger.Infof},
 		"debug":     []fMethod{Debugf, s.logger.Debugf},
+		"trace":     []fMethod{Tracef, s.logger.Tracef},
 	}
 
 	for kind, loggers := range cases {
@@ -145,7 +148,37 @@ func (s *LoggingMethodSuite) TestfMethods() {
 	}
 }
 
-func (s *LoggingMethodSuite) TestProgramaticLevelMethods() {
+func (s *LoggingMethodSuite) TestlnMethods() {
+	cases := map[string][]lnMethod{
+		"emergency": []lnMethod{Emergencyln, s.logger.Emergencyln},
+		"alert":     []lnMethod{Alertln, s.logger.Alertln},
+		"critical":  []lnMethod{Criticalln, s.logger.Criticalln},
+		"error":     []lnMethod{Errorln, s.logger.Errorln},
+		"warning":   []lnMethod{Warningln, s.logger.Warningln},
+		"notice":    []lnMethod{Noticeln, s.logger.Noticeln},
+		"info":      []lnMethod{Infoln, s.logger.Infoln},
+		"debug":     []lnMethod{Debugln, s.logger.Debugln},
+		"trace":     []lnMethod{Traceln, s.logger.Traceln},
+	}
+
+	for kind, loggers := range cases {
+		s.Len(loggers, 2)
+		s.False(s.loggingSender.HasMessage())
+		s.False(s.stdSender.HasMessage())
+
+		loggers[0](testMessage, 3)
+		loggers[1](testMessage, 3)
+
+		s.True(s.loggingSender.HasMessage())
+		s.True(s.stdSender.HasMessage())
+		lgrMsg := s.loggingSender.GetMessage()
+		stdMsg := s.stdSender.GetMessage()
+		s.Equal(lgrMsg.Rendered, stdMsg.Rendered,
+			fmt.Sprintf("%s: \n\tlogger: %+v \n\tstandard: %+v", kind, lgrMsg, stdMsg))
+	}
+}
+
+func (s *LoggingMethodSuite) TestProgrgramaticLevelMethods() {
 	type (
 		lgwhen   func(bool, level.Priority, interface{})
 		lgwhenln func(bool, level.Priority, ...interface{})
@@ -158,6 +191,7 @@ func (s *LoggingMethodSuite) TestProgramaticLevelMethods() {
 	cases := map[string]interface{}{
 		"when": []lgwhen{LogWhen, s.logger.LogWhen},
 		"lg":   []lg{Log, s.logger.Log},
+		"lgln": []lgln{Logln, s.logger.Logln},
 		"lgf":  []lgf{Logf, s.logger.Logf},
 	}
 

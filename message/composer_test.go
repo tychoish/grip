@@ -35,6 +35,8 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		MakeGroupComposer([]Composer{MakeString(testMsg)}):           testMsg,
 		// MakeJiraMessage(&JiraIssue{Summary: testMsg, Type: "Something"}):                       testMsg,
 		// NewJiraMessage("", testMsg, JiraField{Key: "type", Value: "Something"}):                testMsg,
+		NewAnnotatedSimple(level.Error, testMsg, Fields{}):                              fmt.Sprintf("[message='%s']", testMsg),
+		MakeAnnotatedSimple(testMsg, Fields{}):                                          fmt.Sprintf("[message='%s']", testMsg),
 		NewAnnotated(level.Error, testMsg, Fields{}):                                    fmt.Sprintf("[message='%s']", testMsg),
 		NewFields(level.Error, Fields{"test": testMsg}):                                 fmt.Sprintf("[test='%s']", testMsg),
 		MakeAnnotated(testMsg, Fields{}):                                                fmt.Sprintf("[message='%s']", testMsg),
@@ -88,6 +90,7 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 
 		if msg.Priority() != level.Invalid {
 			assert.Equal(msg.Priority(), level.Error)
+			assert.NoError(msg.SetPriority(msg.Priority()))
 		}
 
 		// check message annotation functionality
