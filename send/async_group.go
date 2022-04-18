@@ -13,6 +13,7 @@ type asyncGroupSender struct {
 	pipes   []chan message.Composer
 	senders []Sender
 	cancel  context.CancelFunc
+	ctx     context.Context
 	*Base
 }
 
@@ -30,7 +31,7 @@ func NewAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Sende
 		senders: senders,
 		Base:    NewBase(""),
 	}
-	ctx, s.cancel = context.WithCancel(ctx)
+	s.ctx, s.cancel = context.WithCancel(ctx)
 
 	for i := 0; i < len(senders); i++ {
 		p := make(chan message.Composer, bufferSize)
@@ -38,7 +39,7 @@ func NewAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Sende
 		go func(pipe chan message.Composer, sender Sender) {
 			for {
 				select {
-				case <-ctx.Done():
+				case <-s.ctx.Done():
 					return
 				case m := <-pipe:
 					if m == nil {
@@ -103,7 +104,11 @@ func (s *asyncGroupSender) Send(m message.Composer) {
 	}
 
 	for _, p := range s.pipes {
-		p <- m
+		select {
+		case <-s.ctx.Done():
+		case p <- m:
+			continue
+		}
 	}
 }
 

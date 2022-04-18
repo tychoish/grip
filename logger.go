@@ -72,8 +72,13 @@ func WithLogger(ctx context.Context, logger Logger) context.Context {
 }
 
 // Context resolves a logger from the given context, and if one does
-// not exist, produces the global Logger instance.
+// not exist (or the context is nil), produces the global Logger
+// instance.
 func Context(ctx context.Context) Logger {
+	if ctx == nil {
+		return std
+	}
+
 	val := ctx.Value(ctxKeyType{})
 	if l, ok := val.(Logger); ok {
 		return l
@@ -90,8 +95,7 @@ type Logger struct {
 }
 
 // NewLogger builds a new logging interface from a sender implementation.
-func NewLogger(s send.Sender) Logger { return Logger{impl: s} }
-
+func NewLogger(s send.Sender) Logger     { return Logger{impl: s} }
 func (g Logger) Sender() send.Sender     { return g.impl }
 func (g Logger) Build() *message.Builder { return message.NewBuilder(g.impl.Send) }
 

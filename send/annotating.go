@@ -37,13 +37,13 @@ func (s *annotatingSender) Send(m message.Composer) {
 
 	errs := []string{}
 	for k, v := range s.annotations {
-		err := m.Annotate(k, v)
-		if err != nil {
+		if err := m.Annotate(k, v); err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
 	if len(errs) > 0 {
 		s.ErrorHandler()(errors.New(strings.Join(errs, ";\n")), m)
+		return
 	}
 
 	s.Sender.Send(m)

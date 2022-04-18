@@ -42,7 +42,7 @@ func TestLevel(t *testing.T) {
 				assert(t, !strings.HasSuffix(val.String(), ">"), val)
 			}
 		})
-		t.Run("Inbetween", func(t *testing.T) {
+		t.Run("InBetween", func(t *testing.T) {
 			for i := 1; i < 101; i++ {
 				if i%10 == 0 {
 					continue
