@@ -276,7 +276,37 @@ func TestLogger(t *testing.T) {
 				t.Fatalf("[id=%d] %T %s", idx, logger, out.Priority)
 			}
 		}
+
 	})
+	t.Run("DefaultJournalerIsBootstrap", func(t *testing.T) {
+		grip := NewLogger(testSender(t))
+		firstName := grip.Sender().Name()
+		// the bootstrap sender is a bit special because you can't
+		// change it's name, therefore:
+		const secondName = "something_else"
+		grip.Sender().SetName(secondName)
+
+		if grip.Sender().Name() != secondName {
+			t.Fatal("name incorrect")
+		}
+		if grip.Sender().Name() == firstName {
+			t.Fatal("name incorrect")
+		}
+		if firstName == secondName {
+			t.Fatal("names should not be equal")
+		}
+	})
+	t.Run("NameControler", func(t *testing.T) {
+		grip := NewLogger(testSender(t))
+		for _, name := range []string{"a", "a39df", "a@)(*E)"} {
+			grip.Sender().SetName(name)
+			if grip.Sender().Name() != name {
+				t.Fatal("name was not correctly set")
+			}
+		}
+
+	})
+
 }
 
 // This testing method uses the technique outlined in:
