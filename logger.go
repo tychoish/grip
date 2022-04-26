@@ -61,6 +61,8 @@ func init() {
 		sender.SetName("grip")
 	}
 
+	_ = sender.SetLevel(send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+
 	std = NewLogger(sender)
 }
 
