@@ -1,4 +1,4 @@
-package send
+package twitter
 
 import (
 	"context"

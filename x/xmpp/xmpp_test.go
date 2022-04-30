@@ -1,4 +1,4 @@
-package send
+package xmpp
 
 import (
 	"os"
