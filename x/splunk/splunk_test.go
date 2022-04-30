@@ -1,4 +1,4 @@
-package send
+package splunk
 
 import (
 	"net/http"
