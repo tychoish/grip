@@ -13,13 +13,13 @@ import (
 
 type xmppLogger struct {
 	target string
-	info   XMPPConnectionInfo
+	info   ConnectionInfo
 	*send.Base
 }
 
-// XMPPConnectionInfo stores all information needed to connect to an
+// ConnectionInfo stores all information needed to connect to an
 // XMPP (jabber) server to send log messages.
-type XMPPConnectionInfo struct {
+type ConnectionInfo struct {
 	Hostname string
 	Username string
 	Password string
@@ -33,26 +33,26 @@ const (
 	xmppPasswordEnvVar = "GRIP_XMPP_PASSWORD"
 )
 
-// GetXMPPConnectionInfo builds an XMPPConnectionInfo structure
+// GetConnectionInfo builds an XMPPConnectionInfo structure
 // reading default values from the following environment variables:
 //
 //    GRIP_XMPP_HOSTNAME
 //    GRIP_XMPP_USERNAME
 //    GRIP_XMPP_PASSWORD
-func GetXMPPConnectionInfo() XMPPConnectionInfo {
-	return XMPPConnectionInfo{
+func GetConnectionInfo() ConnectionInfo {
+	return ConnectionInfo{
 		Hostname: os.Getenv(xmppHostEnvVar),
 		Username: os.Getenv(xmppUsernameEnvVar),
 		Password: os.Getenv(xmppPasswordEnvVar),
 	}
 }
 
-// NewXMPPSender constructs a new Sender implementation that sends
+// NewSender constructs a new Sender implementation that sends
 // messages to an XMPP user, "target", using the credentials specified in
 // the XMPPConnectionInfo struct. The constructor will attempt to exablish
 // a connection to the server via SSL, falling back automatically to an
 // unencrypted connection if the the first attempt fails.
-func NewXMPPSender(name, target string, info XMPPConnectionInfo, l send.LevelInfo) (send.Sender, error) {
+func NewSender(name, target string, info ConnectionInfo, l send.LevelInfo) (send.Sender, error) {
 	s, err := constructXMPPLogger(name, target, info)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func NewXMPPSender(name, target string, info XMPPConnectionInfo, l send.LevelInf
 	return s, nil
 }
 
-// MakeXMPPSender constructs an XMPP logging backend that reads the
+// MakeSender constructs an XMPP logging backend that reads the
 // hostname, username, and password from environment variables:
 //
 //    - GRIP_XMPP_HOSTNAME
@@ -76,8 +76,8 @@ func NewXMPPSender(name, target string, info XMPPConnectionInfo, l send.LevelInf
 //
 // The instance is otherwise unconquered. Call SetName or inject it
 // into a Journaler instance using SetSender before using.
-func MakeXMPPSender(target string) (send.Sender, error) {
-	info := GetXMPPConnectionInfo()
+func MakeSender(target string) (send.Sender, error) {
+	info := GetConnectionInfo()
 
 	s, err := constructXMPPLogger("", target, info)
 	if err != nil {
@@ -87,7 +87,7 @@ func MakeXMPPSender(target string) (send.Sender, error) {
 	return s, nil
 }
 
-// NewDefaultXMPPSender constructs an XMPP logging backend that reads the
+// NewDefaultSender constructs an XMPP logging backend that reads the
 // hostname, username, and password from environment variables:
 //
 //    - GRIP_XMPP_HOSTNAME
@@ -95,13 +95,13 @@ func MakeXMPPSender(target string) (send.Sender, error) {
 //    - GRIP_XMPP_PASSWORD
 //
 // Otherwise, the semantics of NewXMPPDefault are the same as NewXMPPLogger.
-func NewDefaultXMPPSender(name, target string, l send.LevelInfo) (send.Sender, error) {
-	info := GetXMPPConnectionInfo()
+func NewDefaultSender(name, target string, l send.LevelInfo) (send.Sender, error) {
+	info := GetConnectionInfo()
 
-	return NewXMPPSender(name, target, info, l)
+	return NewSender(name, target, info, l)
 }
 
-func constructXMPPLogger(name, target string, info XMPPConnectionInfo) (send.Sender, error) {
+func constructXMPPLogger(name, target string, info ConnectionInfo) (send.Sender, error) {
 	s := &xmppLogger{
 		Base:   send.NewBase(name),
 		target: target,
@@ -156,7 +156,7 @@ func (s *xmppLogger) Send(m message.Composer) {
 ////////////////////////////////////////////////////////////////////////
 
 type xmppClient interface {
-	Create(XMPPConnectionInfo) error
+	Create(ConnectionInfo) error
 	Send(xmpp.Chat) (int, error)
 	Close() error
 }
@@ -165,7 +165,7 @@ type xmppClientImpl struct {
 	*xmpp.Client
 }
 
-func (c *xmppClientImpl) Create(info XMPPConnectionInfo) error {
+func (c *xmppClientImpl) Create(info ConnectionInfo) error {
 	opts := xmpp.Options{
 		Host:     info.Hostname,
 		User:     info.Username,

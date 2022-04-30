@@ -14,7 +14,7 @@ type xmppClientMock struct {
 	numSent   int
 }
 
-func (c *xmppClientMock) Create(_ XMPPConnectionInfo) error {
+func (c *xmppClientMock) Create(_ ConnectionInfo) error {
 	if c.failCreate {
 		return errors.New("creation failed")
 	}

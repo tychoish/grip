@@ -18,11 +18,11 @@ type twitterLogger struct {
 	*send.Base
 }
 
-// TwitterOptions describes the credentials required to connect to the
+// Options describes the credentials required to connect to the
 // twitter API. While the name is used for internal reporting, the
 // other values should be populated with credentials obtained from the
 // Twitter API.
-type TwitterOptions struct {
+type Options struct {
 	Name           string
 	ConsumerKey    string
 	ConsumerSecret string
@@ -30,7 +30,7 @@ type TwitterOptions struct {
 	AccessSecret   string
 }
 
-func (opts *TwitterOptions) resolve(ctx context.Context) *twitter.Client {
+func (opts *Options) resolve(ctx context.Context) *twitter.Client {
 	return twitter.NewClient(oauth1.NewConfig(opts.ConsumerKey, opts.ConsumerSecret).
 		Client(ctx, oauth1.NewToken(opts.AccessToken, opts.AccessSecret)))
 }
@@ -39,7 +39,7 @@ func (opts *TwitterOptions) resolve(ctx context.Context) *twitter.Client {
 // posts messages to a twitter account. The implementation does not
 // rate limit outgoing messages, which should be the responsibility of
 // the caller.
-func MakeSender(ctx context.Context, opts *TwitterOptions) (send.Sender, error) {
+func MakeSender(ctx context.Context, opts *Options) (send.Sender, error) {
 	return NewSender(ctx, opts, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
 }
 
@@ -47,7 +47,7 @@ func MakeSender(ctx context.Context, opts *TwitterOptions) (send.Sender, error) 
 // messages to a twitter account, with configurable level
 // information. The implementation does not rate limit outgoing
 // messages, which should be the responsibility of the caller.
-func NewSender(ctx context.Context, opts *TwitterOptions, l send.LevelInfo) (send.Sender, error) {
+func NewSender(ctx context.Context, opts *Options, l send.LevelInfo) (send.Sender, error) {
 	s := &twitterLogger{
 		twitter: newTwitterClient(ctx, opts),
 		Base:    send.NewBase(opts.Name),
@@ -89,7 +89,7 @@ type twitterClientImpl struct {
 	twitter *twitter.Client
 }
 
-func newTwitterClient(ctx context.Context, opts *TwitterOptions) twitterClient {
+func newTwitterClient(ctx context.Context, opts *Options) twitterClient {
 	return &twitterClientImpl{twitter: opts.resolve(ctx)}
 }
 

@@ -1,4 +1,4 @@
-package send
+package twitter
 
 import (
 	"context"
@@ -38,12 +38,12 @@ func TestTwitter(t *testing.T) {
 			assert.Panics(t, func() { _, _ = MakeSender(ctx, nil) })
 		})
 		t.Run("EmptyCredentialsError", func(t *testing.T) {
-			s, err := MakeSender(ctx, &TwitterOptions{})
+			s, err := MakeSender(ctx, &Options{})
 			assert.Error(t, err)
 			assert.Nil(t, s)
 		})
 		t.Run("SetInvalidLevel", func(t *testing.T) {
-			s, err := NewSender(ctx, &TwitterOptions{}, send.LevelInfo{Default: -1, Threshold: -1})
+			s, err := NewSender(ctx, &Options{}, send.LevelInfo{Default: -1, Threshold: -1})
 			assert.Error(t, err)
 			assert.Nil(t, s)
 		})
@@ -81,7 +81,7 @@ func TestTwitter(t *testing.T) {
 		require.NoError(t, err)
 
 		s := &twitterLogger{
-			twitter: &twitterClientImpl{twitter: (&TwitterOptions{}).resolve(ctx)},
+			twitter: &twitterClientImpl{twitter: (&Options{}).resolve(ctx)},
 			Base:    send.NewBase("fake"),
 		}
 
