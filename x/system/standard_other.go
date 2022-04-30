@@ -4,4 +4,4 @@ package system
 
 // MakeDefaultSystem returns a native log sender on all platforms
 // other than linux.
-func MakeDefaultSystem() (Sender, error) { return MakeNative(), nil }
+func MakeDefault() (Sender, error) { return MakeNative(), nil }
