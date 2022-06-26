@@ -2,10 +2,10 @@ package slack
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/bluele/slack"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSlackAttachmentFieldConvert(t *testing.T) {
@@ -28,8 +28,6 @@ func TestSlackAttachmentFieldConvert(t *testing.T) {
 }
 
 func TestSlackAttachmentConvert(t *testing.T) {
-	assert := assert.New(t) //nolint
-
 	af := AttachmentField{
 		Title: "1",
 		Value: "2",
@@ -70,10 +68,12 @@ func TestSlackAttachmentConvert(t *testing.T) {
 	if slackAttachment.Text != "10" {
 		t.Error("elements should be equal")
 	}
-	if slackAttachment.MarkdownIn != []string{"15", "16"} {
+	if strings.Join(slackAttachment.MarkdownIn, "+") != "15+16" {
 		t.Error("elements should be equal")
 	}
-	assert.Len(slackAttachment.Fields, 1)
+	if f := slackAttachment.Fields; len(f) != 1 {
+		t.Errorf("%v should have a length of 1", f)
+	}
 	if slackAttachment.Fields[0].Title != "1" {
 		t.Error("elements should be equal")
 	}
@@ -86,8 +86,6 @@ func TestSlackAttachmentConvert(t *testing.T) {
 }
 
 func TestSlackAttachmentIsSame(t *testing.T) {
-	assert := assert.New(t) //nolint
-
 	grip := Attachment{}
 	slack := slack.Attachment{}
 
@@ -102,26 +100,23 @@ func TestSlackAttachmentIsSame(t *testing.T) {
 		}
 
 		referenceTag := slackField.Tag.Get("json")
-		assert.NotEmpty(referenceTag)
 		jsonTag := gripField.Tag.Get("json")
 		if referenceTag != jsonTag {
-			t.Error("SlackAttachment.%s should have json tag with value: \"%s\"", gripField.Name)
+			t.Errorf("SlackAttachment.%s should have json tag with value: \"%s\"", jsonTag, gripField.Name)
 		}
 		bsonTag := gripField.Tag.Get("bson")
 		if referenceTag != bsonTag {
-			t.Error("SlackAttachment.%s should have bson tag with value: \"%s\"", gripField.Name)
+			t.Errorf("SlackAttachment.%s should have bson tag with value: \"%s\"", bsonTag, gripField.Name)
 		}
 		yamlTag := gripField.Tag.Get("yaml")
 		if referenceTag != yamlTag {
-			t.Error("SlackAttachment.%s should have yaml tag with value: \"%s\"", gripField.Name)
+			t.Errorf("SlackAttachment.%s should have yaml tag with value: \"%s\"", yamlTag, gripField.Name)
 		}
 	}
 
 }
 
 func TestSlackAttachmentFieldIsSame(t *testing.T) {
-	assert := assert.New(t) //nolint
-
 	gripStruct := AttachmentField{}
 	slackStruct := slack.AttachmentField{}
 
@@ -140,18 +135,17 @@ func TestSlackAttachmentFieldIsSame(t *testing.T) {
 		}
 
 		referenceTag := slackField.Tag.Get("json")
-		assert.NotEmpty(referenceTag)
 		jsonTag := gripField.Tag.Get("json")
 		if referenceTag != jsonTag {
-			t.Error("SlackAttachmentField.%s should have json tag with value: \"%s\"", gripField.Name)
+			t.Errorf("SlackAttachmentField.%s should have json tag with value: \"%s\"", jsonTag, gripField.Name)
 		}
 		bsonTag := gripField.Tag.Get("bson")
 		if referenceTag != bsonTag {
-			t.Error("SlackAttachmentField.%s should have bson tag with value: \"%s\"", gripField.Name)
+			t.Errorf("SlackAttachmentField.%s should have bson tag with value: \"%s\"", bsonTag, gripField.Name)
 		}
 		yamlTag := gripField.Tag.Get("yaml")
 		if referenceTag != yamlTag {
-			t.Error("SlackAttachmentField.%s should have yaml tag with value: \"%s\"", gripField.Name)
+			t.Errorf("SlackAttachmentField.%s should have yaml tag with value: \"%s\"", yamlTag, gripField.Name)
 		}
 
 		if gripField.Type.Kind() != slackField.Type.Kind() {

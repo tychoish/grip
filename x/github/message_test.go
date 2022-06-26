@@ -3,15 +3,14 @@ package github
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/tychoish/grip/level"
 )
 
 func TestStatus(t *testing.T) {
-	assert := assert.New(t) //nolint: vetshadow
-
 	c := NewStatusMessage(level.Info, "example", StatePending, "https://example.com/hi", "description")
-	assert.NotNil(c)
+	if c == nil {
+		t.Fatal("message should not be nil")
+	}
 	if !c.Loggable() {
 		t.Error("should be true")
 	}
@@ -21,7 +20,13 @@ func TestStatus(t *testing.T) {
 		t.Error("should be true")
 	}
 
-	assert.NotPanics(func() {
+	func() {
+		defer func() {
+			if p := recover(); p != nil {
+				t.Errorf("should not have panic'd %q", p)
+			}
+
+		}()
 		if raw.Context != "example" {
 			t.Error("elements should be equal")
 		}
@@ -34,7 +39,7 @@ func TestStatus(t *testing.T) {
 		if raw.Description != "description" {
 			t.Error("elements should be equal")
 		}
-	})
+	}()
 
 	if c.String() != "example pending: description (https://example.com/hi)" {
 		t.Error("elements should be equal")

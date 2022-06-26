@@ -12,7 +12,6 @@ import (
 
 func TestPopulatedMessageComposerConstructors(t *testing.T) {
 	const testMsg = "hello"
-	assert := assert.New(t)
 	// map objects to output
 	cases := map[Composer]string{
 		MakeString(testMsg):                                          testMsg,
@@ -75,7 +74,7 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		if msg == nil {
 			t.Error("value should not be nill")
 		}
-		assert.NotEmpty(output)
+
 		if _, ok := msg.(Composer); !ok {
 			t.Errorf("message %T should implement composer", msg)
 		}

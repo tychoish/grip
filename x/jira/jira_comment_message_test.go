@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -155,8 +154,10 @@ func TestJiraMessageComposerConstructor(t *testing.T) {
 	if typeField.Value != issue.Type {
 		t.Error("elements should be equal")
 	}
-	if labelsField.Value != issue.Labels {
-		t.Error("elements should be equal")
+	for idx, elem := range issue.Labels {
+		if labelsField.Value.([]string)[idx] != elem {
+			t.Error("elements should be equal")
+		}
 	}
 	if unknownField.Value != issue.Fields[unknownField.Key] {
 		t.Error("elements should be equal")
@@ -164,13 +165,17 @@ func TestJiraMessageComposerConstructor(t *testing.T) {
 }
 
 func TestJiraIssueAnnotationOnlySupportsStrings(t *testing.T) {
-	assert := assert.New(t) // nolint
-
 	m := &jiraMessage{
 		issue: &Issue{},
 	}
 
-	assert.Error(m.Annotate("k", 1))
-	assert.Error(m.Annotate("k", true))
-	assert.Error(m.Annotate("k", nil))
+	if err := m.Annotate("k", 1); err == nil {
+		t.Error("error should not be nil")
+	}
+	if err := m.Annotate("k", true); err == nil {
+		t.Error("error should not be nil")
+	}
+	if err := m.Annotate("k", nil); err == nil {
+		t.Error("error should not be nil")
+	}
 }

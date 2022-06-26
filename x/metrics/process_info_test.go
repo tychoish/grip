@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/shirou/gopsutil/process"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestChildren(t *testing.T) {
-	assert := assert.New(t)
 	myPid := int32(os.Getpid())
 	p, err := process.NewProcess(myPid)
-	assert.NotNil(p)
+	if p == nil {
+		t.Fatal("pid info should not be nil")
+	}
 	if err != nil {
 		t.Error(err)
 	}
@@ -23,7 +23,9 @@ func TestChildren(t *testing.T) {
 	}
 
 	c, err := p.Children()
-	assert.NotNil(c)
+	if c == nil {
+		t.Fatal("child information should not be nil")
+	}
 	if err != nil {
 		t.Error(err)
 	}
@@ -31,6 +33,8 @@ func TestChildren(t *testing.T) {
 		t.Error("elements should be equal")
 	}
 	for _, process := range c {
-		assert.NotEqual(myPid, process.Pid)
+		if myPid != process.Pid {
+			t.Error("pids should be equal")
+		}
 	}
 }

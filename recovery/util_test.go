@@ -3,8 +3,6 @@ package recovery
 import (
 	"fmt"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPanicStringConverter(t *testing.T) {
@@ -20,11 +18,13 @@ func TestPanicStringConverter(t *testing.T) {
 }
 
 func TestPanicErrorHandler(t *testing.T) {
-	assert := assert.New(t)
-
 	if err := panicError(nil); err != nil {
 		t.Error(err)
 	}
-	assert.Error(panicError("foo"))
-	assert.Error(panicError(""))
+	if err := panicError("foo"); err == nil {
+		t.Error("error should not be nil")
+	}
+	if err := panicError(""); err == nil {
+		t.Error("error should not be nil")
+	}
 }
