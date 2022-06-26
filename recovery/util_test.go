@@ -8,17 +8,23 @@ import (
 )
 
 func TestPanicStringConverter(t *testing.T) {
-	assert := assert.New(t)
-
-	assert.Equal("", panicString(nil))
-	assert.Equal("foo", panicString("foo"))
-	assert.Equal("foo", panicString(fmt.Errorf("foo")))
+	if panicString(nil) != "" {
+		t.Error("elements should be equal")
+	}
+	if panicString("foo") != "foo" {
+		t.Error("elements should be equal")
+	}
+	if panicString(fmt.Errorf("foo")) != "foo" {
+		t.Error("elements should be equal")
+	}
 }
 
 func TestPanicErrorHandler(t *testing.T) {
 	assert := assert.New(t)
 
-	assert.NoError(panicError(nil))
+	if err := panicError(nil); err != nil {
+		t.Error(err)
+	}
 	assert.Error(panicError("foo"))
 	assert.Error(panicError(""))
 }

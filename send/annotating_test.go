@@ -11,7 +11,9 @@ import (
 
 func TestAnnotatingSender(t *testing.T) {
 	insend, err := NewInternalLogger("annotatingSender", LevelInfo{Threshold: level.Debug, Default: level.Debug})
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	annotate := MakeAnnotating(insend, map[string]interface{}{"a": "b"})
 

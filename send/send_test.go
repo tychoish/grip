@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -283,20 +282,30 @@ func (s *SenderSuite) TestBasicNoopSendTest() {
 }
 
 func TestBaseConstructor(t *testing.T) {
-	assert := assert.New(t)
-
 	sink, err := NewInternalLogger("sink", LevelInfo{level.Debug, level.Debug})
-	assert.NoError(err)
+	if err != nil {
+		t.Error(err)
+	}
 	handler := ErrorHandlerFromSender(sink)
-	assert.Equal(0, sink.Len())
-	assert.False(sink.HasMessage())
+	if sink.Len() != 0 {
+		t.Error("elements should be equal")
+	}
+	if sink.HasMessage() {
+		t.Error("should be false")
+	}
 
 	for _, n := range []string{"logger", "grip", "sender"} {
 		made := MakeBase(n, func() {}, func() error { return nil })
 		newed := NewBase(n)
-		assert.Equal(made.name, newed.name)
-		assert.Equal(made.level, newed.level)
-		assert.Equal(made.closer(), newed.closer())
+		if newed.name != made.name {
+			t.Error("elements should be equal")
+		}
+		if newed.level != made.level {
+			t.Error("elements should be equal")
+		}
+		if newed.closer() != made.closer() {
+			t.Error("elements should be equal")
+		}
 
 		for _, s := range []*Base{made, newed} {
 			s.SetFormatter(nil)
@@ -306,8 +315,12 @@ func TestBaseConstructor(t *testing.T) {
 		}
 	}
 
-	assert.Equal(6, sink.Len())
-	assert.True(sink.HasMessage())
+	if sink.Len() != 6 {
+		t.Error("elements should be equal")
+	}
+	if !sink.HasMessage() {
+		t.Error("should be true")
+	}
 }
 
 // func (s *SenderSuite) TestGithubStatusLogger() {

@@ -72,25 +72,44 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 	}
 
 	for msg, output := range cases {
-		assert.NotNil(msg)
+		if msg == nil {
+			t.Error("value should not be nill")
+		}
 		assert.NotEmpty(output)
-		assert.Implements((*Composer)(nil), msg)
-		assert.True(msg.Loggable())
-		assert.NotNil(msg.Raw())
+		if _, ok := msg.(Composer); !ok {
+			t.Errorf("message %T should implement composer", msg)
+		}
+		if !msg.Loggable() {
+			t.Error("value should be true")
+		}
+		if msg.Raw() == nil {
+			t.Error("value should not be nill")
+		}
 
 		if strings.HasPrefix(output, "[") {
 			output = strings.Trim(output, "[]")
-			assert.True(strings.Contains(msg.String(), output), fmt.Sprintf("%T: %s (%s)", msg, msg.String(), output))
+			if !strings.Contains(msg.String(), output) {
+				t.Logf("%T: %s (%s)", msg, msg.String(), output)
+				t.Error("value should be true")
+			}
 
 		} else {
 			// run the string test to make sure it doesn't change:
-			assert.Equal(msg.String(), output, "%T", msg)
-			assert.Equal(msg.String(), output, "%T", msg)
+			if msg.String() != output {
+				t.Errorf("%T", msg)
+			}
+			if msg.String() != output {
+				t.Errorf("%T", msg)
+			}
 		}
 
 		if msg.Priority() != level.Invalid {
-			assert.Equal(msg.Priority(), level.Error)
-			assert.NoError(msg.SetPriority(msg.Priority()))
+			if level.Error != msg.Priority() {
+				t.Error("elements should be equal")
+			}
+			if err := msg.SetPriority(msg.Priority()); err != nil {
+				t.Error(err)
+			}
 		}
 
 		// check message annotation functionality
@@ -98,15 +117,20 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		case *GroupComposer:
 			continue
 		default:
-			assert.NoError(msg.Annotate("k1", "foo"), "%T", msg)
-			assert.Error(msg.Annotate("k1", "foo"), "%T", msg)
-			assert.NoError(msg.Annotate("k2", "foo"), "%T", msg)
+			if err := msg.Annotate("k1", "foo"); err != nil {
+				t.Error(err)
+			}
+			if err := msg.Annotate("k1", "foo"); err == nil {
+				t.Error("annotation should be an error")
+			}
+			if err := msg.Annotate("k2", "foo"); err != nil {
+				t.Error(err)
+			}
 		}
 	}
 }
 
 func TestUnpopulatedMessageComposers(t *testing.T) {
-	assert := assert.New(t) // nolint
 	// map objects to output
 	cases := []Composer{
 		&stringMessage{},
@@ -145,7 +169,9 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 	}
 
 	for idx, msg := range cases {
-		assert.False(msg.Loggable(), "%d:%T", idx, msg)
+		if msg.Loggable() {
+			t.Errorf("message %T at %d should not be loggable", msg, idx)
+		}
 	}
 }
 
@@ -153,7 +179,6 @@ func TestStackMessages(t *testing.T) {
 	const testMsg = "hello"
 	var stackMsg = "message/composer_test"
 
-	assert := assert.New(t) // nolint
 	// map objects to output (prefix)
 	cases := map[Composer]string{
 		MakeStack(1, testMsg): testMsg,
@@ -163,22 +188,35 @@ func TestStackMessages(t *testing.T) {
 	}
 
 	for msg, text := range cases {
-		assert.NotNil(msg)
-		assert.Implements((*Composer)(nil), msg)
-		assert.NotNil(msg.Raw())
+		if msg == nil {
+			t.Error("value should not be nill")
+		}
+		if _, ok := msg.(Composer); !ok {
+			t.Errorf("message %T should implement composer", msg)
+		}
+		if msg.Raw() == nil {
+			t.Error("value should not be nill")
+		}
 		if text != "" {
-			assert.True(msg.Loggable())
+			if !msg.Loggable() {
+				t.Error("value should be true")
+			}
 		}
 
 		diagMsg := fmt.Sprintf("%T: %+v", msg, msg)
-		assert.True(strings.Contains(msg.String(), text), diagMsg)
-		assert.True(strings.Contains(msg.String(), stackMsg), "%s\n%s\n%s\n", diagMsg, msg.String(), stackMsg)
+		if !strings.Contains(msg.String(), text) {
+			t.Log(diagMsg)
+			t.Error("value should be true")
+		}
+		if !strings.Contains(msg.String(), stackMsg) {
+			t.Logf("%s\n%s\n%s\n", diagMsg, msg.String(), stackMsg)
+			t.Error("value should be true")
+		}
 	}
 }
 
 func TestComposerConverter(t *testing.T) {
 	const testMsg = "hello world"
-	assert := assert.New(t) // nolint
 
 	cases := []interface{}{
 		MakeLines(testMsg),
@@ -192,8 +230,12 @@ func TestComposerConverter(t *testing.T) {
 
 	for _, msg := range cases {
 		comp := ConvertWithPriority(level.Error, msg)
-		assert.True(comp.Loggable())
-		assert.Equal(testMsg, comp.String(), "%T", msg)
+		if !comp.Loggable() {
+			t.Error("value should be true")
+		}
+		if testMsg != comp.String() {
+			t.Errorf("%T", msg)
+		}
 	}
 
 	cases = []interface{}{
@@ -208,8 +250,12 @@ func TestComposerConverter(t *testing.T) {
 
 	for _, msg := range cases {
 		comp := ConvertWithPriority(level.Error, msg)
-		assert.False(comp.Loggable())
-		assert.Equal("", comp.String(), "%T", msg)
+		if comp.Loggable() {
+			t.Error("should be false")
+		}
+		if "" != comp.String() {
+			t.Errorf("%T", msg)
+		}
 	}
 
 	outputCases := map[string]interface{}{
@@ -221,8 +267,12 @@ func TestComposerConverter(t *testing.T) {
 
 	for out, in := range outputCases {
 		comp := ConvertWithPriority(level.Error, in)
-		assert.True(comp.Loggable())
-		assert.True(strings.HasPrefix(comp.String(), out))
+		if !comp.Loggable() {
+			t.Error("value should be true")
+		}
+		if !strings.HasPrefix(comp.String(), out) {
+			t.Error("value should be true")
+		}
 	}
 
 }
@@ -244,12 +294,20 @@ func TestErrors(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Run("Interfaces", func(t *testing.T) {
-				assert.Implements(t, (*error)(nil), cmp)
-				assert.Implements(t, (*error)(nil), cmp)
-				assert.Implements(t, (*unwrapper)(nil), cmp)
+				if _, ok := cmp.(error); !ok {
+					t.Errorf("%T should implement error, but doesn't", cmp)
+				}
+				if _, ok := cmp.(error); !ok {
+					t.Errorf("%T should implement error, but doesn't", cmp)
+				}
+				if _, ok := cmp.(unwrapper); !ok {
+					t.Errorf("%T should implement unwrapper, but doesn't", cmp)
+				}
 			})
 			t.Run("Value", func(t *testing.T) {
-				assert.Equal(t, cmp.(error).Error(), cmp.String())
+				if cmp.String() != cmp.(error).Error() {
+					t.Error("elements should be equal")
+				}
 			})
 			t.Run("Causer", func(t *testing.T) {
 				cause := unwrapCause(cmp.(error))

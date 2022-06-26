@@ -15,7 +15,9 @@ import (
 
 func TestBufferedSend(t *testing.T) {
 	s, err := NewInternalLogger("buffs", LevelInfo{level.Debug, level.Debug})
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("RespectsPriority", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
@@ -24,7 +26,9 @@ func TestBufferedSend(t *testing.T) {
 		bs.Send(message.ConvertWithPriority(level.Trace, fmt.Sprintf("should not send")))
 		assert.Empty(t, bs.buffer)
 		_, ok := s.GetMessageSafe()
-		assert.False(t, ok)
+		if ok {
+			t.Error("should be false")
+		}
 	})
 	t.Run("FlushesAtCapactiy", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
@@ -50,11 +54,15 @@ func TestBufferedSend(t *testing.T) {
 		bs.Send(message.ConvertWithPriority(level.Debug, "should flush"))
 		time.Sleep(6 * time.Second)
 		bs.mu.Lock()
-		assert.True(t, time.Since(bs.lastFlush) <= 2*time.Second)
+		if time.Since(bs.lastFlush) > 2*time.Second {
+			t.Error("should be true")
+		}
 		bs.mu.Unlock()
 		msg, ok := s.GetMessageSafe()
 		require.True(t, ok)
-		assert.Equal(t, "should flush", msg.Message.String())
+		if msg.Message.String() != "should flush" {
+			t.Error("elements should be equal")
+		}
 	})
 	t.Run("ClosedSender", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
@@ -64,13 +72,17 @@ func TestBufferedSend(t *testing.T) {
 		bs.Send(message.ConvertWithPriority(level.Debug, "should not send"))
 		assert.Empty(t, bs.buffer)
 		_, ok := s.GetMessageSafe()
-		assert.False(t, ok)
+		if ok {
+			t.Error("should be false")
+		}
 	})
 }
 
 func TestFlush(t *testing.T) {
 	s, err := NewInternalLogger("buffs", LevelInfo{level.Debug, level.Debug})
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("ForceFlush", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
@@ -78,14 +90,20 @@ func TestFlush(t *testing.T) {
 
 		bs.Send(message.ConvertWithPriority(level.Debug, "message"))
 		assert.Len(t, bs.buffer, 1)
-		require.NoError(t, bs.Flush(context.TODO()))
+		if err := bs.Flush(context.TODO()); err != nil {
+			t.Fatal(err)
+		}
 		bs.mu.Lock()
-		assert.True(t, time.Since(bs.lastFlush) <= time.Second)
+		if time.Since(bs.lastFlush) > time.Second {
+			t.Error("should be true")
+		}
 		bs.mu.Unlock()
 		assert.Empty(t, bs.buffer)
 		msg, ok := s.GetMessageSafe()
 		require.True(t, ok)
-		assert.Equal(t, "message", msg.Message.String())
+		if msg.Message.String() != "message" {
+			t.Error("elements should be equal")
+		}
 	})
 	t.Run("ClosedSender", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
@@ -93,24 +111,34 @@ func TestFlush(t *testing.T) {
 		bs.cancel()
 		bs.closed = true
 
-		assert.NoError(t, bs.Flush(context.TODO()))
+		if err := bs.Flush(context.TODO()); err != nil {
+			t.Error(err)
+		}
 		assert.Len(t, bs.buffer, 1)
 		_, ok := s.GetMessageSafe()
-		assert.False(t, ok)
+		if ok {
+			t.Error("should be false")
+		}
 	})
 }
 
 func TestBufferedClose(t *testing.T) {
 	s, err := NewInternalLogger("buffs", LevelInfo{level.Debug, level.Debug})
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("EmptyBuffer", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
 
 		assert.Nil(t, bs.Close())
-		assert.True(t, bs.closed)
+		if !bs.closed {
+			t.Error("should be true")
+		}
 		_, ok := s.GetMessageSafe()
-		assert.False(t, ok)
+		if ok {
+			t.Error("should be false")
+		}
 	})
 	t.Run("NonEmptyBuffer", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
@@ -122,24 +150,36 @@ func TestBufferedClose(t *testing.T) {
 		)
 
 		assert.Nil(t, bs.Close())
-		assert.True(t, bs.closed)
+		if !bs.closed {
+			t.Error("should be true")
+		}
 		assert.Empty(t, bs.buffer)
 		msgs, ok := s.GetMessageSafe()
 		require.True(t, ok)
-		assert.Equal(t, "message1\nmessage2\nmessage3", msgs.Message.String())
+		if msgs.Message.String() != "message1\nmessage2\nmessage3" {
+			t.Error("elements should be equal")
+		}
 	})
 	t.Run("NoopWhenClosed", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
 
-		assert.NoError(t, bs.Close())
-		assert.True(t, bs.closed)
-		assert.NoError(t, bs.Close())
+		if err := bs.Close(); err != nil {
+			t.Error(err)
+		}
+		if !bs.closed {
+			t.Error("should be true")
+		}
+		if err := bs.Close(); err != nil {
+			t.Error(err)
+		}
 	})
 }
 
 func TestIntervalFlush(t *testing.T) {
 	s, err := NewInternalLogger("buffs", LevelInfo{level.Debug, level.Debug})
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("ReturnsWhenClosed", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -154,8 +194,12 @@ func TestIntervalFlush(t *testing.T) {
 			bs.intervalFlush(ctx, time.Minute)
 			canceled <- true
 		}()
-		assert.NoError(t, bs.Close())
-		assert.True(t, <-canceled)
+		if err := bs.Close(); err != nil {
+			t.Error(err)
+		}
+		if !<-canceled {
+			t.Error("should be true")
+		}
 	})
 }
 

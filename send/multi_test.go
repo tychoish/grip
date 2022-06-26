@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -12,32 +11,55 @@ import (
 func TestMultiSenderRespectsLevel(t *testing.T) {
 	// this is a limited test to prevent level filtering to behave
 	// differently than expected
-	assert := assert.New(t) // nolint
 
 	mock, err := NewInternalLogger("mock", LevelInfo{Default: level.Critical, Threshold: level.Alert})
-	assert.NoError(err)
+	if err != nil {
+		t.Error(err)
+	}
 	s := MakeStdError()
 	s.SetName("mock2")
 	multi := MakeMulti(s, mock)
 
-	assert.Equal(mock.Len(), 0)
+	if 0 != mock.Len() {
+		t.Error("elements should be equal")
+	}
 	multi.Send(message.NewString(level.Info, "hello"))
-	assert.Equal(mock.Len(), 1)
+	if 1 != mock.Len() {
+		t.Error("elements should be equal")
+	}
 	m, ok := mock.GetMessageSafe()
-	assert.True(ok)
-	assert.False(m.Logged)
+	if !ok {
+		t.Error("should be true")
+	}
+	if m.Logged {
+		t.Error("should be false")
+	}
 
 	multi.Send(message.NewString(level.Alert, "hello"))
-	assert.Equal(mock.Len(), 1)
+	if 1 != mock.Len() {
+		t.Error("elements should be equal")
+	}
 	m, ok = mock.GetMessageSafe()
-	assert.True(ok)
-	assert.True(m.Logged)
+	if !ok {
+		t.Error("should be true")
+	}
+	if !m.Logged {
+		t.Error("should be true")
+	}
 
 	multi.Send(message.NewString(level.Alert, "hello"))
-	assert.Equal(mock.Len(), 1)
+	if 1 != mock.Len() {
+		t.Error("elements should be equal")
+	}
 	m, ok = mock.GetMessageSafe()
-	assert.True(ok)
-	assert.True(m.Logged)
+	if !ok {
+		t.Error("should be true")
+	}
+	if !m.Logged {
+		t.Error("should be true")
+	}
 
-	assert.NoError(multi.Flush(context.TODO()))
+	if err := multi.Flush(context.TODO()); err != nil {
+		t.Error(err)
+	}
 }

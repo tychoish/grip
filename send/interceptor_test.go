@@ -3,27 +3,37 @@ package send
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
 func TestInterceptor(t *testing.T) {
 	base, err := NewInternalLogger("test", LevelInfo{Default: level.Info, Threshold: level.Debug})
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	var count int
 	filter := func(m message.Composer) { count++ }
 
 	icept := NewInterceptor(base, filter)
 
-	assert.Equal(t, 0, base.Len())
+	if base.Len() != 0 {
+		t.Error("elements should be equal")
+	}
 	icept.Send(message.NewSimpleString(level.Info, "hello"))
-	assert.Equal(t, 1, base.Len())
-	assert.Equal(t, 1, count)
+	if base.Len() != 1 {
+		t.Error("elements should be equal")
+	}
+	if count != 1 {
+		t.Error("elements should be equal")
+	}
 
 	icept.Send(message.NewSimpleString(level.Trace, "hello"))
-	assert.Equal(t, 2, base.Len())
-	assert.Equal(t, 2, count)
+	if base.Len() != 2 {
+		t.Error("elements should be equal")
+	}
+	if count != 2 {
+		t.Error("elements should be equal")
+	}
 }

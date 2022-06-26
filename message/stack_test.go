@@ -1,17 +1,26 @@
 package message
 
 import (
+	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPrintStack(t *testing.T) {
-	assert := assert.New(t)
 	stack := funcA()
-	assert.Contains(stack, `message/stack_test.go:26 (funcC)`)
-	assert.Contains(stack, `message/stack_test.go:22 (funcB)`)
-	assert.Contains(stack, `message/stack_test.go:18 (funcA)`)
+	const (
+		strA = `message/stack_test.go:26 (funcC)`
+		strB = `message/stack_test.go:22 (funcB)`
+		strC = `message/stack_test.go:18 (funcA)`
+	)
+	if !strings.Contains(stack, strA) {
+		t.Errorf("%q should contain %q", stack, strA)
+	}
+	if !strings.Contains(stack, strB) {
+		t.Errorf("%q should contain %q", stack, strB)
+	}
+	if !strings.Contains(stack, strC) {
+		t.Errorf("%q should contain %q", stack, strC)
+	}
 }
 
 func funcA() string {

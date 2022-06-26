@@ -2,37 +2,55 @@ package message
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestConditionalMessage(t *testing.T) {
-	assert := assert.New(t) // nolint
-
 	comp := When(true, "foo")
-	assert.True(comp.Loggable())
+	if !comp.Loggable() {
+		t.Error("value should be true")
+	}
 
 	comp = When(false, "foo")
-	assert.False(comp.Loggable())
+	if comp.Loggable() {
+		t.Error("value should be false")
+	}
 	comp = When(true, "")
-	assert.False(comp.Loggable(), "%T: %s", comp.(*condComposer).msg, comp.(*condComposer).msg)
+	if !comp.Loggable() {
+		t.Errorf("%T: %s", comp.(*condComposer).msg, comp.(*condComposer).msg)
+	}
 
 	comp = Whenln(true, "foo", "bar")
-	assert.True(comp.Loggable())
+	if !comp.Loggable() {
+		t.Error("value should be true")
+	}
 	comp = Whenln(false, "foo", "bar")
-	assert.False(comp.Loggable())
+	if comp.Loggable() {
+		t.Error("value should be false")
+	}
 	comp = Whenln(true, "", "")
-	assert.False(comp.Loggable(), "%T: %s", comp.(*condComposer).msg, comp.(*condComposer).msg)
+	if !comp.Loggable() {
+		t.Errorf("%T: %s", comp.(*condComposer).msg, comp.(*condComposer).msg)
+	}
 
 	comp = Whenf(true, "f%soo", "bar")
-	assert.True(comp.Loggable())
+	if !comp.Loggable() {
+		t.Error("value should be true")
+	}
 	comp = Whenf(false, "f%soo", "bar")
-	assert.False(comp.Loggable())
+	if comp.Loggable() {
+		t.Error("value should be false")
+	}
 	comp = Whenf(true, "", "foo")
-	assert.False(comp.Loggable(), "%T: %s", comp.(*condComposer).msg, comp.(*condComposer).msg)
+	if !comp.Loggable() {
+		t.Errorf("%T: %s", comp.(*condComposer).msg, comp.(*condComposer).msg)
+	}
 
 	comp = WhenMsg(true, "foo")
-	assert.True(comp.Loggable())
+	if !comp.Loggable() {
+		t.Error("value should be true")
+	}
 	comp = WhenMsg(false, "bar")
-	assert.False(comp.Loggable())
+	if comp.Loggable() {
+		t.Error("value should be false")
+	}
 }
