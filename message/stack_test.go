@@ -8,9 +8,9 @@ import (
 func TestPrintStack(t *testing.T) {
 	stack := funcA()
 	const (
-		strA = `message/stack_test.go:26 (funcC)`
-		strB = `message/stack_test.go:22 (funcB)`
-		strC = `message/stack_test.go:18 (funcA)`
+		strA = `message/stack_test.go:35 (funcC)`
+		strB = `message/stack_test.go:31 (funcB)`
+		strC = `message/stack_test.go:27 (funcA)`
 	)
 	if !strings.Contains(stack, strA) {
 		t.Errorf("%q should contain %q", stack, strA)

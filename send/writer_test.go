@@ -117,15 +117,16 @@ func TestSenderWriter(t *testing.T) {
 		t.Error("should be false")
 	}
 
-	if ws.buffer.Len() != 0 {
-		t.Fatal("buffer should be empty")
-	}
 	if err := ws.Close(); err != nil {
 		t.Error(err)
 	}
 	if !sink.HasMessage() {
 		t.Error("should be true")
 	}
+	if ws.buffer.Len() != 0 {
+		t.Fatalf("buffer should be empty [%d]", ws.buffer.Len())
+	}
+
 	m = sink.GetMessage()
 	if !m.Logged {
 		t.Error("should be true")

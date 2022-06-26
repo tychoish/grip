@@ -33,8 +33,8 @@ func TestChildren(t *testing.T) {
 		t.Error("elements should be equal")
 	}
 	for _, process := range c {
-		if myPid != process.Pid {
-			t.Error("pids should be equal")
+		if myPid == process.Pid {
+			t.Error("pids should not be equal")
 		}
 	}
 }

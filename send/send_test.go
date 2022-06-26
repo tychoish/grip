@@ -112,56 +112,9 @@ func (s *SenderSuite) SetupTest() {
 	s.Require().NoError(err)
 	s.senders["multi"] = multi
 
-	// slackMocked, err := NewSlackLogger(&SlackOptions{
-	// 	client:   &slackClientMock{},
-	// 	Hostname: "testhost",
-	// 	Channel:  "#test",
-	// 	Name:     "smoke",
-	// }, "slack", LevelInfo{level.Info, level.Notice})
-	// s.Require().NoError(err)
-	// s.senders["slack-mocked"] = slackMocked
-
-	// xmppMocked, err := NewXMPPLogger("xmpp", "target",
-	// 	XMPPConnectionInfo{client: &xmppClientMock{}},
-	// 	LevelInfo{level.Info, level.Notice})
-	// s.Require().NoError(err)
-	// s.senders["xmpp-mocked"] = xmppMocked
-
 	bufferedInternal, err := NewStdOutput("buffered", l)
 	s.Require().NoError(err)
 	s.senders["buffered"] = NewBuffered(bufferedInternal, minInterval, 1)
-
-	// s.senders["github"], err = NewGithubIssuesLogger("gh", &GithubOptions{})
-	// s.Require().NoError(err)
-
-	// s.senders["github-comment"], err = NewGithubCommentLogger("ghcomment", 100, &GithubOptions{})
-	// s.Require().NoError(err)
-
-	// s.senders["github-status"], err = NewGithubStatusLogger("ghstatus", &GithubOptions{}, "master")
-	// s.Require().NoError(err)
-
-	// s.senders["gh-mocked"] = &githubLogger{
-	// 	Base: NewBase("gh-mocked"),
-	// 	opts: &GithubOptions{},
-	// 	gh:   &githubClientMock{},
-	// }
-	// s.NoError(s.senders["gh-mocked"].SetFormatter(MakeDefaultFormatter()))
-
-	// s.senders["gh-comment-mocked"] = &githubCommentLogger{
-	// 	Base:  NewBase("gh-mocked"),
-	// 	opts:  &GithubOptions{},
-	// 	gh:    &githubClientMock{},
-	// 	issue: 200,
-	// }
-	// s.NoError(s.senders["gh-comment-mocked"].SetFormatter(MakeDefaultFormatter()))
-
-	// s.senders["gh-status-mocked"] = &githubStatusMessageLogger{
-	// 	Base: NewBase("gh-status-mocked"),
-	// 	opts: &GithubOptions{},
-	// 	gh:   &githubClientMock{},
-	// 	ref:  "master",
-	// }
-	// s.NoError(s.senders["gh-status-mocked"].SetFormatter(MakeDefaultFormatter()))
 
 	annotatingBase, err := NewStdOutput("async-one", l)
 	s.Require().NoError(err)
@@ -322,73 +275,3 @@ func TestBaseConstructor(t *testing.T) {
 		t.Error("should be true")
 	}
 }
-
-// func (s *SenderSuite) TestGithubStatusLogger() {
-// 	sender := s.senders["gh-status-mocked"].(*githubStatusMessageLogger)
-// 	client := sender.gh.(*githubClientMock)
-
-// 	// failed send test
-// 	client.failSend = true
-// 	c := message.NewGithubStatusMessage(level.Info, "example", message.GithubStatePending,
-// 		"https://example.com/hi", "description")
-
-// 	s.NoError(sender.SetErrorHandler(func(err error, c message.Composer) {
-// 		s.Equal("failed to create status", err.Error())
-// 	}))
-// 	sender.Send(c)
-// 	s.Equal(0, client.numSent)
-
-// 	// successful send test
-// 	client.failSend = false
-// 	s.NoError(sender.SetErrorHandler(func(err error, c message.Composer) {
-// 		s.T().Errorf("Got error, but shouldn't have: %s for composer: %s", err.Error(), c.String())
-// 	}))
-// 	sender.Send(c)
-// 	s.Equal(1, client.numSent)
-
-// 	// WithRepo constructor should override sender's defaults
-// 	p := message.GithubStatus{
-// 		Owner:       "somewhere",
-// 		Repo:        "over",
-// 		Ref:         "therainbow",
-// 		Context:     "example",
-// 		State:       message.GithubStatePending,
-// 		URL:         "https://example.com/hi",
-// 		Description: "description",
-// 	}
-// 	c = message.NewGithubStatusMessageWithRepo(level.Info, p)
-// 	s.True(c.Loggable())
-// 	sender.Send(c)
-// 	s.Equal(2, client.numSent)
-// 	s.Equal("somewhere/over@therainbow", client.lastRepo)
-
-// 	// don't send invalid messages
-// 	c = message.NewGithubStatusMessage(level.Info, "", message.GithubStatePending,
-// 		"https://example.com/hi", "description")
-// 	s.False(c.Loggable())
-// 	sender.Send(c)
-// 	s.Equal(2, client.numSent)
-// }
-
-// func (s *SenderSuite) TestGithubCommentLogger() {
-// 	sender := s.senders["gh-comment-mocked"].(*githubCommentLogger)
-// 	client := sender.gh.(*githubClientMock)
-
-// 	// failed send test
-// 	client.failSend = true
-// 	c := message.NewString("hi")
-
-// 	s.NoError(sender.SetErrorHandler(func(err error, c message.Composer) {
-// 		s.Equal("failed to create comment", err.Error())
-// 	}))
-// 	sender.Send(c)
-// 	s.Equal(0, client.numSent)
-
-// 	// successful send test
-// 	client.failSend = false
-// 	s.NoError(sender.SetErrorHandler(func(err error, c message.Composer) {
-// 		s.T().Errorf("Got error, but shouldn't have: %s for composer: %s", err.Error(), c.String())
-// 	}))
-// 	sender.Send(c)
-// 	s.Equal(1, client.numSent)
-// }

@@ -15,7 +15,7 @@ func TestConditionalMessage(t *testing.T) {
 		t.Error("value should be false")
 	}
 	comp = When(true, "")
-	if !comp.Loggable() {
+	if comp.Loggable() {
 		t.Errorf("%T: %s", comp.(*condComposer).msg, comp.(*condComposer).msg)
 	}
 
@@ -28,7 +28,7 @@ func TestConditionalMessage(t *testing.T) {
 		t.Error("value should be false")
 	}
 	comp = Whenln(true, "", "")
-	if !comp.Loggable() {
+	if comp.Loggable() {
 		t.Errorf("%T: %s", comp.(*condComposer).msg, comp.(*condComposer).msg)
 	}
 
@@ -41,7 +41,7 @@ func TestConditionalMessage(t *testing.T) {
 		t.Error("value should be false")
 	}
 	comp = Whenf(true, "", "foo")
-	if !comp.Loggable() {
+	if comp.Loggable() {
 		t.Errorf("%T: %s", comp.(*condComposer).msg, comp.(*condComposer).msg)
 	}
 

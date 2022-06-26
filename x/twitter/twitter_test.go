@@ -3,9 +3,9 @@ package twitter
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -34,17 +34,34 @@ func TestTwitter(t *testing.T) {
 
 	t.Run("Constructors", func(t *testing.T) {
 		t.Run("NilCredentialsPanic", func(t *testing.T) {
-			assert.Panics(t, func() { _, _ = MakeSender(ctx, nil) })
+			func() {
+				defer func() {
+					if p := recover(); p == nil {
+						t.Error("should have panic'd")
+					}
+
+				}()
+
+				_, _ = MakeSender(ctx, nil)
+			}()
 		})
 		t.Run("EmptyCredentialsError", func(t *testing.T) {
 			s, err := MakeSender(ctx, &Options{})
-			assert.Error(t, err)
-			assert.Nil(t, s)
+			if err == nil {
+				t.Error("expected error condition")
+			}
+			if s != nil {
+				t.Fatal("constructor should not make an object in an error condition")
+			}
 		})
 		t.Run("SetInvalidLevel", func(t *testing.T) {
 			s, err := NewSender(ctx, &Options{}, send.LevelInfo{Default: -1, Threshold: -1})
-			assert.Error(t, err)
-			assert.Nil(t, s)
+			if err == nil {
+				t.Error("expected error condition")
+			}
+			if s != nil {
+				t.Fatal("constructor should not make an object in an error condition")
+			}
 		})
 	})
 	t.Run("MockSending", func(t *testing.T) {
@@ -79,7 +96,9 @@ func TestTwitter(t *testing.T) {
 			if !errsender.HasMessage() {
 				t.Error("should be true")
 			}
-			assert.Contains(t, errsender.GetMessage().Message.String(), "sendERROR")
+			if !strings.Contains(errsender.GetMessage().Message.String(), "sendERROR") {
+				t.Error("malformed string")
+			}
 		})
 		mock.reset()
 	})
@@ -101,7 +120,8 @@ func TestTwitter(t *testing.T) {
 		if !errsender.HasMessage() {
 			t.Fatal("should have messages")
 		}
-		assert.Contains(t, errsender.GetMessage().Message.String(), "Bad Authentication data.")
+		if !strings.Contains(errsender.GetMessage().Message.String(), "Bad Authentication data.") {
+			t.Error("malformed string")
+		}
 	})
-
 }

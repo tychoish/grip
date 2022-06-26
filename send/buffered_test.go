@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -24,7 +22,10 @@ func TestBufferedSend(t *testing.T) {
 		defer bs.cancel()
 
 		bs.Send(message.ConvertWithPriority(level.Trace, fmt.Sprintf("should not send")))
-		assert.Empty(t, bs.buffer)
+		if len(bs.buffer) != 0 {
+			t.Fatal("buffer should be empty")
+		}
+
 		_, ok := s.GetMessageSafe()
 		if ok {
 			t.Error("should be false")
@@ -35,16 +36,26 @@ func TestBufferedSend(t *testing.T) {
 		defer bs.cancel()
 
 		for i := 0; i < 12; i++ {
-			require.Len(t, bs.buffer, i%10)
+			if len(bs.buffer) != i%10 {
+				t.Fatalf("buffer should have messages: %d", len(bs.buffer))
+			}
 			bs.Send(message.ConvertWithPriority(level.Debug, fmt.Sprintf("message %d", i+1)))
 		}
-		assert.Len(t, bs.buffer, 2)
+		if l := len(bs.buffer); l != 2 {
+			t.Errorf("length should be %d but was %d", 2, l)
+		}
 		msg, ok := s.GetMessageSafe()
-		require.True(t, ok)
+		if !ok {
+			t.Fatal("value should be true")
+		}
 		msgs := strings.Split(msg.Message.String(), "\n")
-		assert.Len(t, msgs, 10)
+		if l := len(msgs); l != 10 {
+			t.Errorf("length should be %d but was %d", 10, l)
+		}
 		for i, msg := range msgs {
-			require.Equal(t, fmt.Sprintf("message %d", i+1), msg)
+			if fmt.Sprintf("message %d", i+1) != msg {
+				t.Fatal("message should be well formed")
+			}
 		}
 	})
 	t.Run("FlushesOnInterval", func(t *testing.T) {
@@ -59,7 +70,9 @@ func TestBufferedSend(t *testing.T) {
 		}
 		bs.mu.Unlock()
 		msg, ok := s.GetMessageSafe()
-		require.True(t, ok)
+		if !ok {
+			t.Fatal("value should be true")
+		}
 		if msg.Message.String() != "should flush" {
 			t.Error("elements should be equal")
 		}
@@ -70,7 +83,9 @@ func TestBufferedSend(t *testing.T) {
 		defer bs.cancel()
 
 		bs.Send(message.ConvertWithPriority(level.Debug, "should not send"))
-		assert.Empty(t, bs.buffer)
+		if len(bs.buffer) != 0 {
+			t.Fatal("buffer should be empty")
+		}
 		_, ok := s.GetMessageSafe()
 		if ok {
 			t.Error("should be false")
@@ -89,7 +104,9 @@ func TestFlush(t *testing.T) {
 		defer bs.cancel()
 
 		bs.Send(message.ConvertWithPriority(level.Debug, "message"))
-		assert.Len(t, bs.buffer, 1)
+		if l := len(bs.buffer); l != 1 {
+			t.Errorf("length should be %d but was %d", 1, l)
+		}
 		if err := bs.Flush(context.TODO()); err != nil {
 			t.Fatal(err)
 		}
@@ -98,9 +115,13 @@ func TestFlush(t *testing.T) {
 			t.Error("should be true")
 		}
 		bs.mu.Unlock()
-		assert.Empty(t, bs.buffer)
+		if len(bs.buffer) != 0 {
+			t.Fatal("buffer should be empty")
+		}
 		msg, ok := s.GetMessageSafe()
-		require.True(t, ok)
+		if !ok {
+			t.Fatal("value should be true")
+		}
 		if msg.Message.String() != "message" {
 			t.Error("elements should be equal")
 		}
@@ -114,7 +135,9 @@ func TestFlush(t *testing.T) {
 		if err := bs.Flush(context.TODO()); err != nil {
 			t.Error(err)
 		}
-		assert.Len(t, bs.buffer, 1)
+		if l := len(bs.buffer); l != 1 {
+			t.Errorf("length should be %d but was %d", 1, l)
+		}
 		_, ok := s.GetMessageSafe()
 		if ok {
 			t.Error("should be false")
@@ -131,7 +154,9 @@ func TestBufferedClose(t *testing.T) {
 	t.Run("EmptyBuffer", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
 
-		assert.Nil(t, bs.Close())
+		if err := bs.Close(); err != nil {
+			t.Fatal("should not error to close")
+		}
 		if !bs.closed {
 			t.Error("should be true")
 		}
@@ -149,13 +174,21 @@ func TestBufferedClose(t *testing.T) {
 			message.ConvertWithPriority(level.Debug, "message3"),
 		)
 
-		assert.Nil(t, bs.Close())
+		if err := bs.Close(); err != nil {
+			t.Fatal("should not error to close")
+		}
+
 		if !bs.closed {
 			t.Error("should be true")
 		}
-		assert.Empty(t, bs.buffer)
+		if len(bs.buffer) != 0 {
+			t.Fatal("buffer should be empty")
+		}
+
 		msgs, ok := s.GetMessageSafe()
-		require.True(t, ok)
+		if !ok {
+			t.Fatal("value should be true")
+		}
 		if msgs.Message.String() != "message1\nmessage2\nmessage3" {
 			t.Error("elements should be equal")
 		}

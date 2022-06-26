@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/tychoish/grip/level"
 )
 
@@ -308,12 +307,10 @@ func TestErrors(t *testing.T) {
 					t.Error("elements should be equal")
 				}
 			})
-			t.Run("Causer", func(t *testing.T) {
-				cause := unwrapCause(cmp.(error))
-				assert.NotEqual(t, cause, cmp)
-			})
 			t.Run("ExtendedFormat", func(t *testing.T) {
-				assert.NotEqual(t, fmt.Sprintf("%+v", cmp), fmt.Sprintf("%v", cmp))
+				if fmt.Sprintf("%+v", cmp) == fmt.Sprintf("%v", cmp) {
+					t.Errorf("extended values should not be the same")
+				}
 			})
 
 		})

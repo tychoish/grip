@@ -6,8 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -102,8 +100,13 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 				continue
 			}
 			t.Run(test.Name, func(t *testing.T) {
-				assert.NotNil(t, test.Msg)
-				assert.NotNil(t, test.Msg.Raw())
+				if test.Msg == nil {
+					t.Fatal("message should not be nil")
+				}
+				if test.Msg.Raw() == nil {
+					t.Fatal("message must not be nil in raw form")
+				}
+
 				if _, ok := test.Msg.(message.Composer); !ok {
 					t.Errorf("%T should implement message.Composer, but doesn't", test.Msg)
 				}
@@ -141,13 +144,19 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 				continue
 			}
 			t.Run(test.Name, func(t *testing.T) {
-				require.True(t, len(test.Group) >= 1)
+				if len(test.Group) == 0 {
+					t.Fatalf("test group is empty and should not")
+				}
 				for _, msg := range test.Group {
-					assert.NotNil(t, msg)
+					if msg == nil {
+						t.Fatal("msg not be nill")
+					}
 					if _, ok := msg.(message.Composer); !ok {
 						t.Errorf("%T should implement message.Composer, but doesn't", msg)
 					}
-					assert.NotEqual(t, "", msg.String())
+					if msg.String() == "" {
+						t.Fatal("message must not be empty")
+					}
 					if !msg.Loggable() {
 						t.Error("should be true")
 					}
