@@ -9,8 +9,6 @@ import (
 )
 
 func TestSlackAttachmentFieldConvert(t *testing.T) {
-	assert := assert.New(t) //nolint
-
 	gripField := AttachmentField{
 		Title: "1",
 		Value: "2",
@@ -18,9 +16,15 @@ func TestSlackAttachmentFieldConvert(t *testing.T) {
 	}
 	slackField := gripField.convert()
 
-	assert.Equal("1", slackField.Title)
-	assert.Equal("2", slackField.Value)
-	assert.True(slackField.Short)
+	if slackField.Title != "1" {
+		t.Error("elements should be equal")
+	}
+	if slackField.Value != "2" {
+		t.Error("elements should be equal")
+	}
+	if !slackField.Short {
+		t.Error("should be true")
+	}
 }
 
 func TestSlackAttachmentConvert(t *testing.T) {
@@ -45,18 +49,40 @@ func TestSlackAttachmentConvert(t *testing.T) {
 	}
 	slackAttachment := at.convert()
 
-	assert.Equal("1", slackAttachment.Color)
-	assert.Equal("2", slackAttachment.Fallback)
-	assert.Equal("3", slackAttachment.AuthorName)
-	assert.Equal("6", slackAttachment.AuthorIcon)
-	assert.Equal("7", slackAttachment.Title)
-	assert.Equal("8", slackAttachment.TitleLink)
-	assert.Equal("10", slackAttachment.Text)
-	assert.Equal([]string{"15", "16"}, slackAttachment.MarkdownIn)
+	if slackAttachment.Color != "1" {
+		t.Error("elements should be equal")
+	}
+	if slackAttachment.Fallback != "2" {
+		t.Error("elements should be equal")
+	}
+	if slackAttachment.AuthorName != "3" {
+		t.Error("elements should be equal")
+	}
+	if slackAttachment.AuthorIcon != "6" {
+		t.Error("elements should be equal")
+	}
+	if slackAttachment.Title != "7" {
+		t.Error("elements should be equal")
+	}
+	if slackAttachment.TitleLink != "8" {
+		t.Error("elements should be equal")
+	}
+	if slackAttachment.Text != "10" {
+		t.Error("elements should be equal")
+	}
+	if slackAttachment.MarkdownIn != []string{"15", "16"} {
+		t.Error("elements should be equal")
+	}
 	assert.Len(slackAttachment.Fields, 1)
-	assert.Equal("1", slackAttachment.Fields[0].Title)
-	assert.Equal("2", slackAttachment.Fields[0].Value)
-	assert.True(slackAttachment.Fields[0].Short)
+	if slackAttachment.Fields[0].Title != "1" {
+		t.Error("elements should be equal")
+	}
+	if slackAttachment.Fields[0].Value != "2" {
+		t.Error("elements should be equal")
+	}
+	if !slackAttachment.Fields[0].Short {
+		t.Error("should be true")
+	}
 }
 
 func TestSlackAttachmentIsSame(t *testing.T) {
@@ -78,11 +104,17 @@ func TestSlackAttachmentIsSame(t *testing.T) {
 		referenceTag := slackField.Tag.Get("json")
 		assert.NotEmpty(referenceTag)
 		jsonTag := gripField.Tag.Get("json")
-		assert.Equal(referenceTag, jsonTag, "SlackAttachment.%s should have json tag with value: \"%s\"", gripField.Name, referenceTag)
+		if referenceTag != jsonTag {
+			t.Error("SlackAttachment.%s should have json tag with value: \"%s\"", gripField.Name)
+		}
 		bsonTag := gripField.Tag.Get("bson")
-		assert.Equal(referenceTag, bsonTag, "SlackAttachment.%s should have bson tag with value: \"%s\"", gripField.Name, referenceTag)
+		if referenceTag != bsonTag {
+			t.Error("SlackAttachment.%s should have bson tag with value: \"%s\"", gripField.Name)
+		}
 		yamlTag := gripField.Tag.Get("yaml")
-		assert.Equal(referenceTag, yamlTag, "SlackAttachment.%s should have yaml tag with value: \"%s\"", gripField.Name, referenceTag)
+		if referenceTag != yamlTag {
+			t.Error("SlackAttachment.%s should have yaml tag with value: \"%s\"", gripField.Name)
+		}
 	}
 
 }
@@ -96,24 +128,34 @@ func TestSlackAttachmentFieldIsSame(t *testing.T) {
 	vGrip := reflect.TypeOf(gripStruct)
 	vSlack := reflect.TypeOf(slackStruct)
 
-	assert.Equal(vSlack.NumField(), vGrip.NumField())
+	if vGrip.NumField() != vSlack.NumField() {
+		t.Error("elements should be equal")
+	}
 	for i := 0; i < vSlack.NumField(); i++ {
 		slackField := vSlack.Field(i)
 		gripField, found := vGrip.FieldByName(slackField.Name)
-		assert.True(found, "field %s found in slack.AttachmentField, but not in message.SlackAttachmentField", slackField.Name)
 		if !found {
+			t.Errorf("field %s found in slack.AttachmentField, but not in message.SlackAttachmentField", slackField.Name)
 			continue
 		}
 
 		referenceTag := slackField.Tag.Get("json")
 		assert.NotEmpty(referenceTag)
 		jsonTag := gripField.Tag.Get("json")
-		assert.Equal(referenceTag, jsonTag, "SlackAttachmentField.%s should have json tag with value: \"%s\"", gripField.Name, referenceTag)
+		if referenceTag != jsonTag {
+			t.Error("SlackAttachmentField.%s should have json tag with value: \"%s\"", gripField.Name)
+		}
 		bsonTag := gripField.Tag.Get("bson")
-		assert.Equal(referenceTag, bsonTag, "SlackAttachmentField.%s should have bson tag with value: \"%s\"", gripField.Name, referenceTag)
+		if referenceTag != bsonTag {
+			t.Error("SlackAttachmentField.%s should have bson tag with value: \"%s\"", gripField.Name)
+		}
 		yamlTag := gripField.Tag.Get("yaml")
-		assert.Equal(referenceTag, yamlTag, "SlackAttachmentField.%s should have yaml tag with value: \"%s\"", gripField.Name, referenceTag)
+		if referenceTag != yamlTag {
+			t.Error("SlackAttachmentField.%s should have yaml tag with value: \"%s\"", gripField.Name)
+		}
 
-		assert.Equal(slackField.Type.Kind(), gripField.Type.Kind())
+		if gripField.Type.Kind() != slackField.Type.Kind() {
+			t.Error("elements should be equal")
+		}
 	}
 }

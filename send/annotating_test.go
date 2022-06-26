@@ -1,10 +1,9 @@
 package send
 
 import (
+	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -19,8 +18,14 @@ func TestAnnotatingSender(t *testing.T) {
 
 	annotate.Send(message.NewSimpleFields(level.Notice, message.Fields{"b": "a"}))
 	msg, ok := insend.GetMessageSafe()
-	require.True(t, ok)
-	assert.Contains(t, msg.Rendered, "a='b'")
-	assert.Contains(t, msg.Rendered, "b='a'")
+	if !ok {
+		t.Fatal("should get message")
+	}
+	if !strings.Contains(msg.Rendered, "a='b'") {
+		t.Errorf("%q should contain %q", msg.Rendered, "a='b'")
+	}
+	if !strings.Contains(msg.Rendered, "b='a'") {
+		t.Errorf("%q should contain %q", msg.Rendered, "b='a'")
+	}
 
 }

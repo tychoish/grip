@@ -14,14 +14,22 @@ func TestChildren(t *testing.T) {
 	myPid := int32(os.Getpid())
 	p, err := process.NewProcess(myPid)
 	assert.NotNil(p)
-	assert.NoError(err)
+	if err != nil {
+		t.Error(err)
+	}
 	cmd := exec.Command("sleep", "1")
-	assert.NoError(cmd.Start())
+	if err := cmd.Start(); err != nil {
+		t.Error(err)
+	}
 
 	c, err := p.Children()
 	assert.NotNil(c)
-	assert.NoError(err)
-	assert.Equal(1, len(c))
+	if err != nil {
+		t.Error(err)
+	}
+	if len(c) != 1 {
+		t.Error("elements should be equal")
+	}
 	for _, process := range c {
 		assert.NotEqual(myPid, process.Pid)
 	}

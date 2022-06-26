@@ -132,7 +132,6 @@ func (j *JiraCommentSuite) TestSendWithJiraIssueComposer() {
 
 func TestJiraMessageComposerConstructor(t *testing.T) {
 	const testMsg = "hello"
-	assert := assert.New(t) // nolint
 	reporterField := Field{Key: "Reporter", Value: "Annie"}
 	assigneeField := Field{Key: "Assignee", Value: "Sejin"}
 	typeField := Field{Key: "Type", Value: "Bug"}
@@ -141,13 +140,27 @@ func TestJiraMessageComposerConstructor(t *testing.T) {
 	msg := NewIssue("project", testMsg, reporterField, assigneeField, typeField, labelsField, unknownField)
 	issue := msg.Raw().(*Issue)
 
-	assert.Equal(issue.Project, "project")
-	assert.Equal(issue.Summary, testMsg)
-	assert.Equal(issue.Reporter, reporterField.Value)
-	assert.Equal(issue.Assignee, assigneeField.Value)
-	assert.Equal(issue.Type, typeField.Value)
-	assert.Equal(issue.Labels, labelsField.Value)
-	assert.Equal(issue.Fields[unknownField.Key], unknownField.Value)
+	if "project" != issue.Project {
+		t.Error("elements should be equal")
+	}
+	if testMsg != issue.Summary {
+		t.Error("elements should be equal")
+	}
+	if reporterField.Value != issue.Reporter {
+		t.Error("elements should be equal")
+	}
+	if assigneeField.Value != issue.Assignee {
+		t.Error("elements should be equal")
+	}
+	if typeField.Value != issue.Type {
+		t.Error("elements should be equal")
+	}
+	if labelsField.Value != issue.Labels {
+		t.Error("elements should be equal")
+	}
+	if unknownField.Value != issue.Fields[unknownField.Key] {
+		t.Error("elements should be equal")
+	}
 }
 
 func TestJiraIssueAnnotationOnlySupportsStrings(t *testing.T) {

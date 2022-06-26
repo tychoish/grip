@@ -3,15 +3,10 @@ package send
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/tychoish/grip/level"
 )
 
 func TestSenderWriter(t *testing.T) {
-	assert := assert.New(t)
-	require := require.New(t)
-
 	sink, err := NewInternalLogger("sink", LevelInfo{level.Debug, level.Debug})
 	if err != nil {
 		t.Error(err)
@@ -55,7 +50,9 @@ func TestSenderWriter(t *testing.T) {
 		t.Error(err)
 	}
 
-	require.True(sink.HasMessage())
+	if !sink.HasMessage() {
+		t.Fatal("shuld have message")
+	}
 	m := sink.GetMessage()
 	if !m.Logged {
 		t.Error("should be true")
@@ -120,7 +117,9 @@ func TestSenderWriter(t *testing.T) {
 		t.Error("should be false")
 	}
 
-	assert.NotEqual(ws.buffer.Len(), 0)
+	if ws.buffer.Len() != 0 {
+		t.Fatal("buffer should be empty")
+	}
 	if err := ws.Close(); err != nil {
 		t.Error(err)
 	}

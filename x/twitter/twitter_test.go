@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -52,33 +51,43 @@ func TestTwitter(t *testing.T) {
 		mock := &twitterClientMock{}
 		t.Run("Flush", func(t *testing.T) {
 			s := newMockedTwitterSender(mock)
-			assert.NoError(t, s.Flush(ctx))
+			if err := s.Flush(ctx); err != nil {
+				t.Error(err)
+			}
 		})
 		mock.reset()
 		t.Run("SendValidCase", func(t *testing.T) {
 			msg := message.NewSimpleString(level.Info, "hi")
 			s := newMockedTwitterSender(mock)
 			s.Send(msg)
-			assert.Equal(t, msg.String(), mock.Content)
+			if mock.Content != msg.String() {
+				t.Error("elements should be equal")
+			}
 		})
 		mock.reset()
 		t.Run("WithError", func(t *testing.T) {
 			errsender, err := send.NewInternalLogger("errr", send.LevelInfo{Default: level.Info, Threshold: level.Info})
-			require.NoError(t, err)
+			if err != nil {
+				t.Fatal(err)
+			}
 			s := newMockedTwitterSender(mock)
 			s.SetErrorHandler(send.ErrorHandlerFromSender(errsender))
 			mock.SendError = errors.New("sendERROR")
 
 			msg := message.NewSimpleString(level.Info, "hi")
 			s.Send(msg)
-			assert.True(t, errsender.HasMessage())
+			if !errsender.HasMessage() {
+				t.Error("should be true")
+			}
 			assert.Contains(t, errsender.GetMessage().Message.String(), "sendERROR")
 		})
 		mock.reset()
 	})
 	t.Run("WithError", func(t *testing.T) {
 		errsender, err := send.NewInternalLogger("errr", send.LevelInfo{Default: level.Info, Threshold: level.Info})
-		require.NoError(t, err)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		s := &twitterLogger{
 			twitter: &twitterClientImpl{twitter: (&Options{}).resolve(ctx)},
@@ -89,7 +98,9 @@ func TestTwitter(t *testing.T) {
 
 		msg := message.NewSimpleString(level.Info, "hi")
 		s.Send(msg)
-		require.True(t, errsender.HasMessage())
+		if !errsender.HasMessage() {
+			t.Fatal("should have messages")
+		}
 		assert.Contains(t, errsender.GetMessage().Message.String(), "Bad Authentication data.")
 	})
 

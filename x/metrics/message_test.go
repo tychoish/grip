@@ -104,9 +104,15 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 			t.Run(test.Name, func(t *testing.T) {
 				assert.NotNil(t, test.Msg)
 				assert.NotNil(t, test.Msg.Raw())
-				assert.Implements(t, (*message.Composer)(nil), test.Msg)
-				assert.True(t, test.Msg.Loggable())
-				assert.True(t, strings.HasPrefix(test.Msg.String(), test.Expected), "%T: %s", test.Msg, test.Msg)
+				if _, ok := test.Msg.(message.Composer); !ok {
+					t.Errorf("%T should implement message.Composer, but doesn't", test.Msg)
+				}
+				if !test.Msg.Loggable() {
+					t.Error("should be true")
+				}
+				if !strings.HasPrefix(test.Msg.String(), test.Expected) {
+					t.Errorf("%T: %s", test.Msg, test.Msg)
+				}
 			})
 		}
 	})
@@ -138,9 +144,13 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 				require.True(t, len(test.Group) >= 1)
 				for _, msg := range test.Group {
 					assert.NotNil(t, msg)
-					assert.Implements(t, (*message.Composer)(nil), msg)
+					if _, ok := msg.(message.Composer); !ok {
+						t.Errorf("%T should implement message.Composer, but doesn't", msg)
+					}
 					assert.NotEqual(t, "", msg.String())
-					assert.True(t, msg.Loggable())
+					if !msg.Loggable() {
+						t.Error("should be true")
+					}
 				}
 			})
 
@@ -149,16 +159,18 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 }
 
 func TestProcessTreeDoesNotHaveDuplicates(t *testing.T) {
-	assert := assert.New(t) // nolint
-
 	procs := CollectProcessInfoWithChildren(1)
 	seen := make(map[int32]struct{})
 
 	for _, p := range procs {
 		pinfo, ok := p.(*ProcessInfo)
-		assert.True(ok)
+		if !ok {
+			t.Error("should be true")
+		}
 		seen[pinfo.Pid] = struct{}{}
 	}
 
-	assert.Equal(len(seen), len(procs))
+	if len(procs) != len(seen) {
+		t.Error("elements should be equal")
+	}
 }

@@ -12,30 +12,48 @@ func TestStatus(t *testing.T) {
 
 	c := NewStatusMessage(level.Info, "example", StatePending, "https://example.com/hi", "description")
 	assert.NotNil(c)
-	assert.True(c.Loggable())
+	if !c.Loggable() {
+		t.Error("should be true")
+	}
 
 	raw, ok := c.Raw().(*Status)
-	assert.True(ok)
+	if !ok {
+		t.Error("should be true")
+	}
 
 	assert.NotPanics(func() {
-		assert.Equal("example", raw.Context)
-		assert.Equal(StatePending, raw.State)
-		assert.Equal("https://example.com/hi", raw.URL)
-		assert.Equal("description", raw.Description)
+		if raw.Context != "example" {
+			t.Error("elements should be equal")
+		}
+		if raw.State != StatePending {
+			t.Error("elements should be equal")
+		}
+		if raw.URL != "https://example.com/hi" {
+			t.Error("elements should be equal")
+		}
+		if raw.Description != "description" {
+			t.Error("elements should be equal")
+		}
 	})
 
-	assert.Equal("example pending: description (https://example.com/hi)", c.String())
+	if c.String() != "example pending: description (https://example.com/hi)" {
+		t.Error("elements should be equal")
+	}
 }
 
 func TestStatusInvalidStatusesAreNotLoggable(t *testing.T) {
-	assert := assert.New(t) //nolint: vetshadow
-
 	c := NewStatusMessage(level.Info, "", StatePending, "https://example.com/hi", "description")
-	assert.False(c.Loggable())
+	if c.Loggable() {
+		t.Error("should be false")
+	}
 	c = NewStatusMessage(level.Info, "example", "nope", "https://example.com/hi", "description")
-	assert.False(c.Loggable())
+	if c.Loggable() {
+		t.Error("should be false")
+	}
 	c = NewStatusMessage(level.Info, "example", StatePending, ":foo", "description")
-	assert.False(c.Loggable())
+	if c.Loggable() {
+		t.Error("should be false")
+	}
 
 	p := Status{
 		Owner:       "",
@@ -47,15 +65,21 @@ func TestStatusInvalidStatusesAreNotLoggable(t *testing.T) {
 		Description: "description",
 	}
 	c = NewStatusMessageWithRepo(level.Info, p)
-	assert.False(c.Loggable())
+	if c.Loggable() {
+		t.Error("should be false")
+	}
 
 	p.Owner = "tychoish"
 	p.Repo = ""
 	c = NewStatusMessageWithRepo(level.Info, p)
-	assert.False(c.Loggable())
+	if c.Loggable() {
+		t.Error("should be false")
+	}
 
 	p.Repo = "grip"
 	p.Ref = ""
 	c = NewStatusMessageWithRepo(level.Info, p)
-	assert.False(c.Loggable())
+	if c.Loggable() {
+		t.Error("should be false")
+	}
 }
