@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -13,34 +12,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
-type SenderSuite struct {
-	senders map[string]Sender
-	rand    *rand.Rand
-	tempDir string
-	suite.Suite
-}
-
-func TestSenderSuite(t *testing.T) {
-	suite.Run(t, new(SenderSuite))
-}
-
-func (s *SenderSuite) SetupSuite() {
-	var err error
-	s.rand = rand.New(rand.NewSource(time.Now().Unix()))
-	s.tempDir, err = ioutil.TempDir("", "sender-test-")
-	s.Require().NoError(err)
-}
-
-func (s *SenderSuite) SetupTest() {
-	s.Require().NoError(os.MkdirAll(s.tempDir, 0766))
+func senderFixture(t *testing.T) (senders map[string]Sender) {
+	t.Helper()
+	tempDir := t.TempDir()
+	if err := os.MkdirAll(tempDir, 0766); err != nil {
+		t.Fatal(err)
+	}
 
 	l := LevelInfo{level.Info, level.Notice}
-	s.senders = map[string]Sender{
+	senders = map[string]Sender{
 		// "slack": &slackJournal{Base: NewBase("slack")},
 		// "xmpp":  &xmppLogger{Base: NewBase("xmpp")},
 	}
@@ -48,77 +32,109 @@ func (s *SenderSuite) SetupTest() {
 	internal := MakeInternalLogger()
 	internal.name = "internal"
 	internal.output = make(chan *InternalMessage)
-	s.senders["internal"] = internal
+	senders["internal"] = internal
 
 	native, err := NewStdOutput("native", l)
-	s.Require().NoError(err)
-	s.senders["native"] = native
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["native"] = native
 
-	s.senders["writer"] = MakeWriter(native)
+	senders["writer"] = MakeWriter(native)
 
 	var plain, plainerr, plainfile Sender
 	plain, err = NewPlainStdOutput("plain", l)
-	s.Require().NoError(err)
-	s.senders["plain"] = plain
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["plain"] = plain
 
 	plainerr, err = NewPlainStdError("plain.err", l)
-	s.Require().NoError(err)
-	s.senders["plain.err"] = plainerr
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["plain.err"] = plainerr
 
-	plainfile, err = NewPlainFile("plain.file", filepath.Join(s.tempDir, "plain.file"), l)
-	s.Require().NoError(err)
-	s.senders["plain.file"] = plainfile
+	plainfile, err = NewPlainFile("plain.file", filepath.Join(tempDir, "plain.file"), l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["plain.file"] = plainfile
 
 	var asyncOne, asyncTwo Sender
 	asyncOne, err = NewStdOutput("async-one", l)
-	s.Require().NoError(err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	asyncTwo, err = NewStdOutput("async-two", l)
-	s.Require().NoError(err)
-	s.senders["async"] = NewAsyncGroup(context.Background(), 16, asyncOne, asyncTwo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["async"] = NewAsyncGroup(context.Background(), 16, asyncOne, asyncTwo)
 
 	nativeErr, err := NewStdError("error", l)
-	s.Require().NoError(err)
-	s.senders["error"] = nativeErr
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["error"] = nativeErr
 
-	nativeFile, err := NewFile("native-file", filepath.Join(s.tempDir, "file"), l)
-	s.Require().NoError(err)
-	s.senders["native-file"] = nativeFile
+	nativeFile, err := NewFile("native-file", filepath.Join(tempDir, "file"), l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["native-file"] = nativeFile
 
 	callsite, err := NewCallSit("callsite", 1, l)
-	s.Require().NoError(err)
-	s.senders["callsite"] = callsite
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["callsite"] = callsite
 
-	callsiteFile, err := NewCallSiteFile("callsite", filepath.Join(s.tempDir, "cs"), 1, l)
-	s.Require().NoError(err)
-	s.senders["callsite-file"] = callsiteFile
+	callsiteFile, err := NewCallSiteFile("callsite", filepath.Join(tempDir, "cs"), 1, l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["callsite-file"] = callsiteFile
 
 	jsons, err := NewJSON("json", LevelInfo{level.Info, level.Notice})
-	s.Require().NoError(err)
-	s.senders["json"] = jsons
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["json"] = jsons
 
-	jsonf, err := NewJSONFile("json", filepath.Join(s.tempDir, "js"), l)
-	s.Require().NoError(err)
-	s.senders["json"] = jsonf
+	jsonf, err := NewJSONFile("json", filepath.Join(tempDir, "js"), l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["json"] = jsonf
 
 	var sender Sender
 	multiSenders := []Sender{}
 	for i := 0; i < 4; i++ {
 		sender, err = NewStdOutput(fmt.Sprintf("native-%d", i), l)
-		s.Require().NoError(err)
+		if err != nil {
+			t.Fatal(err)
+		}
 		multiSenders = append(multiSenders, sender)
 	}
 
 	multi, err := NewMulti("multi", l, multiSenders)
-	s.Require().NoError(err)
-	s.senders["multi"] = multi
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["multi"] = multi
 
 	bufferedInternal, err := NewStdOutput("buffered", l)
-	s.Require().NoError(err)
-	s.senders["buffered"] = NewBuffered(bufferedInternal, minInterval, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["buffered"] = NewBuffered(bufferedInternal, minInterval, 1)
 
 	annotatingBase, err := NewStdOutput("async-one", l)
-	s.Require().NoError(err)
-	s.senders["annotating"] = MakeAnnotating(annotatingBase, map[string]interface{}{
+	if err != nil {
+		t.Fatal(err)
+	}
+	senders["annotating"] = MakeAnnotating(annotatingBase, map[string]interface{}{
 		"one":    1,
 		"true":   true,
 		"string": "string",
@@ -126,25 +142,31 @@ func (s *SenderSuite) SetupTest() {
 
 	for _, size := range []int{1, 100, 10000, 1000000} {
 		name := fmt.Sprintf("inmemory-%d", size)
-		s.senders[name], err = NewInMemorySender(name, l, size)
-		s.Require().NoError(err)
-		s.senders[name].SetFormatter(MakeDefaultFormatter())
+		senders[name], err = NewInMemorySender(name, l, size)
+		if err != nil {
+			t.Fatal(err)
+		}
+		senders[name].SetFormatter(MakeDefaultFormatter())
 	}
+	t.Cleanup(func() {
+		if runtime.GOOS == "windows" {
+			_ = senders["native-file"].Close()
+			_ = senders["callsite-file"].Close()
+			_ = senders["json"].Close()
+			_ = senders["plain.file"].Close()
+		}
+		if err := senders["internal"].Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	return senders
 }
 
-func (s *SenderSuite) TearDownTest() {
-	if runtime.GOOS == "windows" {
-		_ = s.senders["native-file"].Close()
-		_ = s.senders["callsite-file"].Close()
-		_ = s.senders["json"].Close()
-		_ = s.senders["plain.file"].Close()
-	}
-	s.Require().NoError(os.RemoveAll(s.tempDir))
-}
+func functionalMockSenders(t *testing.T, in map[string]Sender) map[string]Sender {
+	t.Helper()
 
-func (s *SenderSuite) functionalMockSenders() map[string]Sender {
 	out := map[string]Sender{}
-	for t, sender := range s.senders {
+	for t, sender := range in {
 		if t == "slack" || t == "internal" || t == "xmpp" || t == "buildlogger" {
 			continue
 		} else if strings.HasPrefix(t, "github") {
@@ -157,16 +179,14 @@ func (s *SenderSuite) functionalMockSenders() map[string]Sender {
 	return out
 }
 
-func (s *SenderSuite) TearDownSuite() {
-	s.NoError(s.senders["internal"].Close())
-}
-
-func (s *SenderSuite) TestSenderImplementsInterface() {
+func TestSenderImplementsInterface(t *testing.T) {
 	// this actually won't catch the error; the compiler will in
 	// the fixtures, but either way we need to make sure that the
 	// tests actually enforce this.
-	for name, sender := range s.senders {
-		s.Implements((*Sender)(nil), sender, name)
+	for name, sender := range senderFixture(t) {
+		if _, ok := sender.(Sender); !ok {
+			t.Errorf("sender %q does not implement interface Sender", name)
+		}
 	}
 }
 
@@ -180,18 +200,23 @@ func randomString(n int, r *rand.Rand) string {
 	return string(b)
 }
 
-func (s *SenderSuite) TestNameSetterRoundTrip() {
-	for n, sender := range s.senders {
+func TestNameSetterRoundTrip(t *testing.T) {
+	rand := rand.New(rand.NewSource(time.Now().Unix()))
+	for _, sender := range senderFixture(t) {
 		for i := 0; i < 100; i++ {
-			name := randomString(12, s.rand)
-			s.NotEqual(sender.Name(), name, n)
+			name := randomString(12, rand)
+			if name == sender.Name() {
+				t.Error("values should NOT be equal")
+			}
 			sender.SetName(name)
-			s.Equal(sender.Name(), name, n)
+			if name != sender.Name() {
+				t.Error("values should be equal")
+			}
 		}
 	}
 }
 
-func (s *SenderSuite) TestLevelSetterRejectsInvalidSettings() {
+func TestLevelSetterRejectsInvalidSettings(t *testing.T) {
 	levels := []LevelInfo{
 		{level.Invalid, level.Invalid},
 		{level.Priority(-10), level.Priority(-1)},
@@ -199,7 +224,7 @@ func (s *SenderSuite) TestLevelSetterRejectsInvalidSettings() {
 		{level.Priority(800), level.Priority(-2)},
 	}
 
-	for n, sender := range s.senders {
+	for n, sender := range senderFixture(t) {
 		if n == "async" {
 			// the async sender doesn't meaningfully have
 			// its own level because it passes this down
@@ -207,28 +232,43 @@ func (s *SenderSuite) TestLevelSetterRejectsInvalidSettings() {
 			continue
 		}
 
-		s.NoError(sender.SetLevel(LevelInfo{level.Debug, level.Alert}))
+		if err := sender.SetLevel(LevelInfo{level.Debug, level.Alert}); err != nil {
+			t.Fatal(err)
+		}
 		for _, l := range levels {
-			s.True(sender.Level().Valid(), n)
-			s.False(l.Valid(), n)
-			s.Error(sender.SetLevel(l), n)
-			s.True(sender.Level().Valid(), n)
-			s.NotEqual(sender.Level(), l, n)
+			if !sender.Level().Valid() {
+				t.Error("sender should not validate")
+			}
+			if l.Valid() {
+				t.Error("level is validate")
+			}
+			if err := sender.SetLevel(l); err == nil {
+				t.Error("setting invalid level should error")
+			}
+			if !sender.Level().Valid() {
+				t.Error("level should be valid")
+			}
+			if l == sender.Level() {
+				t.Error("values should NOT be equal")
+			}
 		}
 
 	}
 }
 
-func (s *SenderSuite) TestCloserShouldUsuallyNoop() {
-	for t, sender := range s.senders {
-		s.NoError(sender.Close(), t)
+func TestCloserShouldUsuallyNoop(t *testing.T) {
+	for _, sender := range senderFixture(t) {
+		if err := sender.Close(); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
-func (s *SenderSuite) TestBasicNoopSendTest() {
-	for _, sender := range s.functionalMockSenders() {
+func TestBasicNoopSendTest(t *testing.T) {
+	rand := rand.New(rand.NewSource(time.Now().Unix()))
+	for _, sender := range functionalMockSenders(t, senderFixture(t)) {
 		for i := -10; i <= 110; i += 5 {
-			m := message.NewString(level.Priority(i), "hello world! "+randomString(10, s.rand))
+			m := message.NewString(level.Priority(i), "hello world! "+randomString(10, rand))
 			sender.Send(m)
 		}
 	}

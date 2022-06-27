@@ -6,236 +6,418 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
 
-type RecoverySuite struct {
-	sender       *send.InternalSender
-	globalSender send.Sender
-	suite.Suite
+func setupFixture(t *testing.T) {
+	t.Helper()
+
+	if err := os.Setenv(killOverrideVarName, "true"); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Cleanup(func() {
+		if err := os.Setenv(killOverrideVarName, ""); err != nil {
+			t.Error(err)
+		}
+	})
 }
 
-func TestRecoverySuite(t *testing.T) {
-	suite.Run(t, new(RecoverySuite))
-}
+func TestWithoutPanicNoErrorsLoged(t *testing.T) {
+	setupFixture(t)
+	sender := send.MakeInternalLogger()
 
-func (s *RecoverySuite) SetupSuite() {
-	s.Require().NoError(os.Setenv(killOverrideVarName, "true"))
-}
-
-func (s *RecoverySuite) TearDownSuite() {
-	s.Require().NoError(os.Setenv(killOverrideVarName, ""))
-}
-
-func (s *RecoverySuite) SetupTest() {
-	s.sender = send.MakeInternalLogger()
-	s.globalSender = grip.Sender()
-	grip.SetGlobalLogger(grip.NewLogger(s.sender))
-}
-
-func (s *RecoverySuite) logger() grip.Logger { return grip.NewLogger(s.sender) }
-
-func (s *RecoverySuite) TearDownTest() {
-	grip.SetGlobalLogger(grip.NewLogger(s.globalSender))
-}
-
-func (s *RecoverySuite) TestWithoutPanicNoErrorsLoged() {
-	s.False(s.sender.HasMessage())
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
 	LogStackTraceAndContinue()
-	s.False(s.sender.HasMessage())
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
 	LogStackTraceAndExit()
-	s.False(s.sender.HasMessage())
-	s.NoError(HandlePanicWithError(nil, nil))
-	s.False(s.sender.HasMessage())
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
+	if err := HandlePanicWithError(nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
 }
 
-func (s *RecoverySuite) TestPanicCausesLogsWithContinueRecoverer() {
-	s.False(s.sender.HasMessage())
-	s.NotPanics(func() {
+func TestPanicCausesLogsWithContinueRecoverer(t *testing.T) {
+	setupFixture(t)
+	sender := send.MakeInternalLogger()
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
+	func() {
+		// shouldn't panic
 		defer LogStackTraceAndContinue()
 		panic("sorry")
-	})
-	s.True(s.sender.HasMessage())
-	msg, ok := s.sender.GetMessageSafe()
-	s.True(ok)
-	s.Contains(msg.Rendered, "hit panic; recovering")
-	s.Contains(msg.Rendered, "sorry")
+	}()
+	if !sender.HasMessage() {
+		t.Error("should be true")
+	}
+	msg, ok := sender.GetMessageSafe()
+	if !ok {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "hit panic; recovering") {
+		t.Error("string should contain substring")
+	}
+	if !strings.Contains(msg.Rendered, "sorry") {
+		t.Error("string should contain substring")
+	}
 }
 
-func (s *RecoverySuite) TestPanicsCausesLogsWithExitHandler() {
-	s.False(s.sender.HasMessage())
+func TestPanicsCausesLogsWithExitHandler(t *testing.T) {
+	setupFixture(t)
+	sender := send.MakeInternalLogger()
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
 	s.NotPanics(func() {
 		defer LogStackTraceAndExit("exit op")
 		panic("sorry buddy")
 	})
-	s.True(s.sender.HasMessage())
-	msg, ok := s.sender.GetMessageSafe()
-	s.True(ok)
-	s.True(strings.Contains(msg.Rendered, "hit panic; exiting"))
-	s.True(strings.Contains(msg.Rendered, "sorry buddy"))
-	s.True(strings.Contains(msg.Rendered, "exit op"))
+	if !sender.HasMessage() {
+		t.Error("should be true")
+	}
+	msg, ok := sender.GetMessageSafe()
+	if !ok {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "hit panic; exiting") {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "sorry buddy") {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "exit op") {
+		t.Error("should be true")
+	}
 }
 
-func (s *RecoverySuite) TestPanicCausesLogsWithErrorHandler() {
-	s.False(s.sender.HasMessage())
-	s.NotPanics(func() {
+func TestPanicCausesLogsWithErrorHandler(t *testing.T) {
+	setupFixture(t)
+	sender := send.MakeInternalLogger()
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
+	func() {
+		// shouldn't panic
+
 		err := func() (err error) {
 			defer func() { err = HandlePanicWithError(recover(), nil) }()
 			panic("get a grip")
 		}()
 
-		s.Error(err)
-		s.True(strings.Contains(err.Error(), "get a grip"))
-	})
-	s.True(s.sender.HasMessage())
-	msg, ok := s.sender.GetMessageSafe()
-	s.True(ok)
-	s.True(strings.Contains(msg.Rendered, "hit panic; adding error"))
-	s.True(strings.Contains(msg.Rendered, "get a grip"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(err.Error(), "get a grip") {
+			t.Error("should be true")
+		}
+	}()
+	if !sender.HasMessage() {
+		t.Error("should be true")
+	}
+	msg, ok := sender.GetMessageSafe()
+	if !ok {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "hit panic; adding error") {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "get a grip") {
+		t.Error("should be true")
+	}
 }
 
-func (s *RecoverySuite) TestErrorHandlerPropogatesErrorAndPanicMessage() {
-	s.NotPanics(func() {
+func TestErrorHandlerPropogatesErrorAndPanicMessage(t *testing.T) {
+	setupFixture(t)
+	sender := send.MakeInternalLogger()
+	func() {
+		// shouldn't panic
+
 		err := func() (err error) {
 			defer func() { err = HandlePanicWithError(recover(), errors.New("bar"), "this op name") }()
 			panic("got grip")
 		}()
 
-		s.Error(err)
-		s.True(strings.Contains(err.Error(), "got grip"))
-		s.True(strings.Contains(err.Error(), "bar"))
-		s.False(strings.Contains(err.Error(), "op name"))
-	})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(err.Error(), "got grip") {
+			t.Error("should be true")
+		}
+		if !strings.Contains(err.Error(), "bar") {
+			t.Error("should be true")
+		}
+		if strings.Contains(err.Error(), "op name") {
+			t.Error("should be false")
+		}
+	}()
 
-	s.True(s.sender.HasMessage())
-	msg, ok := s.sender.GetMessageSafe()
-	s.True(ok)
-	s.Contains(msg.Rendered, "this op name")
-	s.Contains(msg.Rendered, "got grip")
-	s.Contains(msg.Rendered, "bar")
+	if !sender.HasMessage() {
+		t.Error("should be true")
+	}
+	msg, ok := sender.GetMessageSafe()
+	if !ok {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "this op name") {
+		t.Error("string should contain substring")
+	}
+	if !strings.Contains(msg.Rendered, "got grip") {
+		t.Error("string should contain substring")
+	}
+	if !strings.Contains(msg.Rendered, "bar") {
+		t.Error("string should contain substring")
+	}
 }
 
-func (s *RecoverySuite) TestPanicHandlerWithErrorPropogatesErrorWithoutPanic() {
-	err := HandlePanicWithError(nil, errors.New("foo"))
-	s.Error(err)
-	s.True(strings.Contains(err.Error(), "foo"))
+func TestPanicHandlerWithErrorPropogatesErrorWithoutPanic(t *testing.T) {
+	setupFixture(t)
+	if err := HandlePanicWithError(nil, errors.New("foo")); err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(err.Error(), "foo") {
+		t.Error("should be true")
+	}
 }
 
-func (s *RecoverySuite) TestPanicHandlerPropogatesOperationName() {
-	s.False(s.sender.HasMessage())
-	s.NotPanics(func() {
+func TestPanicHandlerPropogatesOperationName(t *testing.T) {
+	setupFixture(t)
+	sender := send.MakeInternalLogger()
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
+	func() {
+		// shouldn't panic
 		defer LogStackTraceAndContinue("test handler op")
 		panic("sorry")
-	})
-	s.True(s.sender.HasMessage())
-	msg, ok := s.sender.GetMessageSafe()
-	s.True(ok)
-	s.True(strings.Contains(msg.Rendered, "test handler op"))
+	}()
+	if !sender.HasMessage() {
+		t.Error("should be true")
+	}
+	msg, ok := sender.GetMessageSafe()
+	if !ok {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "test handler op") {
+		t.Error("should be true")
+	}
 }
 
-func (s *RecoverySuite) TestPanicHandlerPropogatesOperationNameWithArgs() {
-	s.False(s.sender.HasMessage())
+func TestPanicHandlerPropogatesOperationNameWithArgs(t *testing.T) {
+	setupFixture(t)
+	sender := send.MakeInternalLogger()
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
 	s.NotPanics(func() {
 		defer LogStackTraceAndContinue("test handler op", "for real")
 		panic("sorry")
 	})
-	s.True(s.sender.HasMessage())
-	msg, ok := s.sender.GetMessageSafe()
-	s.True(ok)
-	s.True(strings.Contains(msg.Rendered, "test handler op for real"))
+	if !sender.HasMessage() {
+		t.Error("should be true")
+	}
+	msg, ok := sender.GetMessageSafe()
+	if !ok {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "test handler op for real") {
+		t.Error("should be true")
+	}
 }
 
-func (s *RecoverySuite) TestPanicHandlerAnnotationPropogagaesMessage() {
-	s.False(s.sender.HasMessage())
-	s.NotPanics(func() {
+func TestPanicHandlerAnnotationPropogagaesMessage(t *testing.T) {
+	setupFixture(t)
+	sender := send.MakeInternalLogger()
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
+	func() {
+		// shouldn't panic
 		defer AnnotateMessageWithStackTraceAndContinue(message.Fields{"foo": "test handler op1 for real"})
 		panic("sorry")
-	})
-	s.True(s.sender.HasMessage())
-	msg, ok := s.sender.GetMessageSafe()
-	s.True(ok)
-	s.True(strings.Contains(msg.Rendered, "test handler op1 for real"))
+	}()
+	if !sender.HasMessage() {
+		t.Error("should be true")
+	}
+	msg, ok := sender.GetMessageSafe()
+	if !ok {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "test handler op1 for real") {
+		t.Error("should be true")
+	}
 
 }
 
-func (s *RecoverySuite) TestPanicsCausesAnnotateLogsWithExitHandler() {
-	s.False(s.sender.HasMessage())
-	s.NotPanics(func() {
+func TestPanicsCausesAnnotateLogsWithExitHandler(t *testing.T) {
+	setupFixture(t)
+	sender := send.MakeInternalLogger()
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
+	func() {
+		// shouldn't panic
 		defer AnnotateMessageWithStackTraceAndExit(message.Fields{"foo": "exit op1"})
 		panic("sorry buddy")
-	})
-	s.True(s.sender.HasMessage())
-	msg, ok := s.sender.GetMessageSafe()
-	s.True(ok)
-	s.True(strings.Contains(msg.Rendered, "hit panic; exiting"))
-	s.True(strings.Contains(msg.Rendered, "sorry buddy"))
-	s.True(strings.Contains(msg.Rendered, "exit op1"))
+	}()
+	if !sender.HasMessage() {
+		t.Error("should be true")
+	}
+	msg, ok := sender.GetMessageSafe()
+	if !ok {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "hit panic; exiting") {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "sorry buddy") {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "exit op1") {
+		t.Error("should be true")
+	}
 }
 
-func (s *RecoverySuite) TestPanicAnnotatesLogsWithErrorHandler() {
-	s.False(s.sender.HasMessage())
-	s.NotPanics(func() {
+func TestPanicAnnotatesLogsWithErrorHandler(t *testing.T) {
+	setupFixture(t)
+	sender := send.MakeInternalLogger()
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
+	func() {
+		// shouldn't panic
 		err := func() (err error) {
 			defer func() { err = AnnotateMessageWithPanicError(recover(), nil, message.Fields{"foo": "bar"}) }()
 			panic("get a grip")
 		}()
 
-		s.Error(err)
-		s.True(strings.Contains(err.Error(), "get a grip"))
-	})
-	s.True(s.sender.HasMessage())
-	msg, ok := s.sender.GetMessageSafe()
-	s.True(ok)
-	s.True(strings.Contains(msg.Rendered, "hit panic; adding error"))
-	s.True(strings.Contains(msg.Rendered, "get a grip"))
-	s.True(strings.Contains(msg.Rendered, "foo='bar'"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(err.Error(), "get a grip") {
+			t.Error("should be true")
+		}
+	}()
+	if !sender.HasMessage() {
+		t.Error("should be true")
+	}
+	msg, ok := sender.GetMessageSafe()
+	if !ok {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "hit panic; adding error") {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "get a grip") {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "foo='bar'") {
+		t.Error("should be true")
+	}
 }
 
-func (s *RecoverySuite) TestPanicHandlerSendJournalerPropogagaesMessage() {
-	s.False(s.sender.HasMessage())
+func TestPanicHandlerSendJournalerPropogagaesMessage(t *testing.T) {
+	setupFixture(t)
+	sender := send.MakeInternalLogger()
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
 	s.NotPanics(func() {
-		defer SendStackTraceAndContinue(s.logger(), message.Fields{"foo": "test handler op2 for real"})
+		logger := grip.NewLogger(send.MakeTesting(t))
+		defer SendStackTraceAndContinue(logger, message.Fields{"foo": "test handler op2 for real"})
 		panic("sorry")
 	})
-	s.True(s.sender.HasMessage())
-	msg, ok := s.sender.GetMessageSafe()
-	s.True(ok)
-	s.True(strings.Contains(msg.Rendered, "test handler op2 for real"))
+	if !sender.HasMessage() {
+		t.Error("should be true")
+	}
+	msg, ok := sender.GetMessageSafe()
+	if !ok {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "test handler op2 for real") {
+		t.Error("should be true")
+	}
 
 }
 
-func (s *RecoverySuite) TestPanicsCausesSendJournalerLogsWithExitHandler() {
-	s.False(s.sender.HasMessage())
-	s.NotPanics(func() {
-		defer SendStackTraceMessageAndExit(s.logger(), message.Fields{"foo": "exit op2"})
+func TestPanicsCausesSendJournalerLogsWithExitHandler(t *testing.T) {
+	setupFixture(t)
+	sender := send.MakeInternalLogger()
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
+	func() {
+		// shouldn't panic
+		logger := grip.NewLogger(send.MakeTesting(t))
+		defer SendStackTraceMessageAndExit(logger, message.Fields{"foo": "exit op2"})
 		panic("sorry buddy")
-	})
-	s.True(s.sender.HasMessage())
-	msg, ok := s.sender.GetMessageSafe()
-	s.True(ok)
-	s.True(strings.Contains(msg.Rendered, "hit panic; exiting"))
-	s.True(strings.Contains(msg.Rendered, "sorry buddy"))
-	s.True(strings.Contains(msg.Rendered, "exit op2"))
+	}()
+	if !sender.HasMessage() {
+		t.Error("should be true")
+	}
+	msg, ok := sender.GetMessageSafe()
+	if !ok {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "hit panic; exiting") {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "sorry buddy") {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "exit op2") {
+		t.Error("should be true")
+	}
 }
 
-func (s *RecoverySuite) TestPanicSendJournalerLogsWithErrorHandler() {
-	s.False(s.sender.HasMessage())
-	s.NotPanics(func() {
+func TestPanicSendJournalerLogsWithErrorHandler(t *testing.T) {
+	setupFixture(t)
+	sender := send.MakeInternalLogger()
+	if sender.HasMessage() {
+		t.Error("should be false")
+	}
+
+	func() {
+		// shouldn't panic
 		err := func() (err error) {
-			defer func() { err = SendMessageWithPanicError(recover(), nil, s.logger(), message.Fields{"foo": "bar1"}) }()
+			logger := grip.NewLogger(send.MakeTesting(t))
+			defer func() { err = SendMessageWithPanicError(recover(), nil, logger, message.Fields{"foo": "bar1"}) }()
 			panic("get a grip")
 		}()
 
-		s.Error(err)
-		s.True(strings.Contains(err.Error(), "get a grip"))
-	})
-	s.True(s.sender.HasMessage())
-	msg, ok := s.sender.GetMessageSafe()
-	s.True(ok)
-	s.True(strings.Contains(msg.Rendered, "hit panic; adding error"))
-	s.True(strings.Contains(msg.Rendered, "get a grip"))
-	s.True(strings.Contains(msg.Rendered, "foo='bar1'"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(err.Error(), "get a grip") {
+			t.Error("should be true")
+		}
+	}()
+	if !sender.HasMessage() {
+		t.Error("should be true")
+	}
+	msg, ok := sender.GetMessageSafe()
+	if !ok {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "hit panic; adding error") {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "get a grip") {
+		t.Error("should be true")
+	}
+	if !strings.Contains(msg.Rendered, "foo='bar1'") {
+		t.Error("should be true")
+	}
 }
