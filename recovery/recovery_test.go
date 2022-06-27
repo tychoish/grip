@@ -11,23 +11,27 @@ import (
 	"github.com/tychoish/grip/send"
 )
 
-func setupFixture(t *testing.T) {
+func setupFixture(t *testing.T) *send.InternalSender {
 	t.Helper()
-
+	sender := grip.Sender()
+	out := send.MakeInternalLogger()
 	if err := os.Setenv(killOverrideVarName, "true"); err != nil {
 		t.Fatal(err)
 	}
 
+	grip.SetGlobalLogger(grip.NewLogger(out))
 	t.Cleanup(func() {
+		grip.SetGlobalLogger(grip.NewLogger(sender))
 		if err := os.Setenv(killOverrideVarName, ""); err != nil {
 			t.Error(err)
 		}
 	})
+	return out
+
 }
 
 func TestWithoutPanicNoErrorsLoged(t *testing.T) {
-	setupFixture(t)
-	sender := send.MakeInternalLogger()
+	sender := setupFixture(t)
 
 	if sender.HasMessage() {
 		t.Error("should be false")
@@ -49,8 +53,7 @@ func TestWithoutPanicNoErrorsLoged(t *testing.T) {
 }
 
 func TestPanicCausesLogsWithContinueRecoverer(t *testing.T) {
-	setupFixture(t)
-	sender := send.MakeInternalLogger()
+	sender := setupFixture(t)
 	if sender.HasMessage() {
 		t.Error("should be false")
 	}
@@ -75,15 +78,15 @@ func TestPanicCausesLogsWithContinueRecoverer(t *testing.T) {
 }
 
 func TestPanicsCausesLogsWithExitHandler(t *testing.T) {
-	setupFixture(t)
-	sender := send.MakeInternalLogger()
+	sender := setupFixture(t)
 	if sender.HasMessage() {
 		t.Error("should be false")
 	}
-	s.NotPanics(func() {
+	grip.SetGlobalLogger(grip.NewLogger(sender))
+	func() {
 		defer LogStackTraceAndExit("exit op")
 		panic("sorry buddy")
-	})
+	}()
 	if !sender.HasMessage() {
 		t.Error("should be true")
 	}
@@ -103,11 +106,11 @@ func TestPanicsCausesLogsWithExitHandler(t *testing.T) {
 }
 
 func TestPanicCausesLogsWithErrorHandler(t *testing.T) {
-	setupFixture(t)
-	sender := send.MakeInternalLogger()
+	sender := setupFixture(t)
 	if sender.HasMessage() {
 		t.Error("should be false")
 	}
+	grip.SetGlobalLogger(grip.NewLogger(sender))
 	func() {
 		// shouldn't panic
 
@@ -116,8 +119,8 @@ func TestPanicCausesLogsWithErrorHandler(t *testing.T) {
 			panic("get a grip")
 		}()
 
-		if err != nil {
-			t.Fatal(err)
+		if err == nil {
+			t.Fatal("error should not be nil")
 		}
 		if !strings.Contains(err.Error(), "get a grip") {
 			t.Error("should be true")
@@ -139,8 +142,7 @@ func TestPanicCausesLogsWithErrorHandler(t *testing.T) {
 }
 
 func TestErrorHandlerPropogatesErrorAndPanicMessage(t *testing.T) {
-	setupFixture(t)
-	sender := send.MakeInternalLogger()
+	sender := setupFixture(t)
 	func() {
 		// shouldn't panic
 
@@ -149,8 +151,8 @@ func TestErrorHandlerPropogatesErrorAndPanicMessage(t *testing.T) {
 			panic("got grip")
 		}()
 
-		if err != nil {
-			t.Fatal(err)
+		if err == nil {
+			t.Fatal("error should not be nil")
 		}
 		if !strings.Contains(err.Error(), "got grip") {
 			t.Error("should be true")
@@ -182,9 +184,10 @@ func TestErrorHandlerPropogatesErrorAndPanicMessage(t *testing.T) {
 }
 
 func TestPanicHandlerWithErrorPropogatesErrorWithoutPanic(t *testing.T) {
-	setupFixture(t)
-	if err := HandlePanicWithError(nil, errors.New("foo")); err != nil {
-		t.Fatal(err)
+	_ = setupFixture(t)
+	err := HandlePanicWithError(nil, errors.New("foo"))
+	if err == nil {
+		t.Fatal("error should not be nil")
 	}
 
 	if !strings.Contains(err.Error(), "foo") {
@@ -193,8 +196,7 @@ func TestPanicHandlerWithErrorPropogatesErrorWithoutPanic(t *testing.T) {
 }
 
 func TestPanicHandlerPropogatesOperationName(t *testing.T) {
-	setupFixture(t)
-	sender := send.MakeInternalLogger()
+	sender := setupFixture(t)
 	if sender.HasMessage() {
 		t.Error("should be false")
 	}
@@ -216,15 +218,14 @@ func TestPanicHandlerPropogatesOperationName(t *testing.T) {
 }
 
 func TestPanicHandlerPropogatesOperationNameWithArgs(t *testing.T) {
-	setupFixture(t)
-	sender := send.MakeInternalLogger()
+	sender := setupFixture(t)
 	if sender.HasMessage() {
 		t.Error("should be false")
 	}
-	s.NotPanics(func() {
+	func() {
 		defer LogStackTraceAndContinue("test handler op", "for real")
 		panic("sorry")
-	})
+	}()
 	if !sender.HasMessage() {
 		t.Error("should be true")
 	}
@@ -238,8 +239,7 @@ func TestPanicHandlerPropogatesOperationNameWithArgs(t *testing.T) {
 }
 
 func TestPanicHandlerAnnotationPropogagaesMessage(t *testing.T) {
-	setupFixture(t)
-	sender := send.MakeInternalLogger()
+	sender := setupFixture(t)
 	if sender.HasMessage() {
 		t.Error("should be false")
 	}
@@ -262,8 +262,7 @@ func TestPanicHandlerAnnotationPropogagaesMessage(t *testing.T) {
 }
 
 func TestPanicsCausesAnnotateLogsWithExitHandler(t *testing.T) {
-	setupFixture(t)
-	sender := send.MakeInternalLogger()
+	sender := setupFixture(t)
 	if sender.HasMessage() {
 		t.Error("should be false")
 	}
@@ -291,8 +290,7 @@ func TestPanicsCausesAnnotateLogsWithExitHandler(t *testing.T) {
 }
 
 func TestPanicAnnotatesLogsWithErrorHandler(t *testing.T) {
-	setupFixture(t)
-	sender := send.MakeInternalLogger()
+	sender := setupFixture(t)
 	if sender.HasMessage() {
 		t.Error("should be false")
 	}
@@ -303,8 +301,8 @@ func TestPanicAnnotatesLogsWithErrorHandler(t *testing.T) {
 			panic("get a grip")
 		}()
 
-		if err != nil {
-			t.Fatal(err)
+		if err == nil {
+			t.Fatal("error should not be nil")
 		}
 		if !strings.Contains(err.Error(), "get a grip") {
 			t.Error("should be true")
@@ -329,16 +327,17 @@ func TestPanicAnnotatesLogsWithErrorHandler(t *testing.T) {
 }
 
 func TestPanicHandlerSendJournalerPropogagaesMessage(t *testing.T) {
-	setupFixture(t)
-	sender := send.MakeInternalLogger()
+	sender := setupFixture(t)
 	if sender.HasMessage() {
 		t.Error("should be false")
 	}
-	s.NotPanics(func() {
-		logger := grip.NewLogger(send.MakeTesting(t))
+	func() {
+		// shouldn't panic
+		logger := grip.NewLogger(sender)
 		defer SendStackTraceAndContinue(logger, message.Fields{"foo": "test handler op2 for real"})
+
 		panic("sorry")
-	})
+	}()
 	if !sender.HasMessage() {
 		t.Error("should be true")
 	}
@@ -353,14 +352,13 @@ func TestPanicHandlerSendJournalerPropogagaesMessage(t *testing.T) {
 }
 
 func TestPanicsCausesSendJournalerLogsWithExitHandler(t *testing.T) {
-	setupFixture(t)
-	sender := send.MakeInternalLogger()
+	sender := setupFixture(t)
 	if sender.HasMessage() {
 		t.Error("should be false")
 	}
 	func() {
 		// shouldn't panic
-		logger := grip.NewLogger(send.MakeTesting(t))
+		logger := grip.NewLogger(sender)
 		defer SendStackTraceMessageAndExit(logger, message.Fields{"foo": "exit op2"})
 		panic("sorry buddy")
 	}()
@@ -383,8 +381,7 @@ func TestPanicsCausesSendJournalerLogsWithExitHandler(t *testing.T) {
 }
 
 func TestPanicSendJournalerLogsWithErrorHandler(t *testing.T) {
-	setupFixture(t)
-	sender := send.MakeInternalLogger()
+	sender := setupFixture(t)
 	if sender.HasMessage() {
 		t.Error("should be false")
 	}
@@ -392,13 +389,13 @@ func TestPanicSendJournalerLogsWithErrorHandler(t *testing.T) {
 	func() {
 		// shouldn't panic
 		err := func() (err error) {
-			logger := grip.NewLogger(send.MakeTesting(t))
+			logger := grip.NewLogger(sender)
 			defer func() { err = SendMessageWithPanicError(recover(), nil, logger, message.Fields{"foo": "bar1"}) }()
 			panic("get a grip")
 		}()
 
-		if err != nil {
-			t.Fatal(err)
+		if err == nil {
+			t.Fatal("error shouldn't be nil")
 		}
 		if !strings.Contains(err.Error(), "get a grip") {
 			t.Error("should be true")

@@ -1,33 +1,39 @@
 package send
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
+
+const maxCap = 10
 
 type InMemorySuite struct {
 	maxCap int
 	msgs   []message.Composer
 	sender *InMemorySender
-	suite.Suite
 }
 
-func (s *InMemorySuite) msgsToString(msgs []message.Composer) []string {
+func msgsToString(t *testing.T, sender Sender, msgs []message.Composer) []string {
+	t.Helper()
+
 	strs := make([]string, 0, len(msgs))
 	for _, msg := range msgs {
-		str, err := s.sender.Formatter()(msg)
-		s.Require().NoError(err)
+		str, err := sender.Formatter()(msg)
+		if err != nil {
+			t.Fatal(err)
+		}
 		strs = append(strs, str)
 	}
+
 	return strs
 }
 
-func (s *InMemorySuite) msgsToRaw(msgs []message.Composer) []interface{} {
+func msgsToRaw(msgs []message.Composer) []interface{} {
 	raw := make([]interface{}, 0, len(msgs))
 	for _, msg := range msgs {
 		raw = append(raw, msg.Raw())
@@ -35,362 +41,637 @@ func (s *InMemorySuite) msgsToRaw(msgs []message.Composer) []interface{} {
 	return raw
 }
 
-func TestInMemorySuite(t *testing.T) {
-	suite.Run(t, new(InMemorySuite))
-}
+func setupFixture(t *testing.T) *InMemorySuite {
+	// t.Helper()
 
-func (s *InMemorySuite) SetupTest() {
-	s.maxCap = 10
+	s := &InMemorySuite{}
+
 	info := LevelInfo{Default: level.Debug, Threshold: level.Debug}
-	sender, err := NewInMemorySender("inmemory", info, s.maxCap)
-	s.Require().NoError(err)
-	s.Require().NotNil(sender)
-	s.sender = sender.(*InMemorySender)
-	s.Require().Empty(s.sender.buffer)
-	s.Require().Equal(readHeadNone, s.sender.readHead)
-	s.Require().False(s.sender.readHeadCaughtUp)
-	s.Require().Equal(0, s.sender.writeHead)
-	s.Require().Zero(s.sender.totalBytesSent)
+	sender, err := NewInMemorySender("inmemory", info, maxCap)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	s.msgs = make([]message.Composer, 2*s.maxCap)
+	if sender == nil {
+		t.Fatal("sender must not be nil")
+	}
+
+	s.sender = sender.(*InMemorySender)
+
+	if len(s.sender.buffer) != 0 {
+		t.Fatal("buffer should be empty")
+	}
+
+	if readHeadNone != s.sender.readHead {
+		t.Fatal("read ahead should not be set")
+	}
+
+	if s.sender.readHeadCaughtUp {
+		t.Fatal("read should not be caught up")
+	}
+
+	if s.sender.writeHead != 0 {
+		t.Fatal("write should not have started")
+	}
+
+	if s.sender.totalBytesSent != 0 {
+		t.Fatal("should not have sent bytes")
+	}
+
+	s.msgs = make([]message.Composer, 2*maxCap)
 	for i := range s.msgs {
 		s.msgs[i] = message.NewString(info.Default, fmt.Sprint(i))
 	}
+
+	return s
 }
 
-func (s *InMemorySuite) TestInvalidCapacityErrors() {
+func TestInvalidCapacityErrors(t *testing.T) {
 	badCap := -1
 	sender, err := NewInMemorySender("inmemory", LevelInfo{Default: level.Debug, Threshold: level.Debug}, badCap)
-	s.Require().Error(err)
-	s.Require().Nil(sender)
+	if err == nil {
+		t.Fatal(err)
+	}
+	if sender != nil {
+		t.Fatal("sender should not be nil")
+	}
 }
 
-func (s *InMemorySuite) TestSendIgnoresMessagesWithPrioritiesBelowThreshold() {
+func TestSendIgnoresMessagesWithPrioritiesBelowThreshold(t *testing.T) {
+	s := setupFixture(t)
+
 	msg := message.NewString(level.Trace, "foo")
 	s.sender.Send(msg)
-	s.Assert().Equal(0, len(s.sender.buffer))
+	if 0 != len(s.sender.buffer) {
+		t.Error("values should be equal")
+	}
 }
 
-func (s *InMemorySuite) TestGetEmptyBuffer() {
-	s.Assert().Empty(s.sender.Get())
+func TestGetEmptyBuffer(t *testing.T) {
+	s := setupFixture(t)
+
+	if l := len(s.sender.Get()); l != 0 {
+		t.Errorf("lenght is %d not %d", l, s.sender.Get())
+	}
 }
 
-func (s *InMemorySuite) TestGetCountInvalidCount() {
+func TestGetCountInvalidCount(t *testing.T) {
+	s := setupFixture(t)
+
 	msgs, n, err := s.sender.GetCount(-1)
-	s.Error(err)
-	s.Zero(n)
-	s.Nil(msgs)
+	if err == nil {
+		t.Fatal("error should not be nil", err)
+	}
+	if n != 0 {
+		t.Fatal("n should be zero", n)
+	}
+	if msgs != nil {
+		t.Fatal("messages should be nil", msgs)
+	}
 
 	msgs, n, err = s.sender.GetCount(0)
-	s.Error(err)
-	s.Zero(n)
-	s.Nil(msgs)
+	if err == nil {
+		t.Fatal("error should not be nil", err)
+	}
+	if n != 0 {
+		t.Fatal("n should be zero", n)
+	}
+	if msgs != nil {
+		t.Fatal("messages should be nil")
+	}
 }
 
-func (s *InMemorySuite) TestGetCountOne() {
-	for i := 0; i < s.maxCap-1; i++ {
+func TestGetCountOne(t *testing.T) {
+	s := setupFixture(t)
+
+	for i := 0; i < maxCap-1; i++ {
 		s.sender.Send(s.msgs[i])
 	}
-	for i := 0; i < s.maxCap-1; i++ {
+	for i := 0; i < maxCap-1; i++ {
 		msgs, n, err := s.sender.GetCount(1)
-		s.Require().NoError(err)
-		s.Require().Equal(1, n)
-		s.Equal(s.msgs[i], msgs[0])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != 1 {
+			t.Fatal("values should be equal", n, 1)
+		}
+		if s.msgs[i] != msgs[0] {
+			t.Error("values should be equal")
+		}
 	}
 
-	s.sender.Send(s.msgs[s.maxCap])
+	s.sender.Send(s.msgs[maxCap])
 
 	msgs, n, err := s.sender.GetCount(1)
-	s.Require().NoError(err)
-	s.Require().Equal(1, n)
-	s.Equal(s.msgs[s.maxCap], msgs[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatal("values should be equal", n, 1)
+	}
+	if s.msgs[maxCap] != msgs[0] {
+		t.Error("values should be equal")
+	}
 
 	msgs, n, err = s.sender.GetCount(1)
-	s.Require().Error(io.EOF, err)
-	s.Require().Equal(0, n)
-	s.Empty(msgs)
+	if !errors.Is(err, io.EOF) {
+		t.Fatal("error should be EOF", err)
+	}
+	if n != 0 {
+		t.Fatal("values should be equal", n, 0)
+	}
+	if len(msgs) != 0 {
+		t.Fatal("messages should be empty")
+	}
 }
 
-func (s *InMemorySuite) TestGetCountMultiple() {
-	for i := 0; i < s.maxCap; i++ {
+func TestGetCountMultiple(t *testing.T) {
+	s := setupFixture(t)
+
+	for i := 0; i < maxCap; i++ {
 		s.sender.Send(s.msgs[i])
 	}
 
-	for count := 1; count <= s.maxCap; count++ {
+	for count := 1; count <= maxCap; count++ {
 		s.sender.ResetRead()
-		for i := 0; i < s.maxCap; i += count {
+		for i := 0; i < maxCap; i += count {
 			msgs, n, err := s.sender.GetCount(count)
-			s.Require().NoError(err)
+			if err != nil {
+				t.Fatal(err)
+			}
 			remaining := count
 			start := i
 			end := start + count
-			if end > s.maxCap {
-				end = s.maxCap
+			if end > maxCap {
+				end = maxCap
 				remaining = end - start
 			}
-			s.Equal(remaining, n)
-			s.Equal(s.msgs[start:end], msgs)
+			if remaining != n {
+				t.Error("values should be equal")
+			}
+			bmsg := s.msgs[start:end]
+			for idx := range bmsg {
+				if bmsg[idx] != msgs[idx] {
+					t.Fatal("values at index should be equal:", idx)
+				}
+			}
 		}
-		s.True(s.sender.readHeadCaughtUp)
+		if !s.sender.readHeadCaughtUp {
+			t.Error("value should be true")
+		}
 
 		_, _, err := s.sender.GetCount(count)
-		s.Require().Equal(io.EOF, err)
+		if err != io.EOF {
+			t.Fatal("values should be equal", err, io.EOF)
+		}
 	}
 }
 
-func (s *InMemorySuite) TestGetCountMultipleWithOverflow() {
+func TestGetCountMultipleWithOverflow(t *testing.T) {
+	s := setupFixture(t)
+
 	for _, msg := range s.msgs {
 		s.sender.Send(msg)
 	}
 
-	for count := 1; count <= s.maxCap; count++ {
+	for count := 1; count <= maxCap; count++ {
 		s.sender.ResetRead()
-		for i := 0; i < s.maxCap; i += count {
+		for i := 0; i < maxCap; i += count {
 			msgs, n, err := s.sender.GetCount(count)
-			s.Require().NoError(err)
+			if err != nil {
+				t.Fatal(err)
+			}
 			remaining := count
-			start := len(s.msgs) - s.maxCap + i
+			start := len(s.msgs) - maxCap + i
 			end := start + count
 			if end > len(s.msgs) {
 				end = len(s.msgs)
 				remaining = end - start
 			}
-			s.Equal(remaining, n)
-			s.Equal(s.msgs[start:end], msgs)
+			if remaining != n {
+				t.Error("values should be equal")
+			}
+			bmsg := s.msgs[start:end]
+			for idx := range bmsg {
+				if bmsg[idx] != msgs[idx] {
+					t.Fatal("values at index should be equal:", idx)
+				}
+			}
 		}
-		s.True(s.sender.readHeadCaughtUp)
+		if !s.sender.readHeadCaughtUp {
+			t.Error("value should be true")
+		}
 
 		_, _, err := s.sender.GetCount(count)
-		s.Require().Equal(io.EOF, err)
+		if err != io.EOF {
+			t.Fatal("values should be equal", err, io.EOF)
+		}
 	}
 }
 
-func (s *InMemorySuite) TestGetCountTruncated() {
+func TestGetCountTruncated(t *testing.T) {
+	s := setupFixture(t)
+
 	s.sender.Send(s.msgs[0])
 	s.sender.Send(s.msgs[1])
 
 	msgs, n, err := s.sender.GetCount(1)
-	s.Require().NoError(err)
-	s.Equal(1, n)
-	s.Equal(s.msgs[0], msgs[0])
-	s.Require().False(s.sender.readHeadCaughtUp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if 1 != n {
+		t.Error("values should be equal")
+	}
+	if s.msgs[0] != msgs[0] {
+		t.Error("values should be equal")
+	}
+	if s.sender.readHeadCaughtUp {
+		t.Fatal("should not be caught up")
+	}
 
-	for i := 0; i < s.maxCap; i++ {
-		s.Require().NotEqual(readHeadTruncated, s.sender.readHead)
+	for i := 0; i < maxCap; i++ {
+		if readHeadTruncated == s.sender.readHead {
+			t.Fatal("should not be equal")
+		}
 		s.sender.Send(s.msgs[i])
 	}
-	s.Require().Equal(readHeadTruncated, s.sender.readHead)
+	if s.sender.readHead != readHeadTruncated {
+		t.Fatal("values should be equal", s.sender.readHead, readHeadTruncated)
+	}
 	_, _, err = s.sender.GetCount(1)
-	s.Require().Equal(ErrorTruncated, err)
+	if err != ErrorTruncated {
+		t.Fatal("values should be equal", err, ErrorTruncated)
+	}
 }
 
-func (s *InMemorySuite) TestGetCountWithCatchupTruncated() {
+func TestGetCountWithCatchupTruncated(t *testing.T) {
+	s := setupFixture(t)
+
 	s.sender.Send(s.msgs[0])
 	msgs, n, err := s.sender.GetCount(1)
-	s.Require().NoError(err)
-	s.Equal(1, n)
-	s.Equal(s.msgs[0], msgs[0])
-	s.True(s.sender.readHeadCaughtUp)
-
-	for i := 0; i < s.maxCap; i++ {
-		s.Require().NotEqual(readHeadTruncated, s.sender.readHead)
-		s.sender.Send(s.msgs[i])
-		s.Require().False(s.sender.readHeadCaughtUp)
+	if err != nil {
+		t.Fatal(err)
 	}
-	s.Require().False(s.sender.readHeadCaughtUp)
-	s.Require().NotEqual(readHeadTruncated, s.sender.readHead)
+	if 1 != n {
+		t.Error("values should be equal")
+	}
+	if s.msgs[0] != msgs[0] {
+		t.Error("values should be equal")
+	}
+	if !s.sender.readHeadCaughtUp {
+		t.Error("value should be true")
+	}
+
+	for i := 0; i < maxCap; i++ {
+		if readHeadTruncated == s.sender.readHead {
+			t.Fatal("should not be equal")
+
+		}
+		s.sender.Send(s.msgs[i])
+		if s.sender.readHeadCaughtUp {
+			t.Fatal("should not be caught up")
+		}
+	}
+	if s.sender.readHeadCaughtUp {
+		t.Fatal("should not be caught up")
+	}
+	if readHeadTruncated == s.sender.readHead {
+		t.Fatal("should not be equal")
+	}
 
 	s.sender.Send(s.msgs[0])
-	s.Require().False(s.sender.readHeadCaughtUp)
-	s.Require().Equal(readHeadTruncated, s.sender.readHead)
+	if s.sender.readHeadCaughtUp {
+		t.Fatal("should not be caught up")
+	}
+
+	if s.sender.readHead != readHeadTruncated {
+		t.Fatal("values should be equal", s.sender.readHead, readHeadTruncated)
+	}
 
 	_, _, err = s.sender.GetCount(1)
-	s.Equal(ErrorTruncated, err)
+	if ErrorTruncated != err {
+		t.Error("values should be equal")
+	}
 }
 
-func (s *InMemorySuite) TestGetCountWithCatchupWithOverflowTruncated() {
-	for i := 0; i < s.maxCap; i++ {
-		s.sender.Send(s.msgs[i])
-	}
-	for i := 0; i < s.maxCap; i++ {
-		msgs, n, err := s.sender.GetCount(1)
-		s.Require().NoError(err)
-		s.Equal(1, n)
-		s.Equal(s.msgs[i], msgs[0])
-	}
-	s.Require().True(s.sender.readHeadCaughtUp)
+func TestGetCountWithCatchupWithOverflowTruncated(t *testing.T) {
+	s := setupFixture(t)
 
-	for i := 0; i < s.maxCap+1; i++ {
-		s.Require().NotEqual(readHeadTruncated, s.sender.readHead)
+	for i := 0; i < maxCap; i++ {
 		s.sender.Send(s.msgs[i])
-		s.Require().False(s.sender.readHeadCaughtUp)
 	}
-	s.Require().Equal(readHeadTruncated, s.sender.readHead)
+	for i := 0; i < maxCap; i++ {
+		msgs, n, err := s.sender.GetCount(1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if 1 != n {
+			t.Error("values should be equal")
+		}
+		if s.msgs[i] != msgs[0] {
+			t.Error("values should be equal")
+		}
+	}
+	if !s.sender.readHeadCaughtUp {
+		t.Error("value should be true")
+	}
+
+	for i := 0; i < maxCap+1; i++ {
+		if readHeadTruncated == s.sender.readHead {
+			t.Fatal("should not be equal")
+		}
+		s.sender.Send(s.msgs[i])
+		if s.sender.readHeadCaughtUp {
+			t.Fatal("should not be caught up")
+		}
+	}
+	if s.sender.readHead != readHeadTruncated {
+		t.Fatal("values should be equal", s.sender.readHead, readHeadTruncated)
+	}
 
 	_, _, err := s.sender.GetCount(1)
-	s.Equal(ErrorTruncated, err)
+	if ErrorTruncated != err {
+		t.Error("values should be equal")
+	}
 }
 
-func (s *InMemorySuite) TestGetCountWithOverflowTruncated() {
-	for i := 0; i < s.maxCap; i++ {
-		s.sender.Send(s.msgs[i])
-	}
-	for i := 0; i < s.maxCap; i++ {
-		msgs, n, err := s.sender.GetCount(1)
-		s.Require().NoError(err)
-		s.Equal(1, n)
-		s.Equal(s.msgs[i], msgs[0])
-	}
-	s.Require().True(s.sender.readHeadCaughtUp)
+func TestGetCountWithOverflowTruncated(t *testing.T) {
+	s := setupFixture(t)
 
-	for i := 0; i < s.maxCap+1; i++ {
-		s.Require().NotEqual(readHeadTruncated, s.sender.readHead)
+	for i := 0; i < maxCap; i++ {
 		s.sender.Send(s.msgs[i])
-		s.Require().False(s.sender.readHeadCaughtUp)
 	}
-	s.Require().Equal(readHeadTruncated, s.sender.readHead)
+	for i := 0; i < maxCap; i++ {
+		msgs, n, err := s.sender.GetCount(1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if 1 != n {
+			t.Error("values should be equal")
+		}
+		if s.msgs[i] != msgs[0] {
+			t.Error("values should be equal")
+		}
+	}
+	if !s.sender.readHeadCaughtUp {
+		t.Error("value should be true")
+	}
+
+	for i := 0; i < maxCap+1; i++ {
+		if readHeadTruncated == s.sender.readHead {
+			t.Fatal("should not be equal")
+		}
+
+		s.sender.Send(s.msgs[i])
+		if s.sender.readHeadCaughtUp {
+			t.Fatal("should be false")
+		}
+	}
+	if s.sender.readHead != readHeadTruncated {
+		t.Fatal("values should be equal", s.sender.readHead, readHeadTruncated)
+	}
 
 	_, _, err := s.sender.GetCount(1)
-	s.Equal(ErrorTruncated, err)
+	if ErrorTruncated != err {
+		t.Error("values should be equal")
+	}
 }
 
-func (s *InMemorySuite) TestGetCountWithWritesAfterEOF() {
+func TestGetCountWithWritesAfterEOF(t *testing.T) {
+	s := setupFixture(t)
+
 	s.sender.Send(s.msgs[0])
 	msgs, n, err := s.sender.GetCount(1)
-	s.Require().NoError(err)
-	s.Equal(1, n)
-	s.Equal(s.msgs[0], msgs[0])
-	s.True(s.sender.readHeadCaughtUp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if 1 != n {
+		t.Error("values should be equal")
+	}
+	if s.msgs[0] != msgs[0] {
+		t.Error("values should be equal")
+	}
+	if !s.sender.readHeadCaughtUp {
+		t.Error("value should be true")
+	}
 	_, _, err = s.sender.GetCount(1)
-	s.Equal(io.EOF, err)
+	if io.EOF != err {
+		t.Error("values should be equal")
+	}
 
 	s.sender.Send(s.msgs[1])
-	s.False(s.sender.readHeadCaughtUp)
+	if s.sender.readHeadCaughtUp {
+		t.Fatal("read pointer should not be caught up")
+	}
 	msgs, n, err = s.sender.GetCount(1)
-	s.Require().NoError(err)
-	s.Equal(1, n)
-	s.Equal(s.msgs[1], msgs[0])
-	s.True(s.sender.readHeadCaughtUp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if 1 != n {
+		t.Error("values should be equal")
+	}
+	if s.msgs[1] != msgs[0] {
+		t.Error("values should be equal")
+	}
+	if !s.sender.readHeadCaughtUp {
+		t.Error("value should be true")
+	}
 	_, _, err = s.sender.GetCount(1)
-	s.Equal(io.EOF, err)
+	if io.EOF != err {
+		t.Error("values should be equal")
+	}
 }
 
-func (s *InMemorySuite) TestResetRead() {
-	for i := 0; i < s.maxCap-1; i++ {
+func TestResetRead(t *testing.T) {
+	s := setupFixture(t)
+
+	for i := 0; i < maxCap-1; i++ {
 		s.sender.Send(s.msgs[i])
 	}
 
 	var err error
 	var n int
 	var msgs []message.Composer
-	for i := 0; i < s.maxCap-1; i++ {
+	for i := 0; i < maxCap-1; i++ {
 		msgs, n, err = s.sender.GetCount(1)
-		s.Require().NoError(err)
-		s.Require().Equal(1, n)
-		s.Equal(s.msgs[i], msgs[0])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != 1 {
+			t.Fatal("values should be equal", n, 1)
+		}
+		if s.msgs[i] != msgs[0] {
+			t.Error("values should be equal")
+		}
 	}
-	s.True(s.sender.readHeadCaughtUp)
+	if !s.sender.readHeadCaughtUp {
+		t.Error("value should be true")
+	}
 
 	_, _, err = s.sender.GetCount(1)
-	s.Equal(io.EOF, err)
+	if io.EOF != err {
+		t.Error("values should be equal")
+	}
 
 	s.sender.ResetRead()
-	s.Equal(readHeadNone, s.sender.readHead)
-	s.False(s.sender.readHeadCaughtUp)
+	if readHeadNone != s.sender.readHead {
+		t.Error("values should be equal")
+	}
+	if s.sender.readHeadCaughtUp {
+		t.Error("read should not be caught up yet")
+	}
 
-	for i := 0; i < s.maxCap-1; i++ {
+	for i := 0; i < maxCap-1; i++ {
 		msgs, n, err = s.sender.GetCount(1)
-		s.Require().NoError(err)
-		s.Require().Equal(1, n)
-		s.Equal(s.msgs[i], msgs[0])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != 1 {
+			t.Fatal("values should be equal", n, 1)
+		}
+		if s.msgs[i] != msgs[0] {
+			t.Error("values should be equal")
+		}
 	}
 
 	_, _, err = s.sender.GetCount(1)
-	s.Require().Error(io.EOF, err)
+	if !errors.Is(err, io.EOF) {
+		t.Fatal("should be EOF", err)
+	}
 }
 
-func (s *InMemorySuite) TestGetCountEmptyBuffer() {
+func TestGetCountEmptyBuffer(t *testing.T) {
+	s := setupFixture(t)
+
 	msgs, n, err := s.sender.GetCount(1)
-	s.Require().Equal(io.EOF, err)
-	s.Zero(n)
-	s.Empty(msgs)
+	if err != io.EOF {
+		t.Fatal("values should be equal", err, io.EOF)
+	}
+	if n != 0 {
+		t.Fatal("count should be zero")
+	}
+	if len(msgs) != 0 {
+		t.Fatal("messages should be empty")
+	}
 }
 
-func (s *InMemorySuite) TestGetWithOverflow() {
+func TestGetWithOverflow(t *testing.T) {
+	s := setupFixture(t)
+
 	for i, msg := range s.msgs {
 		s.sender.Send(msg)
 		found := s.sender.Get()
 
-		if i < s.maxCap {
+		if i < maxCap {
 			for j := 0; j < i+1; j++ {
-				s.Assert().Equal(s.msgs[j], found[j])
+				if s.msgs[j] != found[j] {
+					t.Error("values should be equal")
+				}
 			}
 		} else {
-			for j := 0; j < s.maxCap; j++ {
-				s.Assert().Equal(s.msgs[i+1-s.maxCap+j], found[j])
+			for j := 0; j < maxCap; j++ {
+				if s.msgs[i+1-maxCap+j] != found[j] {
+					t.Error("values should be equal")
+				}
 			}
 		}
 	}
 }
 
-func (s *InMemorySuite) TestGetStringEmptyBuffer() {
+func TestGetStringEmptyBuffer(t *testing.T) {
+	s := setupFixture(t)
+
 	str, err := s.sender.GetString()
-	s.Assert().NoError(err)
-	s.Assert().Empty(str)
+	if err := err; err != nil {
+		t.Fatal(err)
+	}
+	if len(str) != 0 {
+		t.Fatal("string form should be empty")
+	}
 }
 
-func (s *InMemorySuite) TestGetStringWithOverflow() {
+func TestGetStringWithOverflow(t *testing.T) {
+	s := setupFixture(t)
+
 	for i, msg := range s.msgs {
 		s.sender.Send(msg)
 		found, err := s.sender.GetString()
-		s.Require().NoError(err)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		var expected []string
-		if i+1 < s.maxCap {
-			s.Require().Equal(i+1, len(found))
-			expected = s.msgsToString(s.msgs[:i+1])
+		if i+1 < maxCap {
+			if len(found) != i+1 {
+				t.Fatal("values should be equal", len(found), i+1)
+			}
+			expected = msgsToString(t, s.sender, s.msgs[:i+1])
 		} else {
-			s.Require().Equal(s.maxCap, len(found))
-			expected = s.msgsToString(s.msgs[i+1-s.maxCap : i+1])
+			if len(found) != maxCap {
+				t.Fatal("values should be equal", len(found), maxCap)
+			}
+			expected = msgsToString(t, s.sender, s.msgs[i+1-maxCap:i+1])
 		}
-		s.Require().Equal(len(expected), len(found))
+		if len(found) != len(expected) {
+			t.Fatal("values should be equal", len(found), len(expected))
+		}
 
 		for j := 0; j < len(found); j++ {
-			s.Assert().Equal(expected[j], found[j])
+			if expected[j] != found[j] {
+				t.Error("values should be equal")
+			}
 		}
 	}
 }
 
-func (s *InMemorySuite) TestGetRawEmptyBuffer() {
-	s.Assert().Empty(s.sender.GetRaw())
+func TestGetRawEmptyBuffer(t *testing.T) {
+	s := setupFixture(t)
+
+	if len(s.sender.GetRaw()) != 0 {
+		t.Fatal("raw messages should be empty")
+	}
 }
 
-func (s *InMemorySuite) TestGetRawWithOverflow() {
+func TestGetRawWithOverflow(t *testing.T) {
+	s := setupFixture(t)
+
 	for i, msg := range s.msgs {
 		s.sender.Send(msg)
 		found := s.sender.GetRaw()
 		var expected []interface{}
 
-		if i+1 < s.maxCap {
-			s.Require().Equal(i+1, len(found))
-			expected = s.msgsToRaw(s.msgs[:i+1])
+		if i+1 < maxCap {
+			if len(found) != i+1 {
+				t.Fatal("values should be equal", len(found), i+1)
+			}
+			expected = msgsToRaw(s.msgs[:i+1])
 		} else {
-			s.Require().Equal(s.maxCap, len(found))
-			expected = s.msgsToRaw(s.msgs[i+1-s.maxCap : i+1])
+			if len(found) != maxCap {
+				t.Fatal("values should be equal", len(found), maxCap)
+			}
+			expected = msgsToRaw(s.msgs[i+1-maxCap : i+1])
 		}
 
-		s.Assert().Equal(len(expected), len(found))
+		if len(expected) != len(found) {
+			t.Error("values should be equal")
+		}
 		for j := 0; j < len(found); j++ {
-			s.Assert().Equal(expected[j], found[j])
+			if expected[j] != found[j] {
+				t.Error("values should be equal")
+			}
 		}
 	}
 }
 
-func (s *InMemorySuite) TestTotalBytes() {
+func TestTotalBytes(t *testing.T) {
+	s := setupFixture(t)
+
 	var totalBytes int64
 	for _, msg := range s.msgs {
 		s.sender.Send(msg)
 		totalBytes += int64(len(msg.String()))
-		s.Assert().Equal(totalBytes, s.sender.TotalBytesSent())
+		if totalBytes != s.sender.TotalBytesSent() {
+			t.Error("values should be equal")
+		}
 	}
 }
