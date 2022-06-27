@@ -4,30 +4,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
 
-type XMPPSuite struct {
-	info ConnectionInfo
-	suite.Suite
-}
-
-func TestXMPPSuite(t *testing.T) {
-	suite.Run(t, new(XMPPSuite))
-}
-
-func (s *XMPPSuite) SetupSuite() {}
-
-func (s *XMPPSuite) SetupTest() {
-	s.info = ConnectionInfo{
-		client: &xmppClientMock{},
-	}
-}
-
-func (s *XMPPSuite) TestEnvironmentVariableReader() {
+func TestEnvironmentVariableReader(t *testing.T) {
 	hostVal := "hostName"
 	userVal := "userName"
 	passVal := "passName"
@@ -36,90 +18,163 @@ func (s *XMPPSuite) TestEnvironmentVariableReader() {
 	defer os.Setenv(xmppUsernameEnvVar, os.Getenv(xmppUsernameEnvVar))
 	defer os.Setenv(xmppPasswordEnvVar, os.Getenv(xmppPasswordEnvVar))
 
-	s.NoError(os.Setenv(xmppHostEnvVar, hostVal))
-	s.NoError(os.Setenv(xmppUsernameEnvVar, userVal))
-	s.NoError(os.Setenv(xmppPasswordEnvVar, passVal))
+	if err := os.Setenv(xmppHostEnvVar, hostVal); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Setenv(xmppUsernameEnvVar, userVal); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Setenv(xmppPasswordEnvVar, passVal); err != nil {
+		t.Fatal(err)
+	}
 
 	info := GetConnectionInfo()
 
-	s.Equal(hostVal, info.Hostname)
-	s.Equal(userVal, info.Username)
-	s.Equal(passVal, info.Password)
+	if info.Hostname != hostVal {
+		t.Error("incorrect value for info.Hostname:", hostVal)
+	}
+	if info.Username != userVal {
+		t.Error("incorrect value for info.Username:", userVal)
+	}
+	if info.Password != passVal {
+		t.Error("incorrect value for info.Password:", passVal)
+	}
 }
 
-func (s *XMPPSuite) TestNewConstructor() {
-	sender, err := NewSender("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
-	s.NoError(err)
-	s.NotNil(sender)
+func TestNewConstructor(t *testing.T) {
+	info := ConnectionInfo{client: &xmppClientMock{}}
+	sender, err := NewSender("name", "target", info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sender == nil {
+		t.Fatal("expected value, but got nil")
+	}
 }
 
-func (s *XMPPSuite) TestNewConstructorFailsWhenClientCreateFails() {
-	s.info.client = &xmppClientMock{failCreate: true}
+func TestNewConstructorFailsWhenClientCreateFails(t *testing.T) {
+	info := ConnectionInfo{client: &xmppClientMock{failCreate: true}}
 
-	sender, err := NewSender("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
-	s.Error(err)
-	s.Nil(sender)
+	sender, err := NewSender("name", "target", info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	if err == nil {
+		t.Fatal("expected error but got nil")
+	}
+	if sender != nil {
+		t.Fatal("expected nil, but got value")
+	}
 }
 
-func (s *XMPPSuite) TestCloseMethod() {
-	sender, err := NewSender("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
-	s.NoError(err)
-	s.NotNil(sender)
+func TestCloseMethod(t *testing.T) {
+	info := ConnectionInfo{client: &xmppClientMock{}}
+	sender, err := NewSender("name", "target", info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sender == nil {
+		t.Fatal("expected value, but got nil")
+	}
 
-	mock, ok := s.info.client.(*xmppClientMock)
-	s.True(ok)
-	s.Equal(0, mock.numCloses)
-	s.NoError(sender.Close())
-	s.Equal(1, mock.numCloses)
+	mock, ok := info.client.(*xmppClientMock)
+	if !ok {
+		t.Fatal("expected true but got falsey value")
+	}
+	if mock.numCloses != 0 {
+		t.Error("incorrect value for mock.numCloses:", 0)
+	}
+	if err := sender.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if mock.numCloses != 1 {
+		t.Error("incorrect value for mock.numCloses:", 1)
+	}
 }
 
-func (s *XMPPSuite) TestAutoConstructorErrorsWithoutValidEnvVar() {
+func TestAutoConstructorErrorsWithoutValidEnvVar(t *testing.T) {
+	info := ConnectionInfo{client: &xmppClientMock{}}
 	sender, err := MakeSender("target")
-	s.Error(err)
-	s.Nil(sender)
+	if err == nil {
+		t.Fatal("expected error but got nil")
+	}
+	if sender != nil {
+		t.Fatal("expected nil, but got value")
+	}
 
 	sender, err = NewDefaultSender("target", "name", send.LevelInfo{Default: level.Debug, Threshold: level.Info})
-	s.Error(err)
-	s.Nil(sender)
+	if err == nil {
+		t.Fatal("expected error but got nil")
+	}
+	if sender != nil {
+		t.Fatal("expected nil, but got value")
+	}
 }
 
-func (s *XMPPSuite) TestSendMethod() {
-	sender, err := NewSender("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
-	s.NoError(err)
-	s.NotNil(sender)
+func TestSendMethod(t *testing.T) {
+	info := ConnectionInfo{client: &xmppClientMock{}}
+	sender, err := NewSender("name", "target", info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sender == nil {
+		t.Fatal("expected value, but got nil")
+	}
 
-	mock, ok := s.info.client.(*xmppClientMock)
-	s.True(ok)
-	s.Equal(mock.numSent, 0)
+	mock, ok := info.client.(*xmppClientMock)
+	if !ok {
+		t.Fatal("expected true but got falsey value")
+	}
+	if 0 != mock.numSent {
+		t.Error("incorrect value for mock.numSent:", 0)
+	}
 
 	m := message.NewString(level.Debug, "hello")
 	sender.Send(m)
-	s.Equal(mock.numSent, 0)
+	if 0 != mock.numSent {
+		t.Error("incorrect value for mock.numSent:", 0)
+	}
 
 	m = message.NewString(level.Alert, "")
 	sender.Send(m)
-	s.Equal(mock.numSent, 0)
+	if 0 != mock.numSent {
+		t.Error("incorrect value for mock.numSent:", 0)
+	}
 
 	m = message.NewString(level.Alert, "world")
 	sender.Send(m)
-	s.Equal(mock.numSent, 1)
+	if 1 != mock.numSent {
+		t.Error("incorrect value for 1:", mock.numSent)
+	}
 }
 
-func (s *XMPPSuite) TestSendMethodWithError() {
-	sender, err := NewSender("name", "target", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
-	s.NoError(err)
-	s.NotNil(sender)
+func TestSendMethodWithError(t *testing.T) {
+	info := ConnectionInfo{client: &xmppClientMock{}}
+	sender, err := NewSender("name", "target", info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sender == nil {
+		t.Fatal("expected value, but got nil")
+	}
 
-	mock, ok := s.info.client.(*xmppClientMock)
-	s.True(ok)
-	s.Equal(mock.numSent, 0)
-	s.False(mock.failSend)
+	mock, ok := info.client.(*xmppClientMock)
+	if !ok {
+		t.Fatal("expected true but got falsey value")
+	}
+	if 0 != mock.numSent {
+		t.Error("incorrect value for mock.numSent:", 0)
+	}
+	if mock.failSend {
+		t.Error("failed to send but should not have")
+	}
 
 	m := message.NewString(level.Alert, "world")
 	sender.Send(m)
-	s.Equal(mock.numSent, 1)
+	if 1 != mock.numSent {
+		t.Error("incorrect value for mock.numSent:", 1)
+	}
 
 	mock.failSend = true
 	sender.Send(m)
-	s.Equal(mock.numSent, 1)
+	if 1 != mock.numSent {
+		t.Error("incorrect value for mock.numSent:", 1)
+	}
 }
