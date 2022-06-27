@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -14,128 +13,209 @@ import (
 type SplunkSuite struct {
 	info   ConnectionInfo
 	sender splunkLogger
-	suite.Suite
 }
 
-func TestSplunkSuite(t *testing.T) {
-	suite.Run(t, new(SplunkSuite))
-}
-
-func (s *SplunkSuite) SetupTest() {
+func setupFixture(t *testing.T) *SplunkSuite {
+	t.Helper()
+	s := &SplunkSuite{}
 	s.sender = splunkLogger{
 		info:   ConnectionInfo{},
 		client: &splunkClientMock{},
 		Base:   send.NewBase("name"),
 	}
 
-	s.NoError(s.sender.client.Create(http.DefaultClient, s.info))
-	s.NoError(s.sender.SetLevel(send.LevelInfo{Default: level.Debug, Threshold: level.Info}))
+	if err := s.sender.client.Create(http.DefaultClient, s.info); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.sender.SetLevel(send.LevelInfo{Default: level.Debug, Threshold: level.Info}); err != nil {
+		t.Fatal(err)
+	}
+	return s
 }
 
-func (s *SplunkSuite) TestEnvironmentVariableReader() {
+func TestEnvironmentVariableReader(t *testing.T) {
 	serverVal := "serverURL"
 	tokenVal := "token"
 
 	defer os.Setenv(splunkServerURL, os.Getenv(splunkServerURL))
 	defer os.Setenv(splunkClientToken, os.Getenv(splunkClientToken))
 
-	s.NoError(os.Setenv(splunkServerURL, serverVal))
-	s.NoError(os.Setenv(splunkClientToken, tokenVal))
+	if err := os.Setenv(splunkServerURL, serverVal); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Setenv(splunkClientToken, tokenVal); err != nil {
+		t.Fatal(err)
+	}
 
 	info := GetConnectionInfo()
 
-	s.Equal(serverVal, info.ServerURL)
-	s.Equal(tokenVal, info.Token)
+	if serverVal != info.ServerURL {
+		t.Errorf("%q should be equal to %q", serverVal, info.ServerURL)
+	}
+	if tokenVal != info.Token {
+		t.Errorf("%q should be equal to %q", tokenVal, info.Token)
+	}
 }
 
-func (s *SplunkSuite) TestNewConstructor() {
+func TestNewConstructor(t *testing.T) {
+	s := setupFixture(t)
 	sender, err := NewSender("name", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
-	s.NoError(err)
-	s.NotNil(sender)
+	if err := err; err != nil {
+		t.Fatal(err)
+	}
+	if sender == nil {
+		t.Error("should not have been nil")
+	}
 }
 
-func (s *SplunkSuite) TestAutoConstructor() {
+func TestAutoConstructor(t *testing.T) {
 	serverVal := "serverURL"
 	tokenVal := "token"
 
 	defer os.Setenv(splunkServerURL, os.Getenv(splunkServerURL))
 	defer os.Setenv(splunkClientToken, os.Getenv(splunkClientToken))
 
-	s.NoError(os.Setenv(splunkServerURL, serverVal))
-	s.NoError(os.Setenv(splunkClientToken, tokenVal))
+	if err := os.Setenv(splunkServerURL, serverVal); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Setenv(splunkClientToken, tokenVal); err != nil {
+		t.Fatal(err)
+	}
 
 	sender, err := MakeSender("name")
-	s.NoError(err)
-	s.NotNil(sender)
+	if err := err; err != nil {
+		t.Fatal(err)
+	}
+	if sender == nil {
+		t.Error("should not have been nil")
+	}
 }
 
-func (s *SplunkSuite) TestAutoConstructorFailsWhenEnvVarFails() {
+func TestAutoConstructorFailsWhenEnvVarFails(t *testing.T) {
 	serverVal := ""
 	tokenVal := ""
 
 	defer os.Setenv(splunkServerURL, os.Getenv(splunkServerURL))
 	defer os.Setenv(splunkClientToken, os.Getenv(splunkClientToken))
 
-	s.NoError(os.Setenv(splunkServerURL, serverVal))
-	s.NoError(os.Setenv(splunkClientToken, tokenVal))
+	if err := os.Setenv(splunkServerURL, serverVal); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Setenv(splunkClientToken, tokenVal); err != nil {
+		t.Fatal(err)
+	}
 
 	sender, err := MakeSender("name")
-	s.Error(err)
-	s.Nil(sender)
+	if err == nil {
+		t.Fatal("error should not have been nil")
+	}
+	if sender != nil {
+		t.Fatal("sender should have been nil")
+	}
 
 	serverVal = "serverVal"
 
-	s.NoError(os.Setenv(splunkServerURL, serverVal))
+	if err := os.Setenv(splunkServerURL, serverVal); err != nil {
+		t.Fatal(err)
+	}
 	sender, err = MakeSender("name")
-	s.Error(err)
-	s.Nil(sender)
+	if err == nil {
+		t.Fatal("error should not have been nil")
+	}
+	if sender != nil {
+		t.Fatal("sender should have been nil")
+	}
+
 }
 
-func (s *SplunkSuite) TestSendMethod() {
+func TestSendMethod(t *testing.T) {
+	s := setupFixture(t)
 	mock, ok := s.sender.client.(*splunkClientMock)
-	s.True(ok)
-	s.Equal(mock.numSent, 0)
-	s.Equal(mock.httpSent, 0)
+	if !ok {
+		t.Error("shoud not have been false")
+	}
+	if mock.numSent != 0 {
+		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+	}
+	if mock.httpSent != 0 {
+		t.Errorf("%q should be equal to %q", mock.httpSent, 0)
+	}
 
 	m := message.NewString(level.Debug, "hello")
 	s.sender.Send(m)
-	s.Equal(mock.numSent, 0)
-	s.Equal(mock.httpSent, 0)
+	if mock.numSent != 0 {
+		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+	}
+	if mock.httpSent != 0 {
+		t.Errorf("%q should be equal to %q", mock.httpSent, 0)
+	}
 
 	m = message.NewString(level.Alert, "")
 	s.sender.Send(m)
-	s.Equal(mock.numSent, 0)
-	s.Equal(mock.httpSent, 0)
+	if mock.numSent != 0 {
+		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+	}
+	if mock.httpSent != 0 {
+		t.Errorf("%q should be equal to %q", mock.httpSent, 0)
+	}
 
 	m = message.NewString(level.Alert, "world")
 	s.sender.Send(m)
-	s.Equal(mock.numSent, 1)
-	s.Equal(mock.httpSent, 1)
+	if mock.numSent != 1 {
+		t.Errorf("%q should be equal to %q", mock.numSent, 1)
+	}
+	if mock.httpSent != 1 {
+		t.Errorf("%q should be equal to %q", mock.httpSent, 1)
+	}
 }
 
-func (s *SplunkSuite) TestSendMethodWithError() {
+func TestSendMethodWithError(t *testing.T) {
+	s := setupFixture(t)
 	mock, ok := s.sender.client.(*splunkClientMock)
-	s.True(ok)
-	s.Equal(mock.numSent, 0)
-	s.Equal(mock.httpSent, 0)
-	s.False(mock.failSend)
+	if !ok {
+		t.Error("shoud not have been false")
+	}
+	if mock.numSent != 0 {
+		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+	}
+	if mock.httpSent != 0 {
+		t.Errorf("%q should be equal to %q", mock.httpSent, 0)
+	}
+	if mock.failSend {
+		t.Error("shoud not have been true")
+	}
 
 	m := message.NewString(level.Alert, "world")
 	s.sender.Send(m)
-	s.Equal(mock.numSent, 1)
-	s.Equal(mock.httpSent, 1)
+	if mock.numSent != 1 {
+		t.Errorf("%q should be equal to %q", mock.numSent, 1)
+	}
+	if mock.httpSent != 1 {
+		t.Errorf("%q should be equal to %q", mock.httpSent, 1)
+	}
 
 	mock.failSend = true
 	s.sender.Send(m)
-	s.Equal(mock.numSent, 1)
-	s.Equal(mock.httpSent, 1)
+	if mock.numSent != 1 {
+		t.Errorf("%q should be equal to %q", mock.numSent, 1)
+	}
+	if mock.httpSent != 1 {
+		t.Errorf("%q should be equal to %q", mock.httpSent, 1)
+	}
 }
 
-func (s *SplunkSuite) TestBatchSendMethod() {
+func TestBatchSendMethod(t *testing.T) {
+	s := setupFixture(t)
 	mock, ok := s.sender.client.(*splunkClientMock)
-	s.True(ok)
-	s.Equal(mock.numSent, 0)
-	s.Equal(mock.httpSent, 0)
+	if !ok {
+		t.Error("shoud not have been false")
+	}
+	if mock.numSent != 0 {
+		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+	}
+	if mock.httpSent != 0 {
+		t.Errorf("%q should be equal to %q", mock.httpSent, 0)
+	}
 
 	m1 := message.NewString(level.Alert, "hello")
 	m2 := message.NewString(level.Debug, "hello")
@@ -145,16 +225,29 @@ func (s *SplunkSuite) TestBatchSendMethod() {
 	g := message.BuildGroupComposer(m1, m2, m3, m4)
 
 	s.sender.Send(g)
-	s.Equal(mock.numSent, 2)
-	s.Equal(mock.httpSent, 1)
+	if mock.numSent != 2 {
+		t.Errorf("%q should be equal to %q", mock.numSent, 2)
+	}
+	if mock.httpSent != 1 {
+		t.Errorf("%q should be equal to %q", mock.httpSent, 1)
+	}
 }
 
-func (s *SplunkSuite) TestBatchSendMethodWithEror() {
+func TestBatchSendMethodWithEror(t *testing.T) {
+	s := setupFixture(t)
 	mock, ok := s.sender.client.(*splunkClientMock)
-	s.True(ok)
-	s.Equal(mock.numSent, 0)
-	s.Equal(mock.httpSent, 0)
-	s.False(mock.failSend)
+	if !ok {
+		t.Error("shoud not have been false")
+	}
+	if mock.numSent != 0 {
+		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+	}
+	if mock.httpSent != 0 {
+		t.Errorf("%q should be equal to %q", mock.httpSent, 0)
+	}
+	if mock.failSend {
+		t.Error("shoud not have been true")
+	}
 
 	m1 := message.NewString(level.Alert, "hello")
 	m2 := message.NewString(level.Debug, "hello")
@@ -164,11 +257,19 @@ func (s *SplunkSuite) TestBatchSendMethodWithEror() {
 	g := message.BuildGroupComposer(m1, m2, m3, m4)
 
 	s.sender.Send(g)
-	s.Equal(mock.numSent, 2)
-	s.Equal(mock.httpSent, 1)
+	if mock.numSent != 2 {
+		t.Errorf("%q should be equal to %q", mock.numSent, 2)
+	}
+	if mock.httpSent != 1 {
+		t.Errorf("%q should be equal to %q", mock.httpSent, 1)
+	}
 
 	mock.failSend = true
 	s.sender.Send(g)
-	s.Equal(mock.numSent, 2)
-	s.Equal(mock.httpSent, 1)
+	if mock.numSent != 2 {
+		t.Errorf("%q should be equal to %q", mock.numSent, 2)
+	}
+	if mock.httpSent != 1 {
+		t.Errorf("%q should be equal to %q", mock.httpSent, 1)
+	}
 }
