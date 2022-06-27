@@ -6,23 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
 
-type SMTPSuite struct {
-	opts *SMTPOptions
-	suite.Suite
-}
-
-func TestSMTPSuite(t *testing.T) {
-	suite.Run(t, new(SMTPSuite))
-}
-
-func (s *SMTPSuite) SetupTest() {
-	s.opts = &SMTPOptions{
+func setupFixture(t *testing.T) *SMTPOptions {
+	t.Helper()
+	opts := &SMTPOptions{
 		client:        &smtpClientMock{},
 		Subject:       "test email from logger",
 		NameAsSubject: true,
@@ -34,12 +25,19 @@ func (s *SMTPSuite) SetupTest() {
 			},
 		},
 	}
-	s.Nil(s.opts.GetContents)
-	s.NoError(s.opts.Validate())
-	s.NotNil(s.opts.GetContents)
+	if opts.GetContents != nil {
+		t.Fatal("contents not nil on init")
+	}
+	if err := opts.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if opts.GetContents == nil {
+		t.Fatal("contents nil after validate")
+	}
+	return opts
 }
 
-func (s *SMTPSuite) TestOptionsMustBeIValid() {
+func TestOptionsMustBeIValid(t *testing.T) {
 	invalidOpts := []*SMTPOptions{
 		{},
 		{
@@ -64,233 +62,396 @@ func (s *SMTPSuite) TestOptionsMustBeIValid() {
 	}
 
 	for _, opts := range invalidOpts {
-		s.Error(opts.Validate())
+		if err := opts.Validate(); err == nil {
+			t.Fatal("error shuld not be nil")
+		}
 	}
 }
 
-func (s *SMTPSuite) TestDefaultGetContents() {
-	s.NotNil(s.opts)
+func TestDefaultGetContents(t *testing.T) {
+	opts := setupFixture(t)
 
 	m := message.MakeString("helllooooo!")
-	sbj, msg := s.opts.GetContents(s.opts, m)
+	sbj, msg := opts.GetContents(opts, m)
 
-	s.True(s.opts.NameAsSubject)
-	s.Equal(s.opts.Name, sbj)
-	s.Equal(m.String(), msg)
+	if !opts.NameAsSubject {
+		t.Fatal("'opts.NameAsSubject' should be true")
+	}
+	if sbj != opts.Name {
+		t.Fatal("values should be equal")
+	}
+	if msg != m.String() {
+		t.Fatal("values should be equal")
+	}
 
-	s.opts.NameAsSubject = false
-	sbj, _ = s.opts.GetContents(s.opts, m)
-	s.Equal(s.opts.Subject, sbj)
+	opts.NameAsSubject = false
+	sbj, _ = opts.GetContents(opts, m)
+	if sbj != opts.Subject {
+		t.Fatal("values should be equal")
+	}
 
-	s.opts.MessageAsSubject = true
-	sbj, msg = s.opts.GetContents(s.opts, m)
-	s.Equal("", msg)
-	s.Equal(m.String(), sbj)
-	s.opts.MessageAsSubject = false
+	opts.MessageAsSubject = true
+	sbj, msg = opts.GetContents(opts, m)
+	if msg != "" {
+		t.Fatal("values should be equal")
+	}
+	if sbj != m.String() {
+		t.Fatal("values should be equal")
+	}
+	opts.MessageAsSubject = false
 
-	s.opts.Subject = ""
-	sbj, msg = s.opts.GetContents(s.opts, m)
-	s.Equal("", sbj)
-	s.Equal(m.String(), msg)
-	s.opts.Subject = "test email subject"
+	opts.Subject = ""
+	sbj, msg = opts.GetContents(opts, m)
+	if sbj != "" {
+		t.Fatal("values should be equal")
+	}
+	if msg != m.String() {
+		t.Fatal("values should be equal")
+	}
+	opts.Subject = "test email subject"
 
-	s.opts.TruncatedMessageSubjectLength = len(m.String()) * 2
-	sbj, msg = s.opts.GetContents(s.opts, m)
-	s.Equal(m.String(), msg)
-	s.Equal(m.String(), sbj)
+	opts.TruncatedMessageSubjectLength = len(m.String()) * 2
+	sbj, msg = opts.GetContents(opts, m)
+	if msg != m.String() {
+		t.Fatal("values should be equal")
+	}
+	if sbj != m.String() {
+		t.Fatal("values should be equal")
+	}
 
-	s.opts.TruncatedMessageSubjectLength = len(m.String()) - 2
-	sbj, msg = s.opts.GetContents(s.opts, m)
-	s.Equal(m.String(), msg)
-	s.NotEqual(msg, sbj)
-	s.True(len(msg) > len(sbj))
+	opts.TruncatedMessageSubjectLength = len(m.String()) - 2
+	sbj, msg = opts.GetContents(opts, m)
+	if msg != m.String() {
+		t.Fatal("values should be equal")
+	}
+	if msg == sbj {
+		t.Fatal("values should not be equal")
+	}
+	if len(msg) < len(sbj) {
+		t.Fatal("'len(msg) > len(sbj)' should be true")
+	}
 }
 
-func (s *SMTPSuite) TestResetRecips() {
-	s.True(len(s.opts.toAddrs) > 0)
-	s.opts.ResetRecipients()
-	s.Len(s.opts.toAddrs, 0)
+func TestResetRecips(t *testing.T) {
+	opts := setupFixture(t)
+	if len(opts.toAddrs) < 0 {
+		t.Fatal("'len(opts.toAddrs) > 0' should be true")
+	}
+	opts.ResetRecipients()
+	if l := len(opts.toAddrs); l != 0 {
+		t.Fatalf("length of opts.toAddrs should be %d", 0)
+	}
 }
 
-func (s *SMTPSuite) TestAddRecipientsFailsWithNoArgs() {
-	s.opts.ResetRecipients()
-	s.Error(s.opts.AddRecipients())
-	s.Len(s.opts.toAddrs, 0)
+func TestAddRecipientsFailsWithNoArgs(t *testing.T) {
+	opts := setupFixture(t)
+	opts.ResetRecipients()
+	if err := opts.AddRecipients(); err == nil {
+		t.Fatal("error shuld not be nil")
+	}
+	if l := len(opts.toAddrs); l != 0 {
+		t.Fatalf("length of opts.toAddrs should be %d", 0)
+	}
 }
 
-func (s *SMTPSuite) TestAddRecipientsErrorsWithInvalidAddresses() {
-	s.opts.ResetRecipients()
-	s.Error(s.opts.AddRecipients("foo", "bar", "baz"))
-	s.Len(s.opts.toAddrs, 0)
+func TestAddRecipientsErrorsWithInvalidAddresses(t *testing.T) {
+	opts := setupFixture(t)
+	opts.ResetRecipients()
+	if err := opts.AddRecipients("foo", "bar", "baz"); err == nil {
+		t.Fatal("error shuld not be nil")
+	}
+	if l := len(opts.toAddrs); l != 0 {
+		t.Fatalf("length of opts.toAddrs should be %d", 0)
+	}
 }
 
-func (s *SMTPSuite) TestAddingMultipleRecipients() {
-	s.opts.ResetRecipients()
+func TestAddingMultipleRecipients(t *testing.T) {
+	opts := setupFixture(t)
+	opts.ResetRecipients()
 
-	s.NoError(s.opts.AddRecipients("test <one@example.net>"))
-	s.Len(s.opts.toAddrs, 1)
-	s.NoError(s.opts.AddRecipients("test <one@example.net>", "test2 <two@example.net>"))
-	s.Len(s.opts.toAddrs, 3)
+	if err := opts.AddRecipients("test <one@example.net>"); err != nil {
+		t.Fatal(err)
+	}
+	if l := len(opts.toAddrs); l != 1 {
+		t.Fatalf("length of opts.toAddrs should be %d", 1)
+	}
+	if err := opts.AddRecipients("test <one@example.net>", "test2 <two@example.net>"); err != nil {
+		t.Fatal(err)
+	}
+	if l := len(opts.toAddrs); l != 3 {
+		t.Fatalf("length of opts.toAddrs should be %d", 3)
+	}
 }
 
-func (s *SMTPSuite) TestAddingSingleRecipientWithInvalidAddressErrors() {
-	s.opts.ResetRecipients()
-	s.Error(s.opts.AddRecipient("test", "address"))
-	s.Len(s.opts.toAddrs, 0)
+func TestAddingSingleRecipientWithInvalidAddressErrors(t *testing.T) {
+	opts := setupFixture(t)
+	opts.ResetRecipients()
+	if err := opts.AddRecipient("test", "address"); err == nil {
+		t.Fatal("error shuld not be nil")
+	}
+	if l := len(opts.toAddrs); l != 0 {
+		t.Fatalf("length of opts.toAddrs should be %d", 0)
+	}
 
 	if runtime.Compiler != "gccgo" {
 		// this panics on gccgo1.4, but is generally an interesting test.
 		// not worth digging into a standard library bug that
 		// seems fixed on gcgo. and/or in a more recent version.
-		s.Error(s.opts.AddRecipient("test", "address"))
-		s.Len(s.opts.toAddrs, 0)
+		if err := opts.AddRecipient("test", "address"); err == nil {
+			t.Fatal("error shuld not be nil")
+		}
+		if l := len(opts.toAddrs); l != 0 {
+			t.Fatalf("length of opts.toAddrs should be %d", 0)
+		}
 	}
 }
 
-func (s *SMTPSuite) TestAddingSingleRecipient() {
-	s.opts.ResetRecipients()
-	s.NoError(s.opts.AddRecipient("test", "one@example.net"))
-	s.Len(s.opts.toAddrs, 1)
+func TestAddingSingleRecipient(t *testing.T) {
+	opts := setupFixture(t)
+	opts.ResetRecipients()
+	if err := opts.AddRecipient("test", "one@example.net"); err != nil {
+		t.Fatal(err)
+	}
+	if l := len(opts.toAddrs); l != 1 {
+		t.Fatalf("length of opts.toAddrs should be %d", 1)
+	}
 }
 
-func (s *SMTPSuite) TestMakeConstructorFailureCases() {
+func TestMakeConstructorFailureCases(t *testing.T) {
 	sender, err := MakeSender(nil)
-	s.Nil(sender)
-	s.Error(err)
+	if sender != nil {
+		t.Fatal("'sender' is expected to be nil")
+	}
+	if err == nil {
+		t.Fatal("error shold not be nil")
+	}
 
 	sender, err = MakeSender(&SMTPOptions{})
-	s.Nil(sender)
-	s.Error(err)
+	if sender != nil {
+		t.Fatal("'sender' is expected to be nil")
+	}
+	if err == nil {
+		t.Fatal("error shold not be nil")
+	}
 }
 
-func (s *SMTPSuite) TestSendMailErrorsIfNoAddresses() {
-	s.opts.ResetRecipients()
-	s.Len(s.opts.toAddrs, 0)
+func TestSendMailErrorsIfNoAddresses(t *testing.T) {
+	opts := setupFixture(t)
+	opts.ResetRecipients()
+	if l := len(opts.toAddrs); l != 0 {
+		t.Fatalf("length of opts.toAddrs should be %d", 0)
+	}
 
 	m := message.MakeString("hello world!")
-	s.Error(s.opts.sendMail(m))
+	if err := opts.sendMail(m); err == nil {
+		t.Fatal("error shuld not be nil")
+	}
 }
 
-func (s *SMTPSuite) TestSendMailErrorsIfMailCallFails() {
-	s.opts.client = &smtpClientMock{
+func TestSendMailErrorsIfMailCallFails(t *testing.T) {
+	opts := setupFixture(t)
+	opts.client = &smtpClientMock{
 		failMail: true,
 	}
 
 	m := message.MakeString("hello world!")
-	s.Error(s.opts.sendMail(m))
+	if err := opts.sendMail(m); err == nil {
+		t.Fatal("error shuld not be nil")
+	}
 }
 
-func (s *SMTPSuite) TestSendMailErrorsIfRecptFails() {
-	s.opts.client = &smtpClientMock{
+func TestSendMailErrorsIfRecptFails(t *testing.T) {
+	opts := setupFixture(t)
+	opts.client = &smtpClientMock{
 		failRcpt: true,
 	}
 
 	m := message.MakeString("hello world!")
-	s.Error(s.opts.sendMail(m))
+	if err := opts.sendMail(m); err == nil {
+		t.Fatal("error shuld not be nil")
+	}
 }
 
-func (s *SMTPSuite) TestSendMailErrorsIfDataFails() {
-	s.opts.client = &smtpClientMock{
+func TestSendMailErrorsIfDataFails(t *testing.T) {
+	opts := setupFixture(t)
+	opts.client = &smtpClientMock{
 		failData: true,
 	}
 
 	m := message.MakeString("hello world!")
-	s.Error(s.opts.sendMail(m))
+	if err := opts.sendMail(m); err == nil {
+		t.Fatal("error shuld not be nil")
+	}
 }
 
-func (s *SMTPSuite) TestSendMailErrorsIfCreateFails() {
-	s.opts.client = &smtpClientMock{
+func TestSendMailErrorsIfCreateFails(t *testing.T) {
+	opts := setupFixture(t)
+	opts.client = &smtpClientMock{
 		failCreate: true,
 	}
 
 	m := message.MakeString("hello world!")
-	s.Error(s.opts.sendMail(m))
+	if err := opts.sendMail(m); err == nil {
+		t.Fatal("error shuld not be nil")
+	}
 }
 
-func (s *SMTPSuite) TestSendMailRecordsMessage() {
+func TestSendMailRecordsMessage(t *testing.T) {
+	opts := setupFixture(t)
 	m := message.MakeString("hello world!")
-	s.NoError(s.opts.sendMail(m))
-	mock, ok := s.opts.client.(*smtpClientMock)
-	s.Require().True(ok)
-	s.True(strings.Contains(mock.message.String(), s.opts.Name))
-	s.True(strings.Contains(mock.message.String(), "plain"))
-	s.False(strings.Contains(mock.message.String(), "html"))
+	if err := opts.sendMail(m); err != nil {
+		t.Fatal(err)
+	}
+	mock, ok := opts.client.(*smtpClientMock)
+	if !ok {
+		t.Fatal("bad fixture")
+	}
+	if !strings.Contains(mock.message.String(), opts.Name) {
+		t.Fatal("should be true")
+	}
+	if !strings.Contains(mock.message.String(), "plain") {
+		t.Fatal("should be true")
+	}
+	if strings.Contains(mock.message.String(), "html") {
+		t.Fatal("should be false")
+	}
 
-	s.opts.PlainTextContents = false
-	s.NoError(s.opts.sendMail(m))
-	s.True(strings.Contains(mock.message.String(), s.opts.Name))
-	s.True(strings.Contains(mock.message.String(), "html"))
-	s.False(strings.Contains(mock.message.String(), "plain"))
+	opts.PlainTextContents = false
+	if err := opts.sendMail(m); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(mock.message.String(), opts.Name) {
+		t.Fatal("should be true")
+	}
+	if !strings.Contains(mock.message.String(), "html") {
+		t.Fatal("should be true")
+	}
+	if strings.Contains(mock.message.String(), "plain") {
+		t.Fatal("should be false")
+	}
 }
 
-func (s *SMTPSuite) TestNewConstructor() {
+func TestNewConstructor(t *testing.T) {
+	opts := setupFixture(t)
 	sender, err := NewSender(nil, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	s.Error(err)
-	s.Nil(sender)
+	if err == nil {
+		t.Fatal("error shold not be nil")
+	}
+	if sender != nil {
+		t.Fatal("'sender' is expected to be nil")
+	}
 
-	sender, err = NewSender(s.opts, send.LevelInfo{Default: level.Invalid, Threshold: level.Info})
-	s.Error(err)
-	s.Nil(sender)
+	sender, err = NewSender(opts, send.LevelInfo{Default: level.Invalid, Threshold: level.Info})
+	if err == nil {
+		t.Fatal("error shold not be nil")
+	}
+	if sender != nil {
+		t.Fatal("'sender' is expected to be nil")
+	}
 
-	sender, err = NewSender(s.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	s.NoError(err)
-	s.NotNil(sender)
+	sender, err = NewSender(opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sender == nil {
+		t.Fatal("'sender' is not expected to be nil")
+	}
 }
 
-func (s *SMTPSuite) TestSendMethod() {
-	sender, err := NewSender(s.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	s.NoError(err)
-	s.NotNil(sender)
+func TestSendMethod(t *testing.T) {
+	opts := setupFixture(t)
+	sender, err := NewSender(opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sender == nil {
+		t.Fatal("'sender' is not expected to be nil")
+	}
 
-	mock, ok := s.opts.client.(*smtpClientMock)
-	s.True(ok)
-	s.Equal(mock.numMsgs, 0)
+	mock, ok := opts.client.(*smtpClientMock)
+	if !ok {
+		t.Fatal("'ok' should be true")
+	}
+	if 0 != mock.numMsgs {
+		t.Fatal("values should be equal")
+	}
 
 	m := message.NewString(level.Debug, "hello")
 	sender.Send(m)
-	s.Equal(mock.numMsgs, 0)
+	if 0 != mock.numMsgs {
+		t.Fatal("values should be equal")
+	}
 
 	m = message.NewString(level.Alert, "")
 	sender.Send(m)
-	s.Equal(mock.numMsgs, 0)
+	if 0 != mock.numMsgs {
+		t.Fatal("values should be equal")
+	}
 
 	m = message.NewString(level.Alert, "world")
 	sender.Send(m)
-	s.Equal(mock.numMsgs, 1)
+	if 1 != mock.numMsgs {
+		t.Fatal("values should be equal")
+	}
 }
 
-func (s *SMTPSuite) TestSendMethodWithError() {
-	sender, err := NewSender(s.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	s.NoError(err)
-	s.NotNil(sender)
+func TestSendMethodWithError(t *testing.T) {
+	opts := setupFixture(t)
+	sender, err := NewSender(opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sender == nil {
+		t.Fatal("'sender' is not expected to be nil")
+	}
 
-	mock, ok := s.opts.client.(*smtpClientMock)
-	s.True(ok)
-	s.Equal(mock.numMsgs, 0)
-	s.False(mock.failData)
+	mock, ok := opts.client.(*smtpClientMock)
+	if !ok {
+		t.Fatal("'ok' should be true")
+	}
+	if 0 != mock.numMsgs {
+		t.Fatal("values should be equal")
+	}
+	if mock.failData {
+		t.Fatal("should be false")
+	}
 
 	m := message.NewString(level.Alert, "world")
 	sender.Send(m)
-	s.Equal(mock.numMsgs, 1)
+	if 1 != mock.numMsgs {
+		t.Fatal("values should be equal")
+	}
 
 	mock.failData = true
 	sender.Send(m)
-	s.Equal(mock.numMsgs, 1)
+	if 1 != mock.numMsgs {
+		t.Fatal("values should be equal")
+	}
 }
 
-func (s *SMTPSuite) TestSendMethodWithEmailComposerOverridesSMTPOptions() {
-	sender, err := NewSender(s.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	s.NoError(err)
-	s.NotNil(sender)
+func TestSendMethodWithEmailComposerOverridesSMTPOptions(t *testing.T) {
+	opts := setupFixture(t)
+	sender, err := NewSender(opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sender == nil {
+		t.Fatal("'sender' is not expected to be nil")
+	}
 
 	sender.SetErrorHandler(func(err error, m message.Composer) {
-		s.T().Errorf("unexpected error in sender: %+v", err)
-		s.T().FailNow()
+		if err != nil {
+			t.Fatal(err)
+		}
 	})
 
-	mock, ok := s.opts.client.(*smtpClientMock)
-	s.True(ok)
-	s.Equal(0, mock.numMsgs)
+	mock, ok := opts.client.(*smtpClientMock)
+	if !ok {
+		t.Fatal("'ok' should be true")
+	}
+	if mock.numMsgs != 0 {
+		t.Fatal("values should be equal")
+	}
 	m := NewMessage(level.Notice, Message{
 		From:              "Mr Super Powers <from@example.com>",
 		Recipients:        []string{"to@example.com"},
@@ -303,10 +464,14 @@ func (s *SMTPSuite) TestSendMethodWithEmailComposerOverridesSMTPOptions() {
 			"Content-Transfer-Encoding": {"somethingunexpected"},
 		},
 	})
-	s.True(m.Loggable())
+	if !m.Loggable() {
+		t.Fatal("'m.Loggable()' should be true")
+	}
 
 	sender.Send(m)
-	s.Equal(1, mock.numMsgs)
+	if mock.numMsgs != 1 {
+		t.Fatal("values should be equal")
+	}
 
 	contains := []string{
 		"From: \"Mr Super Powers\" <from@example.com>\r\n",
@@ -320,6 +485,8 @@ func (s *SMTPSuite) TestSendMethodWithEmailComposerOverridesSMTPOptions() {
 	}
 	data := mock.message.String()
 	for i := range contains {
-		s.Contains(data, contains[i])
+		if !strings.Contains(data, contains[i]) {
+			t.Fatalf("expected %q to contain %q", data, contains[i])
+		}
 	}
 }
