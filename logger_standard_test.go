@@ -60,7 +60,7 @@ func TestWhenMethods(t *testing.T) {
 	for kind, loggers := range cases {
 		t.Run(kind, func(t *testing.T) {
 			if l := len(loggers); l != 2 {
-				t.Errorf("lenght is %d not %d", l, 2)
+				t.Errorf("length is %d not %d", l, 2)
 			}
 			loggers[0](true, testMessage)
 			loggers[1](true, testMessage)
@@ -119,7 +119,7 @@ func TestBasicMethod(t *testing.T) {
 	for kind, loggers := range cases {
 		t.Run(kind, func(t *testing.T) {
 			if l := len(loggers); l != 2 {
-				t.Errorf("lenght is %d not %d", l, 2)
+				t.Errorf("length is %d not %d", l, 2)
 			}
 			if s.loggingSender.HasMessage() {
 				t.Error("value should be false")
@@ -149,7 +149,7 @@ func TestBasicMethod(t *testing.T) {
 
 }
 
-func TestfMethods(t *testing.T) {
+func TestFormatMethods(t *testing.T) {
 	s := setupFixtures(t)
 
 	cases := map[string][]fMethod{
@@ -167,7 +167,7 @@ func TestfMethods(t *testing.T) {
 	for kind, loggers := range cases {
 		t.Run(kind, func(t *testing.T) {
 			if l := len(loggers); l != 2 {
-				t.Errorf("lenght is %d not %d", l, 2)
+				t.Errorf("length is %d not %d", l, 2)
 			}
 			if s.loggingSender.HasMessage() {
 				t.Error("value should be false")
@@ -194,7 +194,7 @@ func TestfMethods(t *testing.T) {
 	}
 }
 
-func TestlnMethods(t *testing.T) {
+func TestLineMethods(t *testing.T) {
 	s := setupFixtures(t)
 
 	cases := map[string][]lnMethod{
@@ -213,7 +213,7 @@ func TestlnMethods(t *testing.T) {
 		t.Run(kind, func(t *testing.T) {
 
 			if l := len(loggers); l != 2 {
-				t.Errorf("lenght is %d not %d", l, 2)
+				t.Errorf("length is %d not %d", l, 2)
 			}
 			if s.loggingSender.HasMessage() {
 				t.Error("value should be false")

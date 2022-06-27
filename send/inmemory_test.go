@@ -111,7 +111,7 @@ func TestGetEmptyBuffer(t *testing.T) {
 	s := setupFixture(t)
 
 	if l := len(s.sender.Get()); l != 0 {
-		t.Errorf("lenght is %d not %d", l, s.sender.Get())
+		t.Errorf("length is %d not %d", l, s.sender.Get())
 	}
 }
 

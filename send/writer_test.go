@@ -46,7 +46,7 @@ func TestSenderWriter(t *testing.T) {
 		t.Error("elements should be equal")
 	}
 
-	if err := ws.doSend(); err != nil {
+	if err = ws.doSend(); err != nil {
 		t.Error(err)
 	}
 
@@ -76,7 +76,7 @@ func TestSenderWriter(t *testing.T) {
 		t.Error("elements should be equal")
 	}
 
-	if err := ws.doSend(); err != nil {
+	if err = ws.doSend(); err != nil {
 		t.Error(err)
 	}
 
