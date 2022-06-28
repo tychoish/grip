@@ -64,6 +64,10 @@ func (s *shim) Send(m message.Composer) {
 		return
 	}
 
-	event := s.zl.WithLevel(convertLevel(m.Priority()))
-	defer event.Send()
+	// TODO: make better use of the fast parts of zero log
+	out, err := s.Formatter()(m)
+	if err != nil {
+		s.ErrorHandler()(err, m)
+	}
+	s.zl.WithLevel(convertLevel(m.Priority())).Msg(out)
 }
