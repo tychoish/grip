@@ -4,23 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
 
-type CommentSenderSuite struct {
-	opts *Options
-	suite.Suite
-}
-
-func TestCommentSenderSuite(t *testing.T) {
-	suite.Run(t, new(CommentSenderSuite))
-}
-
-func (j *CommentSenderSuite) SetupTest() {
-	j.opts = &Options{
+func setupOptionsFixture() *Options {
+	return &Options{
 		BaseURL: "url",
 		BasicAuthOpts: BasicAuth{
 			Username: "username",
@@ -31,100 +21,167 @@ func (j *CommentSenderSuite) SetupTest() {
 	}
 }
 
-func (j *CommentSenderSuite) TestMockSenderWithNewConstructor() {
-	sender, err := NewCommentSender(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	j.NotNil(sender)
-	j.NoError(err)
+func TestJiraCommentMockSenderWithNewConstructor(t *testing.T) {
+	opts := setupOptionsFixture()
+	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if sender == nil {
+		t.Fatal("expected sender to be not nil")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
-func (j *CommentSenderSuite) TestConstructorMustCreate() {
-	j.opts.client = &jiraClientMock{failCreate: true}
-	sender, err := NewCommentSender(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	j.Nil(sender)
-	j.Error(err)
+func TestJiraCommentConstructorMustCreate(t *testing.T) {
+	opts := setupOptionsFixture()
+	opts.client = &jiraClientMock{failCreate: true}
+	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if sender != nil {
+		t.Fatal("expected nil sender")
+	}
+	if err == nil {
+		t.Fatal("expected error")
+	}
 }
 
-func (j *CommentSenderSuite) TestConstructorMustPassAuthTest() {
-	j.opts.client = &jiraClientMock{failAuth: true}
-	sender, err := NewCommentSender(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	j.Nil(sender)
-	j.Error(err)
+func TestJiraCommentConstructorMustPassAuthTest(t *testing.T) {
+	opts := setupOptionsFixture()
+	opts.client = &jiraClientMock{failAuth: true}
+	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if sender != nil {
+		t.Fatal("expected nil sender")
+	}
+	if err == nil {
+		t.Fatal("expected error")
+	}
 }
 
-func (j *CommentSenderSuite) TestConstructorErrorsWithInvalidConfigs() {
+func TestJiraCommentConstructorErrorsWithInvalidConfigs(t *testing.T) {
 	sender, err := NewCommentSender(context.Background(), "1234", nil, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	j.Nil(sender)
-	j.Error(err)
+	if sender != nil {
+		t.Fatal("expected nil sender")
+	}
+	if err == nil {
+		t.Fatal("expected error")
+	}
 
 	sender, err = NewIssueSender(context.Background(), &Options{}, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	j.Nil(sender)
-	j.Error(err)
+	if sender != nil {
+		t.Fatal("expected nil sender")
+	}
+	if err == nil {
+		t.Fatal("expected error")
+	}
 }
 
-func (j *CommentSenderSuite) TestSendMethod() {
+func TestJiraCommentSendMethod(t *testing.T) {
+	opts := setupOptionsFixture()
 	numShouldHaveSent := 0
-	sender, err := NewCommentSender(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	j.NoError(err)
-	j.Require().NotNil(sender)
+	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sender == nil {
+		t.Fatal("expected sender to be not nil")
+	}
 
-	mock, ok := j.opts.client.(*jiraClientMock)
-	j.True(ok)
-	j.Equal(mock.numSent, 0)
+	mock, ok := opts.client.(*jiraClientMock)
+	if !ok {
+		t.Fatal("expected true")
+	}
+	if mock.numSent != 0 {
+		t.Fatal("expected values to be equal")
+	}
 
 	m := message.NewString(level.Debug, "sending debug level comment")
 	sender.Send(m)
-	j.Equal(mock.numSent, numShouldHaveSent)
+	if mock.numSent != numShouldHaveSent {
+		t.Fatal("expected values to be equal")
+	}
 
 	m = message.NewString(level.Alert, "sending alert level comment")
 	sender.Send(m)
 	numShouldHaveSent++
-	j.Equal(mock.numSent, numShouldHaveSent)
+	if mock.numSent != numShouldHaveSent {
+		t.Fatal("expected values to be equal")
+	}
 
 	m = message.NewString(level.Emergency, "sending emergency level comment")
 	sender.Send(m)
 	numShouldHaveSent++
-	j.Equal(mock.numSent, numShouldHaveSent)
+	if mock.numSent != numShouldHaveSent {
+		t.Fatal("expected values to be equal")
+	}
 }
 
-func (j *CommentSenderSuite) TestSendMethodWithError() {
-	sender, err := NewCommentSender(context.Background(), "1234", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	j.NotNil(sender)
-	j.NoError(err)
+func TestJiraCommentSendMethodWithError(t *testing.T) {
+	opts := setupOptionsFixture()
+	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if sender == nil {
+		t.Fatal("expected sender to be not nil")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	mock, ok := j.opts.client.(*jiraClientMock)
-	j.True(ok)
-	j.Equal(mock.numSent, 0)
-	j.False(mock.failSend)
+	mock, ok := opts.client.(*jiraClientMock)
+	if !ok {
+		t.Fatal("expected true")
+	}
+	if mock.numSent != 0 {
+		t.Fatal("expected values to be equal")
+	}
+	if mock.failSend {
+		t.Fatal("expected false")
+	}
 
 	m := message.NewString(level.Alert, "test")
 	sender.Send(m)
-	j.Equal(mock.numSent, 1)
+	if mock.numSent != 1 {
+		t.Fatal("expected values to be equal")
+	}
 
 	mock.failSend = true
 	sender.Send(m)
-	j.Equal(mock.numSent, 1)
+	if mock.numSent != 1 {
+		t.Fatal("expected values to be equal")
+	}
 }
 
-func (j *CommentSenderSuite) TestCreateMethodChangesClientState() {
+func TestJiraCommentCreateMethodChangesClientState(t *testing.T) {
 	base := &jiraClientImpl{}
 	new := &jiraClientImpl{}
 
-	j.Equal(base, new)
-	j.NoError(new.CreateClient(nil, "foo"))
-	j.NotEqual(base, new)
+	if err := new.CreateClient(nil, "foo"); err != nil {
+		t.Fatal(err)
+	}
+	if base.Client == new.Client {
+		t.Fatal("clients should not be equal")
+	}
 }
 
-func (j *CommentSenderSuite) TestSendWithJiraIssueComposer() {
+func TestJiraCommentSendWithJiraIssueComposer(t *testing.T) {
+	opts := setupOptionsFixture()
 	c := NewComment(level.Notice, "ABC-123", "Hi")
 
-	sender, err := NewCommentSender(context.Background(), "XYZ-123", j.opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	j.NoError(err)
-	j.Require().NotNil(sender)
+	sender, err := NewCommentSender(context.Background(), "XYZ-123", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sender == nil {
+		t.Fatal("expected sender to be not nil")
+	}
 
 	sender.Send(c)
 
-	mock, ok := j.opts.client.(*jiraClientMock)
-	j.True(ok)
-	j.Equal(1, mock.numSent)
-	j.Equal("ABC-123", mock.lastIssue)
+	mock, ok := opts.client.(*jiraClientMock)
+	if !ok {
+		t.Fatal("expected true")
+	}
+	if 1 != mock.numSent {
+		t.Fatal("expected values to be equal")
+	}
+	if "ABC-123" != mock.lastIssue {
+		t.Fatal("expected values to be equal")
+	}
 }

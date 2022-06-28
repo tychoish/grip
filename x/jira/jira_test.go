@@ -6,16 +6,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
-
-type JiraSuite struct {
-	opts *Options
-	suite.Suite
-}
 
 func TestMockSenderWithNewConstructor(t *testing.T) {
 	opts := setupFixture()
