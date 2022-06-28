@@ -12,8 +12,21 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: Grip Tests
-        run: make test
+      - name: grip tests
+        run: go test ./...
+      - name: grip/x tests
+        run: |
+          retVal=0
+          for i in $(find ./x -name "go.mod"); do
+              pushd $(dirname $i)
+              go test ./...
+              if [[ $? ]]; then
+                 retVal=1
+              fi
+              popd
+          done
+          exit $retVal
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -22,4 +35,3 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.45.2
-
