@@ -5,25 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
 
-type SlackSuite struct {
-	opts *SlackOptions
-
-	suite.Suite
-}
-
-func TestSlackSuite(t *testing.T) {
-	suite.Run(t, new(SlackSuite))
-}
-
-func (s *SlackSuite) SetupSuite() {}
-func (s *SlackSuite) SetupTest() {
-	s.opts = &SlackOptions{
+func setupFixture() *SlackOptions {
+	return &SlackOptions{
 		Channel:  "#test",
 		Hostname: "testhost",
 		Name:     "bot",
@@ -31,154 +19,273 @@ func (s *SlackSuite) SetupTest() {
 	}
 }
 
-func (s *SlackSuite) TestMakeSlackConstructorErrorsWithUnsetEnvVar() {
+func TestMakeSlackConstructorErrorsWithUnsetEnvVar(t *testing.T) {
 	sender, err := MakeSender(nil)
-	s.Error(err)
-	s.Nil(sender)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if sender != nil {
+		t.Fatal("sender expected to be nil")
+	}
 
 	sender, err = MakeSender(&SlackOptions{})
-	s.Error(err)
-	s.Nil(sender)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if sender != nil {
+		t.Fatal("sender expected to be nil")
+	}
 
 	sender, err = MakeSender(&SlackOptions{Channel: "#meta"})
-	s.Error(err)
-	s.Nil(sender)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if sender != nil {
+		t.Fatal("sender expected to be nil")
+	}
 }
 
-func (s *SlackSuite) TestMakeSlackConstructorErrorsWithInvalidConfigs() {
+func TestMakeSlackConstructorErrorsWithInvalidConfigs(t *testing.T) {
 	defer os.Setenv(slackClientToken, os.Getenv(slackClientToken))
-	s.NoError(os.Setenv(slackClientToken, "foo"))
+	if err := os.Setenv(slackClientToken, "foo"); err != nil {
+		t.Fatal(err)
+	}
 
 	sender, err := MakeSender(nil)
-	s.Error(err)
-	s.Nil(sender)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if sender != nil {
+		t.Fatal("sender expected to be nil")
+	}
 
 	sender, err = MakeSender(&SlackOptions{})
-	s.Error(err)
-	s.Nil(sender)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if sender != nil {
+		t.Fatal("sender expected to be nil")
+	}
 }
 
-func (s *SlackSuite) TestValidateAndConstructoRequiresValidate() {
+func TestValidateAndConstructoRequiresValidate(t *testing.T) {
 	opts := &SlackOptions{}
-	s.Error(opts.Validate())
+	if err := opts.Validate(); err == nil {
+		t.Fatal("expected error")
+	}
 
 	opts.Hostname = "testsystem.com"
-	s.Error(opts.Validate())
+	if err := opts.Validate(); err == nil {
+		t.Fatal("expected error")
+	}
 
 	opts.Name = "test"
 	opts.Channel = "$chat"
-	s.Error(opts.Validate())
+	if err := opts.Validate(); err == nil {
+		t.Fatal("expected error")
+	}
 	opts.Channel = "@test"
-	s.NoError(opts.Validate(), "%+v", opts)
+	if err := opts.Validate(); err != nil {
+		t.Fatal(err)
+	}
 	opts.Channel = "#test"
-	s.NoError(opts.Validate(), "%+v", opts)
+	if err := opts.Validate(); err != nil {
+		t.Fatal(err)
+	}
 
 	defer os.Setenv(slackClientToken, os.Getenv(slackClientToken))
-	s.NoError(os.Setenv(slackClientToken, "foo"))
+	if err := os.Setenv(slackClientToken, "foo"); err != nil {
+		t.Fatal(err)
+	}
 }
 
-func (s *SlackSuite) TestValidateRequiresOctothorpOrArobase() {
+func TestValidateRequiresOctothorpOrArobase(t *testing.T) {
 	opts := &SlackOptions{Name: "test", Channel: "#chat", Hostname: "foo"}
-	s.Equal("#chat", opts.Channel)
-	s.NoError(opts.Validate())
+	if opts.Channel != "#chat" {
+		t.Fatalf("expected 'opts.Channel' to be '#chat' but was %s", opts.Channel)
+	}
+	if err := opts.Validate(); err != nil {
+		t.Fatal(err)
+	}
 	opts = &SlackOptions{Name: "test", Channel: "@chat", Hostname: "foo"}
-	s.Equal("@chat", opts.Channel)
-	s.NoError(opts.Validate())
+	if opts.Channel != "@chat" {
+		t.Fatalf("expected 'opts.Channel' to be '@chat' but was %s", opts.Channel)
+	}
+	if err := opts.Validate(); err != nil {
+		t.Fatal(err)
+	}
 }
 
-func (s *SlackSuite) TestFieldSetIncludeCheck() {
+func TestFieldSetIncludeCheck(t *testing.T) {
 	opts := &SlackOptions{}
-	s.Nil(opts.FieldsSet)
-	s.Error(opts.Validate())
-	s.NotNil(opts.FieldsSet)
+	if opts.FieldsSet != nil {
+		t.Fatal("expected field set to be nil")
+	}
+	if err := opts.Validate(); err == nil {
+		t.Fatal("expected error")
+	}
+	if opts.FieldsSet == nil {
+		t.Fatal("expected field set to be non-nil")
+	}
 
-	s.False(opts.fieldSetShouldInclude("time"))
+	if opts.fieldSetShouldInclude("time") {
+		t.Fatal("expected false")
+	}
 	opts.FieldsSet["time"] = true
-	s.False(opts.fieldSetShouldInclude("time"))
+	if opts.fieldSetShouldInclude("time") {
+		t.Fatal("expected false")
+	}
 
-	s.False(opts.fieldSetShouldInclude("msg"))
+	if opts.fieldSetShouldInclude("msg") {
+		t.Fatal("expected false")
+	}
 	opts.FieldsSet["time"] = true
-	s.False(opts.fieldSetShouldInclude("msg"))
+	if opts.fieldSetShouldInclude("msg") {
+		t.Fatal("expected false")
+	}
 
 	for _, f := range []string{"a", "b", "c"} {
-		s.False(opts.fieldSetShouldInclude(f))
+		if opts.fieldSetShouldInclude(f) {
+			t.Fatal("expected false")
+		}
 		opts.FieldsSet[f] = true
-		s.True(opts.fieldSetShouldInclude(f))
+		if !opts.fieldSetShouldInclude(f) {
+			t.Fatal("expected to be true")
+		}
 	}
 }
 
-func (s *SlackSuite) TestFieldShouldIncludIsAlwaysTrueWhenFieldSetIsNile() {
+func TestFieldShouldIncludIsAlwaysTrueWhenFieldSetIsNile(t *testing.T) {
 	opts := &SlackOptions{}
-
-	s.Nil(opts.FieldsSet)
-	s.False(opts.fieldSetShouldInclude("time"))
+	if opts.FieldsSet != nil {
+		t.Fatal("expected field set to be nil")
+	}
+	if opts.fieldSetShouldInclude("time") {
+		t.Fatal("expected false")
+	}
 	for _, f := range []string{"a", "b", "c"} {
-		s.True(opts.fieldSetShouldInclude(f))
+		if !opts.fieldSetShouldInclude(f) {
+			t.Fatal("expected to be true")
+		}
 	}
 }
 
-func (s *SlackSuite) TestGetParamsWithAttachementOptsDisabledLevelImpact() {
+func TestGetParamsWithAttachementOptsDisabledLevelImpact(t *testing.T) {
 	opts := &SlackOptions{}
-	s.False(opts.Fields)
-	s.False(opts.BasicMetadata)
+	if opts.Fields {
+		t.Fatal("expected false")
+	}
+	if opts.BasicMetadata {
+		t.Fatal("expected false")
+	}
 
 	msg, params := opts.produceMessage(message.MakeString("foo"))
-	s.Equal("good", params.Attachments[0].Color)
-	s.Equal("foo", msg)
+	if params.Attachments[0].Color != "good" {
+		t.Fatalf("expected 'params.Attachments[0].Color' to be 'good' but was %s", params.Attachments[0].Color)
+	}
+	if msg != "foo" {
+		t.Fatalf("expected 'msg' to be 'foo' but was %s", msg)
+	}
 
 	for _, l := range []level.Priority{level.Emergency, level.Alert, level.Critical} {
 		msg, params = opts.produceMessage(message.NewString(l, "foo"))
-		s.Equal("danger", params.Attachments[0].Color)
-		s.Equal("foo", msg)
+		if params.Attachments[0].Color != "danger" {
+			t.Fatalf("expected 'params.Attachments[0].Color' to be 'danger' but was %s", params.Attachments[0].Color)
+		}
+		if msg != "foo" {
+			t.Fatalf("expected 'msg' to be 'foo' but was %s", msg)
+		}
 	}
 
 	for _, l := range []level.Priority{level.Warning, level.Notice} {
 		msg, params = opts.produceMessage(message.NewString(l, "foo"))
-		s.Equal("warning", params.Attachments[0].Color)
-		s.Equal("foo", msg)
+		if params.Attachments[0].Color != "warning" {
+			t.Fatalf("expected 'params.Attachments[0].Color' to be 'warning' but was %s", params.Attachments[0].Color)
+		}
+		if msg != "foo" {
+			t.Fatalf("expected 'msg' to be 'foo' but was %s", msg)
+		}
 	}
 
 	for _, l := range []level.Priority{level.Debug, level.Info, level.Trace} {
 		msg, params = opts.produceMessage(message.NewString(l, "foo"))
-		s.Equal("good", params.Attachments[0].Color)
-		s.Equal("foo", msg)
+		if params.Attachments[0].Color != "good" {
+			t.Fatalf("expected 'params.Attachments[0].Color' to be 'good' but was %s", params.Attachments[0].Color)
+		}
+		if msg != "foo" {
+			t.Fatalf("expected 'msg' to be 'foo' but was %s", msg)
+		}
 	}
 }
 
-func (s *SlackSuite) TestProduceMessageWithBasicMetaDataEnabled() {
+func TestProduceMessageWithBasicMetaDataEnabled(t *testing.T) {
 	opts := &SlackOptions{BasicMetadata: true}
-	s.False(opts.Fields)
-	s.True(opts.BasicMetadata)
+	if opts.Fields {
+		t.Fatal("expected false")
+	}
+	if !opts.BasicMetadata {
+		t.Fatal("expected to be true")
+	}
 
 	msg, params := opts.produceMessage(message.NewString(level.Alert, "foo"))
-	s.Equal("danger", params.Attachments[0].Color)
-	s.Equal("foo", msg)
-	s.Len(params.Attachments[0].Fields, 1)
-	s.True(strings.Contains(params.Attachments[0].Fallback, "priority=alert"), params.Attachments[0].Fallback)
+	if params.Attachments[0].Color != "danger" {
+		t.Fatalf("expected 'params.Attachments[0].Color' to be 'danger' but was %s", params.Attachments[0].Color)
+	}
+	if msg != "foo" {
+		t.Fatalf("expected 'msg' to be 'foo' but was %s", msg)
+	}
+	if len(params.Attachments[0].Fields) != 1 {
+		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 1 but was %d", len(params.Attachments[0].Fields))
+	}
+	if !strings.Contains(params.Attachments[0].Fallback, "priority=alert") {
+		t.Fatal("expected to be true")
+	}
 
 	opts.Hostname = "!"
 	msg, params = opts.produceMessage(message.NewString(level.Alert, "foo"))
-	s.Equal("foo", msg)
-	s.Len(params.Attachments[0].Fields, 1)
-	s.False(strings.Contains(params.Attachments[0].Fallback, "host"), params.Attachments[0].Fallback)
+	if msg != "foo" {
+		t.Fatalf("expected 'msg' to be 'foo' but was %s", msg)
+	}
+	if len(params.Attachments[0].Fields) != 1 {
+		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 1 but was %d", len(params.Attachments[0].Fields))
+	}
+	if strings.Contains(params.Attachments[0].Fallback, "host") {
+		t.Fatal("expected false")
+	}
 
 	opts.Hostname = "foo"
 	msg, params = opts.produceMessage(message.NewString(level.Alert, "foo"))
-	s.Equal("foo", msg)
-	s.Len(params.Attachments[0].Fields, 2)
-	s.True(strings.Contains(params.Attachments[0].Fallback, "host=foo"), params.Attachments[0].Fallback)
+	if msg != "foo" {
+		t.Fatalf("expected 'msg' to be 'foo' but was %s", msg)
+	}
+	if len(params.Attachments[0].Fields) != 2 {
+		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 2 but was %d", len(params.Attachments[0].Fields))
+	}
+	if !strings.Contains(params.Attachments[0].Fallback, "host=foo") {
+		t.Fatal("expected to be true")
+	}
 
 	opts.Name = "foo"
 	msg, params = opts.produceMessage(message.NewString(level.Alert, "foo"))
-	s.Equal("foo", msg)
-	s.Len(params.Attachments[0].Fields, 3)
-	s.True(strings.Contains(params.Attachments[0].Fallback, "journal=foo"), params.Attachments[0].Fallback)
+	if msg != "foo" {
+		t.Fatalf("expected 'msg' to be 'foo' but was %s", msg)
+	}
+	if len(params.Attachments[0].Fields) != 3 {
+		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 3 but was %d", len(params.Attachments[0].Fields))
+	}
+	if !strings.Contains(params.Attachments[0].Fallback, "journal=foo") {
+		t.Fatal("expected to be true")
+	}
 }
 
-func (s *SlackSuite) TestFieldsMessageTypeIntegration() {
+func TestFieldsMessageTypeIntegration(t *testing.T) {
 	opts := &SlackOptions{Fields: true}
-	s.True(opts.Fields)
-	s.False(opts.BasicMetadata)
+	if !opts.Fields {
+		t.Fatal("expected to be true")
+	}
+	if opts.BasicMetadata {
+		t.Fatal("expected false")
+	}
 	opts.FieldsSet = map[string]bool{
 		"message": true,
 		"other":   true,
@@ -186,172 +293,312 @@ func (s *SlackSuite) TestFieldsMessageTypeIntegration() {
 	}
 
 	msg, params := opts.produceMessage(message.NewString(level.Alert, "foo"))
-	s.Equal("foo", msg)
-	s.Equal("danger", params.Attachments[0].Color)
-	s.Len(params.Attachments[0].Fields, 0)
+	if msg != "foo" {
+		t.Fatalf("expected 'msg' to be 'foo' but was %s", msg)
+	}
+	if params.Attachments[0].Color != "danger" {
+		t.Fatalf("expected 'params.Attachments[0].Color' to be 'danger' but was %s", params.Attachments[0].Color)
+	}
+	if len(params.Attachments[0].Fields) != 0 {
+		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 0 but was %d", len(params.Attachments[0].Fields))
+	}
 
 	// if the fields are nil, then we end up ignoring things, except the message
 	msg, params = opts.produceMessage(message.NewAnnotated(level.Alert, "foo", message.Fields{}))
-	s.Equal("", msg)
-	s.Len(params.Attachments[0].Fields, 1)
+	if msg != "" {
+		t.Fatalf("expected 'msg' to be '' but was %s", msg)
+	}
+	if len(params.Attachments[0].Fields) != 1 {
+		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 1 but was %d", len(params.Attachments[0].Fields))
+	}
 
 	// when msg and the message match we ignore
 	msg, params = opts.produceMessage(message.NewAnnotated(level.Alert, "foo", message.Fields{"msg": "foo"}))
-	s.Equal("", msg)
-	s.Len(params.Attachments[0].Fields, 1)
+	if msg != "" {
+		t.Fatalf("expected 'msg' to be '' but was %s", msg)
+	}
+	if len(params.Attachments[0].Fields) != 1 {
+		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 1 but was %d", len(params.Attachments[0].Fields))
+	}
 
 	msg, params = opts.produceMessage(message.NewAnnotated(level.Alert, "foo", message.Fields{"foo": "bar"}))
-	s.Equal("", msg)
-	s.Len(params.Attachments[0].Fields, 2)
+	if msg != "" {
+		t.Fatalf("expected 'msg' to be '' but was %s", msg)
+	}
+	if len(params.Attachments[0].Fields) != 2 {
+		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 2 but was %d", len(params.Attachments[0].Fields))
+	}
 
 	msg, params = opts.produceMessage(message.NewAnnotated(level.Alert, "foo", message.Fields{"other": "baz"}))
-	s.Equal("", msg)
-	s.Len(params.Attachments[0].Fields, 2)
+	if msg != "" {
+		t.Fatalf("expected 'msg' to be '' but was %s", msg)
+	}
+	if len(params.Attachments[0].Fields) != 2 {
+		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 2 but was %d", len(params.Attachments[0].Fields))
+	}
 
 	msg, params = opts.produceMessage(message.NewAnnotated(level.Alert, "foo", message.Fields{"untracked": "false", "other": "bar"}))
-	s.Equal("", msg)
-	s.Len(params.Attachments[0].Fields, 2)
+	if msg != "" {
+		t.Fatalf("expected 'msg' to be '' but was %s", msg)
+	}
+	if len(params.Attachments[0].Fields) != 2 {
+		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 2 but was %d", len(params.Attachments[0].Fields))
+	}
 
 	msg, params = opts.produceMessage(message.NewAnnotated(level.Alert, "foo", message.Fields{"foo": "false", "other": "bass"}))
-	s.Equal("", msg)
-	s.Len(params.Attachments[0].Fields, 3)
+	if msg != "" {
+		t.Fatalf("expected 'msg' to be '' but was %s", msg)
+	}
+	if len(params.Attachments[0].Fields) != 3 {
+		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 3 but was %d", len(params.Attachments[0].Fields))
+	}
 }
 
-func (s *SlackSuite) TestMockSenderWithMakeConstructor() {
+func TestMockSenderWithMakeConstructor(t *testing.T) {
+	opts := setupFixture()
 	defer os.Setenv(slackClientToken, os.Getenv(slackClientToken))
-	s.NoError(os.Setenv(slackClientToken, "foo"))
+	if err := os.Setenv(slackClientToken, "foo"); err != nil {
+		t.Fatal(err)
+	}
 
-	sender, err := MakeSender(s.opts)
-	s.NotNil(sender)
-	s.NoError(err)
+	sender, err := MakeSender(opts)
+	if sender == nil {
+		t.Fatal("sender not expected to be nil")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
-func (s *SlackSuite) TestMockSenderWithNewConstructor() {
-	sender, err := NewSender(s.opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	s.NotNil(sender)
-	s.NoError(err)
-
+func TestMockSenderWithNewConstructor(t *testing.T) {
+	opts := setupFixture()
+	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if sender == nil {
+		t.Fatal("sender not expected to be nil")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
-func (s *SlackSuite) TestInvaldLevelCausesConstructionErrors() {
-	sender, err := NewSender(s.opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Invalid})
-	s.Nil(sender)
-	s.Error(err)
+func TestInvaldLevelCausesConstructionErrors(t *testing.T) {
+	opts := setupFixture()
+	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Invalid})
+	if sender != nil {
+		t.Fatal("sender expected to be nil")
+	}
+	if err == nil {
+		t.Fatal("expected error")
+	}
 }
 
-func (s *SlackSuite) TestConstructorMustPassAuthTest() {
-	s.opts.client = &slackClientMock{failAuthTest: true}
-	sender, err := NewSender(s.opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+func TestConstructorMustPassAuthTest(t *testing.T) {
+	opts := setupFixture()
+	opts.client = &slackClientMock{failAuthTest: true}
+	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 
-	s.Nil(sender)
-	s.Error(err)
+	if sender != nil {
+		t.Fatal("sender expected to be nil")
+	}
+	if err == nil {
+		t.Fatal("expected error")
+	}
 }
 
-func (s *SlackSuite) TestSendMethod() {
-	sender, err := NewSender(s.opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	s.NotNil(sender)
-	s.NoError(err)
+func TestSendMethod(t *testing.T) {
+	opts := setupFixture()
+	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if sender == nil {
+		t.Fatal("sender not expected to be nil")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	mock, ok := s.opts.client.(*slackClientMock)
-	s.True(ok)
-	s.Equal(mock.numSent, 0)
+	mock, ok := opts.client.(*slackClientMock)
+	if !ok {
+		t.Fatal("expected to be true")
+	}
+	if 0 != mock.numSent {
+		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", 0)
+	}
 
 	m := message.NewString(level.Debug, "hello")
 	sender.Send(m)
-	s.Equal(mock.numSent, 0)
+	if 0 != mock.numSent {
+		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", 0)
+	}
 
 	m = message.NewString(level.Alert, "")
 	sender.Send(m)
-	s.Equal(mock.numSent, 0)
+	if 0 != mock.numSent {
+		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", 0)
+	}
 
 	m = message.NewString(level.Alert, "world")
 	sender.Send(m)
-	s.Equal(mock.numSent, 1)
-	s.Equal("#test", mock.lastTarget)
+	if 1 != mock.numSent {
+		t.Fatalf("expected '1' to be 'mock.numSent' but was %d", 1)
+	}
+	if mock.lastTarget != "#test" {
+		t.Fatalf("expected 'mock.lastTarget' to be '#test' but was %s", mock.lastTarget)
+	}
 
 	m = NewMessage(level.Alert, "#somewhere", "Hi", nil)
 	sender.Send(m)
-	s.Equal(mock.numSent, 2)
-	s.Equal("#somewhere", mock.lastTarget)
+	if 2 != mock.numSent {
+		t.Fatalf("expected '2' to be 'mock.numSent' but was %d", 2)
+	}
+	if mock.lastTarget != "#somewhere" {
+		t.Fatalf("expected 'mock.lastTarget' to be '#somewhere' but was %s", mock.lastTarget)
+	}
 }
 
-func (s *SlackSuite) TestSendMethodWithError() {
-	sender, err := NewSender(s.opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	s.NotNil(sender)
-	s.NoError(err)
+func TestSendMethodWithError(t *testing.T) {
+	opts := setupFixture()
+	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if sender == nil {
+		t.Fatal("sender not expected to be nil")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	mock, ok := s.opts.client.(*slackClientMock)
-	s.True(ok)
-	s.Equal(mock.numSent, 0)
-	s.False(mock.failSendingMessage)
+	mock, ok := opts.client.(*slackClientMock)
+	if !ok {
+		t.Fatal("expected to be true")
+	}
+	if 0 != mock.numSent {
+		t.Fatalf("expected 'mock.numSent' to be 0, but was %d", mock.numSent)
+	}
+	if mock.failSendingMessage {
+		t.Fatal("expected false")
+	}
 
 	m := message.NewString(level.Alert, "world")
 	sender.Send(m)
-	s.Equal(mock.numSent, 1)
+	if 1 != mock.numSent {
+		t.Fatalf("expected '1' to be 'mock.numSent' but was %d", mock.numSent)
+	}
 
 	mock.failSendingMessage = true
 	sender.Send(m)
-	s.Equal(mock.numSent, 1)
+	if 1 != mock.numSent {
+		t.Fatalf("expected '1' to be 'mock.numSent' but was %d", mock.numSent)
+	}
 
 	// sender should not panic with empty attachments
-	s.NotPanics(func() {
+	func() {
 		m = NewMessage(level.Alert, "#general", "I am a formatted slack message", nil)
 		sender.Send(m)
-		s.Equal(mock.numSent, 1)
-	})
+		if 1 != mock.numSent {
+			t.Fatalf("expected '1' to be 'mock.numSent' but was %d", mock.numSent)
+		}
+	}()
 }
 
-func (s *SlackSuite) TestCreateMethodChangesClientState() {
+func TestCreateMethodChangesClientState(t *testing.T) {
 	base := &slackClientImpl{}
 	new := &slackClientImpl{}
 
-	s.Equal(base, new)
+	if new.Slack != base.Slack {
+		t.Fatal("expected 'new' and 'base' to be equal")
+	}
 	new.Create("foo")
-	s.NotEqual(base, new)
+	if new.Slack == base.Slack {
+		t.Fatal("expected new to not be equal to base")
+	}
 }
 
-func (s *SlackSuite) TestSendMethodDoesIncorrectlyAllowTooLowMessages() {
-	sender, err := NewSender(s.opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	s.NotNil(sender)
-	s.NoError(err)
+func TestSendMethodDoesIncorrectlyAllowTooLowMessages(t *testing.T) {
+	opts := setupFixture()
+	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if sender == nil {
+		t.Fatal("sender not expected to be nil")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	mock, ok := s.opts.client.(*slackClientMock)
-	s.True(ok)
-	s.Equal(mock.numSent, 0)
+	mock, ok := opts.client.(*slackClientMock)
+	if !ok {
+		t.Fatal("expected to be true")
+	}
+	if 0 != mock.numSent {
+		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
+	}
 
-	s.NoError(sender.SetLevel(send.LevelInfo{Default: level.Critical, Threshold: level.Alert}))
-	s.Equal(mock.numSent, 0)
+	if err := sender.SetLevel(send.LevelInfo{Default: level.Critical, Threshold: level.Alert}); err != nil {
+		t.Fatal(err)
+	}
+	if 0 != mock.numSent {
+		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
+	}
 	sender.Send(message.NewString(level.Info, "hello"))
-	s.Equal(mock.numSent, 0)
+	if 0 != mock.numSent {
+		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
+	}
 	sender.Send(message.NewString(level.Alert, "hello"))
-	s.Equal(mock.numSent, 1)
+	if 1 != mock.numSent {
+		t.Fatalf("expected '1' to be 'mock.numSent' but was %d", mock.numSent)
+	}
 	sender.Send(message.NewString(level.Alert, "hello"))
-	s.Equal(mock.numSent, 2)
+	if 2 != mock.numSent {
+		t.Fatalf("expected '2' to be 'mock.numSent' but was %d", mock.numSent)
+	}
 }
 
-func (s *SlackSuite) TestSettingBotIdentity() {
-	sender, err := NewSender(s.opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	s.NoError(err)
-	s.NotNil(sender)
+func TestSettingBotIdentity(t *testing.T) {
+	opts := setupFixture()
+	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sender == nil {
+		t.Fatal("sender not expected to be nil")
+	}
 
-	mock, ok := s.opts.client.(*slackClientMock)
-	s.True(ok)
-	s.Equal(mock.numSent, 0)
-	s.False(mock.failSendingMessage)
+	mock, ok := opts.client.(*slackClientMock)
+	if !ok {
+		t.Fatal("expected to be true")
+	}
+	if 0 != mock.numSent {
+		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
+	}
+	if mock.failSendingMessage {
+		t.Fatal("expected false")
+	}
 
 	m := message.NewString(level.Alert, "world")
 	sender.Send(m)
-	s.Equal(1, mock.numSent)
-	s.Empty(mock.lastMsg.Username)
-	s.Empty(mock.lastMsg.IconUrl)
+	if mock.numSent != 1 {
+		t.Fatalf("expected 'mock.numSent' to be '1' but was %d", mock.numSent)
+	}
 
-	s.opts.Username = "Grip"
-	s.opts.IconURL = "https://example.com/icon.ico"
-	sender, err = NewSender(s.opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
-	s.NoError(err)
+	if len(mock.lastMsg.Username) != 0 {
+		t.Fatal("expected 'mock.lastMsg.Username' to be empty")
+	}
+	if len(mock.lastMsg.IconUrl) != 0 {
+		t.Fatal("expected 'mock.lastMsg.IconUrl' to be empty")
+	}
+
+	opts.Username = "Grip"
+	opts.IconURL = "https://example.com/icon.ico"
+	sender, err = NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	if err != nil {
+		t.Fatal(err)
+	}
 	sender.Send(m)
-	s.Equal(2, mock.numSent)
-	s.Equal("Grip", mock.lastMsg.Username)
-	s.Equal("https://example.com/icon.ico", mock.lastMsg.IconUrl)
-	s.False(mock.lastMsg.AsUser)
+	if mock.numSent != 2 {
+		t.Fatalf("expected 'mock.numSent' to be '2' but was %d", mock.numSent)
+	}
+	if mock.lastMsg.Username != "Grip" {
+		t.Fatalf("expected 'mock.lastMsg.Username' to be 'Grip' but was %s", mock.lastMsg.Username)
+	}
+	if mock.lastMsg.IconUrl != "https://example.com/icon.ico" {
+		t.Fatalf("expected 'mock.lastMsg.IconUrl' to be 'https://example.com/icon.ico' but was %s", mock.lastMsg.IconUrl)
+	}
+	if mock.lastMsg.AsUser {
+		t.Fatal("expected false")
+	}
 }
