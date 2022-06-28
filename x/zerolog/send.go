@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/rs/zerolog"
@@ -64,10 +65,32 @@ func (s *shim) Send(m message.Composer) {
 		return
 	}
 
-	// TODO: make better use of the fast parts of zero log
-	out, err := s.Formatter()(m)
-	if err != nil {
-		s.ErrorHandler()(err, m)
+	event := s.zl.WithLevel(convertLevel(m.Priority()))
+	if !m.Structured() {
+		out, err := s.Formatter()(m)
+		if err != nil {
+			s.ErrorHandler()(err, m)
+			return
+		}
+		event.Msg(out)
+		return
 	}
-	s.zl.WithLevel(convertLevel(m.Priority())).Msg(out)
+
+	payload := m.Raw()
+	switch data := payload.(type) {
+	case zerolog.LogObjectMarshaler:
+		event.EmbedObject(data)
+	case zerolog.LogArrayMarshaler:
+		event.Array("payload", data)
+	case json.Marshaler:
+		r, err := data.MarshalJSON()
+		if err != nil {
+			s.ErrorHandler()(err, m)
+			return
+		}
+		event.RawJSON("payload", r)
+	default:
+		event.Fields(payload)
+	}
+	event.Send()
 }
