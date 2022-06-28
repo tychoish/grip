@@ -90,7 +90,6 @@ func TestCloseMethod(t *testing.T) {
 }
 
 func TestAutoConstructorErrorsWithoutValidEnvVar(t *testing.T) {
-	info := ConnectionInfo{client: &xmppClientMock{}}
 	sender, err := MakeSender("target")
 	if err == nil {
 		t.Fatal("expected error but got nil")
