@@ -9,6 +9,7 @@ use (
 	./x/metrics
 	./x/slack
 	./x/splunk
+	./x/sumologic
 	./x/system
 	./x/twitter
 	./x/xmpp

@@ -16,20 +16,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       - name: grip tests
-        run: go test ./...
+        run: go test -race ./...
       - name: grip/x tests
         run: |
-          retVal=0
-          for i in $(find ./x -name "go.mod"); do
-              pushd $(dirname $i)
-              go test ./...
-              if [[ $? ]]; then
-                 retVal=1
-              fi
-              popd
-          done
-          exit $retVal
-
+          find ./x -name "go.mod" | xargs dirname | xargs go test -race
   lint:
     runs-on: ubuntu-latest
     steps:

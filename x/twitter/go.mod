@@ -13,6 +13,7 @@ require (
 require (
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/dghubble/sling v1.4.0 // indirect
+	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/tychoish/emt v0.0.0-20220306153139-74b97c67f209 // indirect
 )
