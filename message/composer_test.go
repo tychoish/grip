@@ -51,19 +51,19 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		NewFieldsProducer(level.Error, func() Fields { return Fields{"pro": "ducer"} }): "[pro='ducer']",
 		NewConvertedFieldsProducer(level.Error, func() map[string]interface{} { return map[string]interface{}{"pro": "ducer"} }): "[pro='ducer']",
 		// NewEmailMessage(level.Error, Email{
-		// 	Recipients: []string{"someone@example.com"},
-		// 	Subject:    "Test msg",
-		// 	Body:       testMsg,
+		//	Recipients: []string{"someone@example.com"},
+		//	Subject:    "Test msg",
+		//	Body:       testMsg,
 		// }): fmt.Sprintf("To: someone@example.com; Body: %s", testMsg),
 		// NewGithubStatusMessage(level.Error, "tests", GithubStateError, "https://example.com", testMsg): fmt.Sprintf("tests error: %s (https://example.com)", testMsg),
 		// NewGithubStatusMessageWithRepo(level.Error, GithubStatus{
-		// 	Owner:       "tychoish",
-		// 	Repo:        "grip",
-		// 	Ref:         "master",
-		// 	Context:     "tests",
-		// 	State:       GithubStateError,
-		// 	URL:         "https://example.com",
-		// 	Description: testMsg,
+		//	Owner:       "tychoish",
+		//	Repo:        "grip",
+		//	Ref:         "master",
+		//	Context:     "tests",
+		//	State:       GithubStateError,
+		//	URL:         "https://example.com",
+		//	Description: testMsg,
 		// }): fmt.Sprintf("tychoish/grip@master tests error: %s (https://example.com)", testMsg),
 		// NewJIRACommentMessage(level.Error, "ABC-123", testMsg): testMsg,
 		// NewSlackMessage(level.Error, "@someone", testMsg, nil): fmt.Sprintf("@someone: %s", testMsg),
@@ -315,4 +315,50 @@ func TestErrors(t *testing.T) {
 
 		})
 	}
+}
+
+func TestSlice(t *testing.T) {
+	cases := []struct {
+		name   string
+		input  []any
+		output Composer
+	}{
+		{
+			name:   "OneString",
+			input:  []any{"hello world"},
+			output: MakeLines("hello world"),
+		},
+		{
+			name:   "ThreeStrings",
+			input:  []any{"hello", "world", "3000"},
+			output: MakeLines("hello", "world", "3000"),
+		},
+		{
+			name:   "PairsStrings",
+			input:  []any{"hello", "world", "val", "3000"},
+			output: MakeFields(Fields{"hello": "world", "val": "3000"}),
+		},
+		{
+			name:   "PairsMixed",
+			input:  []any{"hello", "world", "val", 3000},
+			output: MakeFields(Fields{"hello": "world", "val": 3000}),
+		},
+		{
+			name:   "KeyNotString",
+			input:  []any{"hello", "world", 3000, "kip"},
+			output: MakeLines("hello", "world", 3000, "kip"),
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			ex := buildFromSlice(c.input)
+			if ex.String() != c.output.String() {
+				t.Log("output", ex.String())
+				t.Log("expected", c.output.String())
+				t.Fatal("unexpected output")
+			}
+		})
+
+	}
+
 }

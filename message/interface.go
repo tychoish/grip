@@ -1,6 +1,8 @@
 package message
 
 import (
+	"fmt"
+
 	"github.com/tychoish/grip/level"
 )
 
@@ -87,7 +89,7 @@ func Convert(message interface{}) Composer {
 	case []string:
 		return newLinesFromStrings(message)
 	case []interface{}:
-		return MakeLines(message...)
+		return buildFromSlice(message)
 	case []byte:
 		return MakeBytes(message)
 	case Fields:
@@ -160,9 +162,40 @@ func Convert(message interface{}) Composer {
 			grp[idx] = MakeErrorProducer(message[idx])
 		}
 		return MakeGroupComposer(grp)
+	case [][]interface{}:
+		grp := make([]Composer, len(message))
+		for idx := range message {
+			grp[idx] = buildFromSlice(message[idx])
+		}
+		return MakeGroupComposer(grp)
 	case nil:
 		return MakeLines()
 	default:
 		return MakeFormat("%+v", message)
 	}
+}
+
+func buildFromSlice(vals []interface{}) Composer {
+	if len(vals)%2 != 0 {
+		return MakeLines(vals...)
+	}
+
+	for i := 0; i < len(vals); i += 2 {
+		val := vals[i]
+		switch val.(type) {
+		case string:
+			continue
+		case fmt.Stringer:
+			continue
+		default:
+			return MakeLines(vals...)
+		}
+	}
+
+	fields := make(Fields, len(vals)/2)
+	for i := 0; i < len(vals); i += 2 {
+		fields[fmt.Sprint(vals[i])] = vals[i+1]
+	}
+
+	return MakeFields(fields)
 }
