@@ -57,7 +57,7 @@ Goals
 
 - Integrate with other logging systems (e.g. standard library logging,
   standard output of subprocesses, other libraries, etc.) to accommodate most
-  usecases 
+  usecases.
 
 - Minimize operational complexity and dependencies for having robust logging
   (e.g. make it possible to log effectively from within a program without
@@ -65,7 +65,7 @@ Goals
 
 Performance is not explicitly a goal, although reasonable performace should be
 possible and architectures should always be possible that prevent the logger
-from becoming a performance bottleneck in applications. 
+from becoming a performance bottleneck in applications.
 
 Features
 --------
@@ -81,7 +81,7 @@ the ``Logger`` type. The ``SetGlobalLogger`` allows you to override the global
 logger: note, however, that this function (and the functions,) are not
 thread-safe when used relative to each other, so *only* use
 ``SetGlobalLogger`` during process configuration and minimize the amount of
-logger re-configuration your application does. 
+logger re-configuration your application does.
 
 For many applications, using and passing a copy of the ``Logger`` you want to
 use is preferable.
@@ -92,13 +92,13 @@ use is preferable.
 ``Logger`` instances simply wrap ``Sender`` instances and most of the
 configuration (e.g. levels and threshold) are actually properties of the
 messages and the sender. If you want to create a new logger that is a "child"
-of an existing logger, consider something like: :: 
+of an existing logger, consider something like: ::
 
     // new logger instance wrapping the sender instance from the global logger
     // this is just for the sake of example:
     logger := grip.NewLogger(grip.Sender())
 
-    // create new logger that annotates all messages 
+    // create new logger that annotates all messages
     subLogger := grip.NewLogger(send.MakeAnnotating(
 	logger.Sender(),
 	map[string]interface{}{
@@ -111,21 +111,21 @@ Similarly, you could create an annotating logger that sent to two output
 targets: ::
 
     multiLogger := grip.NewLogger(send.MakeMulti(
-        grip.Sender(),
+	grip.Sender(),
 	send.NewAnnotating(
-            logger.Sender(),
-            map[string]interface{}{
-	   	    "module": "http",
+	    logger.Sender(),
+	    map[string]interface{}{
+		    "module": "http",
 		    "pid":    os.Getpid(),
-            })
+	    })
     ))
-    
+
 While this specific example may not be useful (send all messages to the
 standard logger output, and also send message to the annotating sender,) but
 this kind of configuration can be useful if you want to filter messages of
 different types to different outputs, or write messages to a local output
 (e.g. standard output, standard error, system journal, etc.) as well as a
-remote service (e.g. splunk, sumo logic, etc.). 
+remote service (e.g. splunk, sumo logic, etc.).
 
 The ``x`` Packages
 ~~~~~~~~~~~~~~~~~~
@@ -137,39 +137,45 @@ mechanisms for sending messages. It's possible to use senders and loggers, to
 propogate messages over email and sump, as well as using grip as an interface
 to send logs directly to external aggregation services, such as splunk.
 
-Features implemented here include: 
+Features implemented here include:
 
+- sending sumologic/splunk messages directly.
+- sending messages directly to syslog and/or the systemd journal.
 - desktop notifications
 - slack messages
 - creating jira tickets and commenting on jira issues
 - creating github issues and updating github statuses
-- sending messages directly to syslog and/or the systemd journal. 
-- sending email messages 
-- sending sump messages. 
-- message payloads the capture system metrics: 
-  - go runtime metrics 
+- sending email messages
+- message payloads the capture system metrics:
+  - go runtime metrics
   - process-tree metrics
   - single process metrics.
 
+While the core of grip only has dependency on a single library, `emt
+<github.com/tychoish/emt>`_, the packages in the ``x`` hierarchy do have
+external dependencies. However, the project and go mod files are structured so
+that these libraries are managed by different go mod files and can be
+versioned separately.
+
 ``send.Sender``
-~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 Senders all wrap some sort of output target, which is at some level an
 ``io.Writer`` or similar kind of interface. The ``send`` package contains a
 number of different configurations (standard error, standard output, files,
-etc.) as well as 1additional tools for managing output targets, notably: 
+etc.) as well as 1additional tools for managing output targets, notably:
 
 - converters for ``Sender`` implementations to ``io.Writer``
-  instances. 
-  
-- connections with standard library logging tools. 
-  
+  instances.
+
+- connections with standard library logging tools.
+
 - buffering and asynchronous senders to reduce backpressure from loggers and
   to batch workloads to (potentially) slower senders.
 
 - multi sender tools, to manage a group of related outputs.
 
-Senders also permit configurable formating hooks and error handling hooks. 
+Senders also permit configurable formating hooks and error handling hooks.
 
 ``message.Composer``
 ~~~~~~~~~~~~~~~~~~~~
@@ -181,30 +187,30 @@ application types. Fundamentally, most ``Composer`` implementations should be la
 and require minimal runtime resources in the case that the messages aren't
 loggable, either as a result of their content (missing or not rising to the
 threshold of loggability,) or because of the priority thresholds on the
-logger/sender itself. 
+logger/sender itself.
 
 The message package provides a collection of implementations and features,
-including: 
-  
+including:
+
 - a ``Base`` type which you can compose in your own ``Composer``
   implementations which provides most of the implementation interface and
   holds some basic message metadata (level, timestamp, pid, hostname.) As a
   result implementors only need to implement ``Loggable``, ``String`` and
-  ``Raw`` methods. 
-  
+  ``Raw`` methods.
+
 - a ``GroupMessage`` that provides a bundle of messages, which sender
   implementations can use to batch output. Additionally, the ``Wrap`` and
   ``Unwrap`` methods provide a stack-based approach to grouping messages.
 
 - the ``Builder`` type provides a chainable interface for creating and sending
-  log messages, which is integrated into the ``grip.Logger`` interface. 
-  
+  log messages, which is integrated into the ``grip.Logger`` interface.
+
 - Conditional or ``When`` messages allow you to embed logging conditions in
-  the message, which can simplify the call site for logging messages. 
+  the message, which can simplify the call site for logging messages.
 
 - Error wrappers that convert go error objects into log messages, which are
   non-loggable when the error is nil, with an error-wrapping function that
-  makes it possible to annotate messages. 
+  makes it possible to annotate messages.
 
 - Logging functions, or producers, which are functions that produce messages,
   or errors and are only called when the message loggable (e.g. for priority
@@ -231,7 +237,8 @@ development:
   standard library.
 
 - Shims for other popular logging frameworks to facilitate migrations and
-  provide grip users to the benefits of existing infrastructure without 
+  provide grip users to the benefits of existing infrastructure without
+  requiring large refactoring.
 
 If you encounter a problem please feel free to create a github issue or open a
 pull request.
@@ -245,5 +252,7 @@ projects at MongoDB's release infrastructure developer productivity
 organization.
 
 This fork removes some legacy components and drops support older versions of
-Golang, thereby adding support for modules.
-
+Golang, thereby adding support for modules. Additionally the ``x`` hierarchy
+contains many external integrations that were previously in the main
+package. These reorganizations should improve performance and dependency
+management and make it easier to stablize releases.
