@@ -2,12 +2,9 @@ module github.com/tychoish/grip/x/jira
 
 go 1.18
 
-replace github.com/tychoish/grip => ./../..
-
 require (
 	github.com/andygrunwald/go-jira v1.15.1
 	github.com/dghubble/oauth1 v0.7.1
-	github.com/tychoish/grip v0.0.0-00010101000000-000000000000
 )
 
 require (

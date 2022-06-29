@@ -2,11 +2,8 @@ module github.com/tychoish/grip/x/splunk
 
 go 1.18
 
-replace github.com/tychoish/grip => ./../..
-
 require (
 	github.com/fuyufjh/splunk-hec-go v0.4.0
-	github.com/tychoish/grip v0.0.0-00010101000000-000000000000
 )
 
 require (

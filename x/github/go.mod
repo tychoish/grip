@@ -2,11 +2,8 @@ module github.com/tychoish/grip/x/github
 
 go 1.18
 
-replace github.com/tychoish/grip => ./../..
-
 require (
 	github.com/google/go-github v17.0.0+incompatible
-	github.com/tychoish/grip v0.0.0-00010101000000-000000000000
 	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2
 )
 
