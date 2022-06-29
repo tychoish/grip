@@ -94,6 +94,8 @@ func Convert(message interface{}) Composer {
 		return MakeBytes(message)
 	case Fields:
 		return MakeFields(message)
+	case KVs:
+		return MakeKVs(message)
 	case map[string]interface{}:
 		return MakeFields(Fields(message))
 	case [][]string:
@@ -168,8 +170,14 @@ func Convert(message interface{}) Composer {
 			grp[idx] = buildFromSlice(message[idx])
 		}
 		return MakeGroupComposer(grp)
+	case []KVs:
+		grp := make([]Composer, len(message))
+		for idx := range message {
+			grp[idx] = MakeKVs(message[idx])
+		}
+		return MakeGroupComposer(grp)
 	case nil:
-		return MakeLines()
+		return MakeKV()
 	default:
 		return MakeFormat("%+v", message)
 	}
@@ -179,23 +187,28 @@ func buildFromSlice(vals []interface{}) Composer {
 	if len(vals)%2 != 0 {
 		return MakeLines(vals...)
 	}
+	if len(vals) == 0 {
+		return MakeKV()
+	}
 
 	for i := 0; i < len(vals); i += 2 {
-		val := vals[i]
-		switch val.(type) {
+		switch val := vals[i].(type) {
 		case string:
 			continue
 		case fmt.Stringer:
-			continue
+			vals[i] = val.String()
 		default:
 			return MakeLines(vals...)
 		}
 	}
 
-	fields := make(Fields, len(vals)/2)
+	fields := make(KVs, 0, len(vals)/2)
 	for i := 0; i < len(vals); i += 2 {
-		fields[fmt.Sprint(vals[i])] = vals[i+1]
+		fields = append(fields, KV{
+			Key:   fmt.Sprint(vals[i]),
+			Value: vals[i+1],
+		})
 	}
 
-	return MakeFields(fields)
+	return MakeKVs(fields)
 }

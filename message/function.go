@@ -40,6 +40,32 @@ import (
 	"github.com/tychoish/grip/level"
 )
 
+// KVProducer allows callers to delay generation of KV lists (as
+// structured log payloads) until the log message needs to be sent
+// (e.g. the .String() or .Raw() methods are called on the Composer
+// interface.) While all implementations of composer provide this
+// ability to do lazy evaluation of log messages, you can use this and
+// other producer types to implement logging as functions rather than
+// as implementations the Composer interface itself.
+type KVProducer func() KVs
+
+// NewKVProducer produces a new KVProducer-based log message with the
+// specified priority.
+func NewKVProducer(p level.Priority, kp KVProducer) Composer {
+	if kp == nil {
+		return NewProducer(p, nil)
+	}
+	return NewProducer(p, func() Composer { return NewKVs(p, kp()) })
+}
+
+// NewKVProducer constructs a new KVProducer-based log message.
+func MakeKVProducer(kp KVProducer) Composer {
+	if kp == nil {
+		return MakeProducer(nil)
+	}
+	return MakeProducer(func() Composer { return MakeKVs(kp()) })
+}
+
 // FieldsProducer is a function that returns a structured message body
 // as a way of writing simple Composer implementations in the form
 // anonymous functions, as in:
@@ -52,12 +78,6 @@ import (
 // If the Fields object is nil or empty then no message is logged.
 type FieldsProducer func() Fields
 
-type fieldsProducerMessage struct {
-	fp     FieldsProducer
-	cached Composer
-	level  level.Priority
-}
-
 // NewFieldsProducer constructs a lazy FieldsProducer wrapping
 // message at the specified level.
 //
@@ -67,7 +87,10 @@ type fieldsProducerMessage struct {
 // message is below the logging threshold, then the function will
 // never be called.
 func NewFieldsProducer(p level.Priority, fp FieldsProducer) Composer {
-	return &fieldsProducerMessage{level: p, fp: fp}
+	if fp == nil {
+		return NewProducer(p, nil)
+	}
+	return NewProducer(p, func() Composer { return NewFields(p, fp()) })
 }
 
 // MakeFieldsProducer constructs a lazy FieldsProducer wrapping
@@ -79,73 +102,29 @@ func NewFieldsProducer(p level.Priority, fp FieldsProducer) Composer {
 // message is below the logging threshold, then the function will
 // never be called.
 func MakeFieldsProducer(fp FieldsProducer) Composer {
-	return &fieldsProducerMessage{fp: fp}
+	if fp == nil {
+		return MakeProducer(nil)
+	}
+	return MakeProducer(func() Composer { return MakeFields(fp()) })
 }
 
 // MakeConvertedFieldsProducer converts a generic map to a fields
 // producer, as the message types are equivalent.
 func MakeConvertedFieldsProducer(mp func() map[string]interface{}) Composer {
-	return MakeFieldsProducer(func() Fields {
-		return mp()
-	})
+	if mp == nil {
+		return MakeProducer(nil)
+	}
+	return MakeProducer(func() Composer { return MakeFields(mp()) })
 }
 
 // NewConvertedFieldsProducer converts a generic map to a fields
 // producer at the specified priority, as the message types are equivalent,
 func NewConvertedFieldsProducer(p level.Priority, mp func() map[string]interface{}) Composer {
-	return NewFieldsProducer(p, func() Fields {
-		return mp()
-	})
-}
-
-func (fp *fieldsProducerMessage) resolve() {
-	if fp.cached == nil {
-		if fp.fp == nil {
-			fp.cached = NewFields(fp.level, Fields{})
-		} else {
-			fp.cached = NewFields(fp.level, fp.fp())
-		}
+	if mp == nil {
+		return NewProducer(p, nil)
 	}
+	return NewProducer(p, func() Composer { return NewFields(p, func() Fields { return mp() }()) })
 }
-
-func (fp *fieldsProducerMessage) Annotate(k string, v interface{}) error {
-	fp.resolve()
-	return fp.cached.Annotate(k, v)
-}
-
-func (fp *fieldsProducerMessage) SetPriority(p level.Priority) error {
-	if !p.IsValid() {
-		return errors.New("invalid level")
-	}
-	fp.level = p
-	if fp.cached != nil {
-		return fp.cached.SetPriority(fp.level)
-	}
-
-	return nil
-}
-
-func (fp *fieldsProducerMessage) Loggable() bool {
-	if fp.fp == nil {
-		return false
-	}
-
-	fp.resolve()
-	return fp.cached.Loggable()
-}
-
-func (fp *fieldsProducerMessage) Structured() bool {
-	if fp.fp == nil {
-		return false
-	}
-
-	fp.resolve()
-	return fp.cached.Structured()
-}
-
-func (fp *fieldsProducerMessage) Priority() level.Priority { return fp.level }
-func (fp *fieldsProducerMessage) String() string           { fp.resolve(); return fp.cached.String() }
-func (fp *fieldsProducerMessage) Raw() interface{}         { fp.resolve(); return fp.cached.Raw() }
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -187,9 +166,7 @@ func NewProducer(p level.Priority, cp ComposerProducer) Composer {
 // does not call the function. In practice, if the priority of the
 // message is below the logging threshold, then the function will
 // never be called.
-func MakeProducer(cp ComposerProducer) Composer {
-	return &composerProducerMessage{cp: cp}
-}
+func MakeProducer(cp ComposerProducer) Composer { return &composerProducerMessage{cp: cp} }
 
 func (cp *composerProducerMessage) resolve() {
 	if cp.cached == nil {

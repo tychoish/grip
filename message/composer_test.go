@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/tychoish/grip/level"
 )
@@ -137,26 +138,21 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 		&bytesMessage{},
 		MakeBytes([]byte{}),
 		NewBytes(level.Error, []byte{}),
-		// &ProcessInfo{},
-		// &SystemInfo{},
 		&lineMessenger{},
 		MakeLines(),
 		NewLines(level.Error),
 		&formatMessenger{},
+		MakeSimpleKV(),
+		MakeSimpleBytes(nil),
+		MakeSimpleKVs(KVs{}),
 		MakeFormat(""),
 		NewFormat(level.Error, ""),
 		MakeStack(1, ""),
 		BuildGroupComposer(),
 		&GroupComposer{},
-		// &GoRuntimeInfo{},
 		When(false, ""),
 		Whenf(false, "", ""),
 		Whenln(false, "", ""),
-		// NewEmailMessage(level.Error, Email{}),
-		// NewGithubStatusMessage(level.Error, "", GithubState(""), "", ""),
-		// NewGithubStatusMessageWithRepo(level.Error, GithubStatus{}),
-		// NewJIRACommentMessage(level.Error, "", ""),
-		// NewSlackMessage(level.Error, "", "", nil),
 		MakeProducer(nil),
 		MakeProducer(func() Composer { return nil }),
 		MakeFieldsProducer(nil),
@@ -246,21 +242,24 @@ func TestComposerConverter(t *testing.T) {
 		map[string]interface{}{},
 	}
 
-	for _, msg := range cases {
-		comp := ConvertWithPriority(level.Error, msg)
-		if comp.Loggable() {
-			t.Error("should be false")
-		}
-		if "" != comp.String() {
-			t.Errorf("%T", msg)
-		}
+	for idx, msg := range cases {
+		t.Run(fmt.Sprint(idx), func(t *testing.T) {
+			comp := ConvertWithPriority(level.Error, msg)
+			if comp.Loggable() {
+				t.Errorf("should be false: %T", comp)
+			}
+			if "" != comp.String() {
+				t.Errorf("%T", msg)
+			}
+		})
+
 	}
 
 	outputCases := map[string]interface{}{
-		"1":            1,
-		"2":            int32(2),
-		"[message='3'": Fields{"message": 3},
-		"[message='4'": map[string]interface{}{"message": "4"},
+		"1":           1,
+		"2":           int32(2),
+		"message='3'": Fields{"message": 3},
+		"message='4'": map[string]interface{}{"message": "4"},
 	}
 
 	for out, in := range outputCases {
@@ -269,6 +268,7 @@ func TestComposerConverter(t *testing.T) {
 			t.Error("value should be true")
 		}
 		if !strings.HasPrefix(comp.String(), out) {
+			t.Logf("out=%q comp=%q", out, comp.String())
 			t.Error("value should be true")
 		}
 	}
@@ -336,12 +336,12 @@ func TestSlice(t *testing.T) {
 		{
 			name:   "PairsStrings",
 			input:  []any{"hello", "world", "val", "3000"},
-			output: MakeFields(Fields{"hello": "world", "val": "3000"}),
+			output: MakeKV(KV{"hello", "world"}, KV{"val", "3000"}),
 		},
 		{
 			name:   "PairsMixed",
 			input:  []any{"hello", "world", "val", 3000},
-			output: MakeFields(Fields{"hello": "world", "val": 3000}),
+			output: MakeKV(KV{"hello", "world"}, KV{"val", 3000}),
 		},
 		{
 			name:   "KeyNotString",
@@ -352,13 +352,31 @@ func TestSlice(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			ex := buildFromSlice(c.input)
+			fixTimestamps(t, ex, c.output)
+
 			if ex.String() != c.output.String() {
 				t.Log("output", ex.String())
 				t.Log("expected", c.output.String())
-				t.Fatal("unexpected output")
+				t.Fatalf("unexpected output: %T", ex)
 			}
 		})
 
 	}
+}
 
+func fixTimestamps(t *testing.T, msgs ...Composer) {
+	ts := time.Now().Round(time.Millisecond)
+	for idx, msg := range msgs {
+		switch m := msg.(type) {
+		case *fieldMessage:
+			m.Base.Time = ts
+		case *lineMessenger:
+			m.Base.Time = ts
+		case *kvMsg:
+			m.skipMetadata = true
+			m.Base.Time = ts
+		default:
+			t.Errorf("id=%d %T", idx, m)
+		}
+	}
 }

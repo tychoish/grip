@@ -177,34 +177,35 @@ func (m *fieldMessage) String() string {
 	if !m.Loggable() {
 		return ""
 	}
-	if m.cachedOutput == "" {
-		out := []string{}
-		if m.message != "" {
-			out = append(out, fmt.Sprintf("%s='%s'", FieldsMsgName, m.message))
-		}
 
-		for k, v := range m.fields {
-			if k == FieldsMsgName && v == m.message {
-				continue
-			}
-			if k == "time" {
-				continue
-			}
-			if k == "metadata" {
-				continue
-			}
-
-			if str, ok := v.(fmt.Stringer); ok {
-				out = append(out, fmt.Sprintf("%s='%s'", k, str.String()))
-			} else {
-				out = append(out, fmt.Sprintf("%s='%v'", k, v))
-			}
-		}
-
-		sort.Strings(out)
-
-		m.cachedOutput = fmt.Sprintf("[%s]", strings.Join(out, " "))
+	if m.cachedOutput != "" {
+		return m.cachedOutput
 	}
+
+	out := make([]string, 0, len(m.fields)+1)
+	if m.message != "" {
+		out = append(out, fmt.Sprintf("%s='%s'", FieldsMsgName, m.message))
+	}
+
+	for k, v := range m.fields {
+		if k == FieldsMsgName && v == m.message {
+			continue
+		}
+		if k == "time" {
+			continue
+		}
+		if k == "metadata" {
+			continue
+		}
+
+		if str, ok := v.(fmt.Stringer); ok {
+			out = append(out, fmt.Sprintf("%s='%s'", k, str.String()))
+		} else {
+			out = append(out, fmt.Sprintf("%s='%v'", k, v))
+		}
+	}
+	sort.Strings(out)
+	m.cachedOutput = strings.Join(out, " ")
 
 	return m.cachedOutput
 }

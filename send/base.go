@@ -116,11 +116,12 @@ func (b *Base) SetFormatter(mf MessageFormatter) {
 func (b *Base) Formatter() MessageFormatter {
 	return func(m message.Composer) (string, error) {
 		b.mutex.RLock()
-		defer b.mutex.RUnlock()
 
 		if b.formatter == nil {
+			b.mutex.RUnlock()
 			return m.String(), nil
 		}
+		defer b.mutex.RUnlock()
 
 		return b.formatter(m)
 	}

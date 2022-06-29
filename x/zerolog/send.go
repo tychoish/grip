@@ -64,6 +64,13 @@ func (s *shim) Send(m message.Composer) {
 	if !s.Level().ShouldLog(m) {
 		return
 	}
+	// unwind group messages
+	if grp, ok := m.(*message.GroupComposer); ok {
+		for _, msg := range grp.Messages() {
+			s.Send(msg)
+		}
+		return
+	}
 
 	event := s.zl.WithLevel(convertLevel(m.Priority()))
 	if !m.Structured() {
@@ -76,13 +83,28 @@ func (s *shim) Send(m message.Composer) {
 		return
 	}
 
+	// handle payloads to take advantage of the fast paths
 	payload := m.Raw()
 	switch data := payload.(type) {
 	case zerolog.LogObjectMarshaler:
 		event.EmbedObject(data)
 	case zerolog.LogArrayMarshaler:
 		event.Array("payload", data)
+	case message.KVs:
+		// opted to call event.Fields many times rather than
+		// build a new slice. probably.
+		pair := make([]any, 2)
+		for _, kv := range data {
+			pair[0], pair[1] = kv.Key, kv.Value
+			event.Fields(pair)
+		}
+	case message.Fields:
+		event.Fields(data)
+	case map[string]any:
+		event.Fields(data)
 	case json.Marshaler:
+		// message.KVs are json.Marshalers so make sure this
+		// clause stays last.
 		r, err := data.MarshalJSON()
 		if err != nil {
 			s.ErrorHandler()(err, m)
@@ -90,7 +112,10 @@ func (s *shim) Send(m message.Composer) {
 		}
 		event.RawJSON("payload", r)
 	default:
-		event.Fields(payload)
+		// in most cases this uses json.Marshler and
+		// reflection, so this will end up being a slower path
+		// than any of the above paths.
+		event.Interface("payload", payload)
 	}
 	event.Send()
 }
