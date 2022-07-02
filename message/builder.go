@@ -24,9 +24,9 @@ type Builder struct {
 
 // NewBuilder constructs the chainable builder type, and initializes
 // the error tracking and establishes a connection to the sender.
-func NewBuilder(sender func(Composer)) *Builder {
+func NewBuilder(send func(Composer)) *Builder {
 	return &Builder{
-		send:    sender,
+		send:    send,
 		catcher: emt.NewBasicCatcher(),
 	}
 }
@@ -110,7 +110,7 @@ func (b *Builder) Level(l level.Priority) *Builder {
 // methods.
 func (b *Builder) When(cond bool) *Builder {
 	if b.composer == nil {
-		b.catcher.New("must call when after creating a message")
+		b.catcher.New("must call 'when' after creating a message")
 		return b
 	}
 
@@ -126,10 +126,12 @@ func (b *Builder) Bytes(in []byte) *Builder                     { return b.set(M
 func (b *Builder) FieldsProducer(f FieldsProducer) *Builder     { return b.set(MakeFieldsProducer(f)) }
 func (b *Builder) ComposerProducer(f ComposerProducer) *Builder { return b.set(MakeProducer(f)) }
 func (b *Builder) ErrorProducer(f ErrorProducer) *Builder       { return b.set(MakeErrorProducer(f)) }
+func (b *Builder) KVProducer(f KVProducer) *Builder             { return b.set(MakeKVProducer(f)) }
 func (b *Builder) Composer(c Composer) *Builder                 { return b.set(c) }
 func (b *Builder) Any(msg interface{}) *Builder                 { return b.set(Convert(msg)) }
 func (b *Builder) StringMap(f map[string]string) *Builder       { return b.Fields(fromStrMap(f)) }
 func (b *Builder) AnyMap(f map[string]interface{}) *Builder     { return b.Fields(Fields(f)) }
+func (b *Builder) KV(kvs ...KV) *Builder                        { return b.KVs(kvs) }
 func (b *Builder) SetGroup(sendAsGroup bool) *Builder           { b.sendAsGroup = sendAsGroup; return b }
 func (b *Builder) Group() *Builder                              { b.sendAsGroup = true; return b }
 func (b *Builder) Ungroup() *Builder                            { b.sendAsGroup = false; return b }
@@ -148,6 +150,22 @@ func (b *Builder) Fields(f Fields) *Builder {
 		b.catcher.Add(b.composer.Annotate(k, v))
 	}
 
+	return b
+}
+
+// KVs, creates a new key-value message if no message has been
+// defined, and otherwise annotates the existing message with the
+// content of the input set. This is the same semantics as the Fields
+// message.
+func (b *Builder) KVs(kvs KVs) *Builder {
+	if b.composer == nil {
+		b.composer = MakeKVs(kvs)
+		return b
+	}
+
+	for _, kv := range kvs {
+		b.catcher.Add(b.composer.Annotate(kv.Key, kv.Value))
+	}
 	return b
 }
 
