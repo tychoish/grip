@@ -83,8 +83,9 @@ func (l LevelInfo) ShouldLog(m message.Composer) bool {
 }
 
 // Loggable returns true only when passed an argument that is equal to
-// or greater than the threshold.
-func (l LevelInfo) Loggable(p level.Priority) bool { return p >= l.Threshold }
+// or greater than the threshold. Messages with negative priority are
+// never loggable.
+func (l LevelInfo) Loggable(p level.Priority) bool { return p < 0 || p >= l.Threshold }
 
 func setup(s Sender, name string, l LevelInfo) (Sender, error) {
 	if err := s.SetLevel(l); err != nil {
