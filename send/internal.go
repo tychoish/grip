@@ -52,7 +52,7 @@ func NewInternalLogger(name string, l LevelInfo) (*InternalSender, error) {
 func MakeInternalLogger() *InternalSender {
 	s := &InternalSender{
 		Base:   NewBase(""),
-		output: make(chan *InternalMessage, 100),
+		output: make(chan *InternalMessage, 1000),
 	}
 
 	return s
