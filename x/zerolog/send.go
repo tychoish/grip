@@ -15,6 +15,12 @@ type shim struct {
 	*send.Base
 }
 
+// NewSener provides a simple shim around zerolog that's compatible
+// with other grip interfaces. The primary differences between zerolog
+// and grip are: a different level system and Zerolog contains a
+// fast-path for JSON marshalling of structured log paths. The shim
+// translates grip message types into appropriate Zerolog message
+// building calls to preserve the fast path.
 func NewSender(name string, l send.LevelInfo, zl zerolog.Logger) (send.Sender, error) {
 	s := &shim{
 		Base: send.NewBase(name),
@@ -27,6 +33,9 @@ func NewSender(name string, l send.LevelInfo, zl zerolog.Logger) (send.Sender, e
 	return s, nil
 }
 
+// MakeSender constructs a sender object as NewSender but without the
+// error type or level configuration, consistent with other grip
+// sender constructors.
 func MakeSender(zl zerolog.Logger) send.Sender {
 	s, _ := NewSender("", send.LevelInfo{Threshold: level.Trace, Default: level.Debug}, zl)
 	return s
