@@ -7,6 +7,7 @@ import (
 
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
+	"github.com/tychoish/birch"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -174,6 +175,7 @@ func NewProcessInfo(priority level.Priority, pid int32, message string) message.
 // populated.
 func (p *ProcessInfo) Loggable() bool { return p.loggable }
 func (*ProcessInfo) Structured() bool { return true }
+func (*ProcessInfo) Schema() string   { return "procinfo.0" }
 
 // Raw always returns the ProcessInfo object, however it will call the
 // Collect method of the base operation first.
@@ -187,6 +189,39 @@ func (p *ProcessInfo) String() string {
 	}
 
 	return p.rendered
+}
+
+func (p *ProcessInfo) MarshalDocument() (*birch.Document, error) {
+	proc := birch.DC.Elements(
+		birch.EC.Int32("pid", p.Pid),
+		birch.EC.Int32("parentPid", p.Parent),
+		birch.EC.Int("threads", p.Threads),
+		birch.EC.String("command", p.Command),
+		birch.EC.SubDocument("cpu", marshalCPU(&p.CPU)),
+		birch.EC.SubDocumentFromElements("io",
+			birch.EC.Int64("readCount", int64(p.IoStat.ReadCount)),
+			birch.EC.Int64("writeCount", int64(p.IoStat.WriteCount)),
+			birch.EC.Int64("readBytes", int64(p.IoStat.ReadBytes)),
+			birch.EC.Int64("writeBytes", int64(p.IoStat.WriteBytes))),
+		birch.EC.SubDocumentFromElements("mem",
+			birch.EC.Int64("rss", int64(p.Memory.RSS)),
+			birch.EC.Int64("vms", int64(p.Memory.VMS)),
+			birch.EC.Int64("hwm", int64(p.Memory.HWM)),
+			birch.EC.Int64("data", int64(p.Memory.Data)),
+			birch.EC.Int64("stack", int64(p.Memory.Stack)),
+			birch.EC.Int64("locked", int64(p.Memory.Locked)),
+			birch.EC.Int64("swap", int64(p.Memory.Swap))),
+	)
+
+	proc.AppendOmitEmpty(marshalMemExtra(&p.MemoryPlatform))
+	na := birch.MakeArray(len(p.NetStat))
+
+	for _, netstat := range p.NetStat {
+		na.Append(birch.VC.Document(marshalNetStat(&netstat)))
+	}
+
+	proc.Append(birch.EC.Array("net", na))
+	return proc, nil
 }
 
 ///////////////////////////////////////////////////////////////////////////

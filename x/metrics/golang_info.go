@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tychoish/birch"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -114,20 +115,20 @@ func CollectBasicGoStats() message.Composer {
 	m := goStatsCache.update()
 
 	return message.MakeFields(message.Fields{
-		"memory.objects.HeapObjects":  m.HeapObjects,
-		"memory.summary.Alloc":        m.Alloc,
-		"memory.summary.System":       m.HeapSys,
-		"memory.heap.Idle":            m.HeapIdle,
-		"memory.heap.InUse":           m.HeapInuse,
-		"memory.counters.mallocs":     goStatsCache.mallocs().float(),
-		"memory.counters.frees":       goStatsCache.frees().float(),
-		"gc.rate.perSecond":           goStatsCache.gcs().float(),
-		"gc.pause.sinceLast.span":     int64(time.Since(goStatsCache.lastGC)),
-		"gc.pause.sinceLast.string":   time.Since(goStatsCache.lastGC).String(),
-		"gc.pause.last.duration.span": goStatsCache.gcPause,
-		"gc.pause.last.span":          time.Duration(goStatsCache.gcPause).String(),
-		"goroutines.total":            runtime.NumGoroutine(),
-		"cgo.calls":                   goStatsCache.cgo().float(),
+		"memory.objects.heap":      m.HeapObjects,
+		"memory.summary.alloc":     m.Alloc,
+		"memory.summary.system":    m.HeapSys,
+		"memory.heap.Idle":         m.HeapIdle,
+		"memory.heap.InUse":        m.HeapInuse,
+		"memory.counters.mallocs":  goStatsCache.mallocs().float(),
+		"memory.counters.frees":    goStatsCache.frees().float(),
+		"gc.rate":                  goStatsCache.gcs().float(),
+		"gc.pause.duration.span":   int64(time.Since(goStatsCache.lastGC)),
+		"gc.pause.duration.string": time.Since(goStatsCache.lastGC).String(),
+		"gc.pause.last.span":       goStatsCache.gcPause,
+		"gc.pause.last.string":     time.Duration(goStatsCache.gcPause).String(),
+		"goroutines.total":         runtime.NumGoroutine(),
+		"cgo.calls":                goStatsCache.cgo().float(),
 	})
 }
 
@@ -303,6 +304,7 @@ func (s *GoRuntimeInfo) build() {
 // populated. Loggable is part of the Composer interface.
 func (s *GoRuntimeInfo) Loggable() bool { return s.loggable }
 func (*GoRuntimeInfo) Structured() bool { return true }
+func (*GoRuntimeInfo) Schema() string   { return "runtime.0" }
 
 // Raw is part of the Composer interface and returns the GoRuntimeInfo
 // object itself.
@@ -315,4 +317,20 @@ func (s *GoRuntimeInfo) String() string {
 	}
 
 	return s.rendered
+}
+
+func (s *GoRuntimeInfo) MarshalDocument() (*birch.Document, error) {
+	return birch.DC.Elements(
+		birch.EC.Int64("memory.objects.heap", int64(s.HeapObjects)),
+		birch.EC.Int64("memory.summary.alloc", int64(s.Alloc)),
+		birch.EC.Int64("memory.summary.system", int64(s.HeapSystem)),
+		birch.EC.Int64("memory.heap.idle", int64(s.HeapIdle)),
+		birch.EC.Int64("memory.heap.used", int64(s.HeapInUse)),
+		birch.EC.Int64("memory.counters.mallocs", s.Mallocs),
+		birch.EC.Int64("memory.counters.frees", s.Frees),
+		birch.EC.Int64("gc.rate", s.GC),
+		birch.EC.Duration("gc.pause.duration.last", s.GCPause),
+		birch.EC.Duration("gc.pause.duration.latency", s.GCLatency),
+		birch.EC.Int64("goroutines.total", s.Goroutines),
+		birch.EC.Int64("cgo.calls", s.CgoCalls)), nil
 }
