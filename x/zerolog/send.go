@@ -24,6 +24,7 @@ type shim struct {
 func NewSender(name string, l send.LevelInfo, zl zerolog.Logger) (send.Sender, error) {
 	s := &shim{
 		Base: send.NewBase(name),
+		zl:   zl,
 	}
 
 	if err := s.SetLevel(l); err != nil {
