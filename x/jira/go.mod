@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/andygrunwald/go-jira v1.15.1
 	github.com/dghubble/oauth1 v0.7.1
-	github.com/tychoish/grip v0.1.0
+	github.com/tychoish/grip v0.1.1
 )
 
 require (
@@ -15,5 +15,5 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/testify v1.7.5 // indirect
 	github.com/trivago/tgo v1.0.7 // indirect
-	github.com/tychoish/emt v0.0.0-20220306153139-74b97c67f209 // indirect
+	github.com/tychoish/fun v0.1.0 // indirect
 )

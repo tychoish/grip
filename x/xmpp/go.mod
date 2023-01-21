@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/mattn/go-xmpp v0.0.0-20220513082406-1411b9cc8b9a
-	github.com/tychoish/grip v0.1.0
+	github.com/tychoish/grip v0.1.1
 )
 
-require github.com/tychoish/emt v0.1.0 // indirect
+require github.com/tychoish/fun v0.1.0 // indirect
