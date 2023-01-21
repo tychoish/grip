@@ -1,7 +1,9 @@
 package message
 
 import (
-	"github.com/tychoish/emt"
+	"errors"
+
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/level"
 )
 
@@ -18,27 +20,22 @@ import (
 type Builder struct {
 	send        func(Composer)
 	composer    Composer
-	catcher     emt.Catcher
+	catcher     erc.Collector
 	sendAsGroup bool
 }
 
 // NewBuilder constructs the chainable builder type, and initializes
 // the error tracking and establishes a connection to the sender.
 func NewBuilder(send func(Composer)) *Builder {
-	return &Builder{
-		send:    send,
-		catcher: emt.NewBasicCatcher(),
-	}
+	return &Builder{send: send}
 }
 
 // MakeBuilder constructs a Builder without a sender. Calling Send
 // results in an error but the Message() method can be used as a
 // finalizer in a chain.
 func MakeBuilder() *Builder {
-	b := &Builder{
-		catcher: emt.NewBasicCatcher(),
-	}
-	b.send = func(Composer) { b.catcher.New("cannot send message to unconfigured builder") }
+	b := &Builder{}
+	b.send = func(Composer) { b.catcher.Add(errors.New("cannot send message to unconfigured builder")) }
 	return b
 }
 
@@ -96,7 +93,7 @@ func (b *Builder) Message() Composer {
 // if the level is not valid.
 func (b *Builder) Level(l level.Priority) *Builder {
 	if b.composer == nil {
-		b.catcher.New("must add message before setting priority")
+		b.catcher.Add(errors.New("must add message before setting priority"))
 		return b
 	}
 	b.catcher.Add(b.composer.SetPriority(l))
@@ -110,7 +107,7 @@ func (b *Builder) Level(l level.Priority) *Builder {
 // methods.
 func (b *Builder) When(cond bool) *Builder {
 	if b.composer == nil {
-		b.catcher.New("must call 'when' after creating a message")
+		b.catcher.Add(errors.New("must call 'when' after creating a message"))
 		return b
 	}
 

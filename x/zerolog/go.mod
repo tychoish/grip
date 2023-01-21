@@ -4,10 +4,12 @@ go 1.18
 
 require (
 	github.com/rs/zerolog v1.27.0
+	github.com/tychoish/grip v0.1.0
 )
 
 require (
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
-	golang.org/x/sys v0.0.0-20220624220833-87e55d714810 // indirect
+	github.com/tychoish/emt v0.0.0-20220306153139-74b97c67f209 // indirect
+	golang.org/x/sys v0.0.0-20221013171732-95e765b1cc43 // indirect
 )

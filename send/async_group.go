@@ -2,10 +2,9 @@ package send
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strings"
 
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/message"
 )
 
@@ -53,28 +52,22 @@ func NewAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Sende
 
 	s.closer = func() error {
 		s.cancel()
+		catcher := &erc.Collector{}
 
-		errs := []string{}
 		for _, sender := range s.senders {
-			if err := sender.Close(); err != nil {
-				errs = append(errs, err.Error())
-			}
+			catcher.Add(sender.Close())
 		}
 
 		for idx, pipe := range s.pipes {
 			if len(pipe) > 0 {
-				errs = append(errs, fmt.Sprintf("buffer for sender #%d has %d items remaining",
+				catcher.Add(fmt.Errorf("buffer for sender #%d has %d items remaining",
 					idx, len(pipe)))
 
 			}
 			close(pipe)
 		}
 
-		if len(errs) > 0 {
-			return errors.New(strings.Join(errs, "\n"))
-		}
-
-		return nil
+		return catcher.Resolve()
 	}
 	return s
 }
@@ -90,11 +83,13 @@ func (s *asyncGroupSender) SetLevel(l LevelInfo) error {
 		return err
 	}
 
+	catcher := &erc.Collector{}
+
 	for _, sender := range s.senders {
-		_ = sender.SetLevel(l)
+		catcher.Add(sender.SetLevel(l))
 	}
 
-	return nil
+	return catcher.Resolve()
 }
 
 func (s *asyncGroupSender) Send(m message.Composer) {
@@ -113,12 +108,9 @@ func (s *asyncGroupSender) Send(m message.Composer) {
 }
 
 func (s *asyncGroupSender) Flush(ctx context.Context) error {
-	var lastErr error
+	catcher := &erc.Collector{}
 	for _, sender := range s.senders {
-		if err := sender.Flush(ctx); err != nil {
-			lastErr = nil
-		}
+		catcher.Add(sender.Flush(ctx))
 	}
-
-	return lastErr
+	return catcher.Resolve()
 }

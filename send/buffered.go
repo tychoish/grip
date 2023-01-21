@@ -56,6 +56,8 @@ func NewBuffered(sender Sender, interval time.Duration, size int) Sender {
 	return s
 }
 
+func (s *bufferedSender) Unwrap() Sender { return s.Sender }
+
 func (s *bufferedSender) Send(msg message.Composer) {
 	if !s.Level().Loggable(msg.Priority()) {
 		return

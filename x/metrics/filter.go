@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,7 +10,7 @@ import (
 	"time"
 
 	"github.com/tychoish/birch/ftdc"
-	"github.com/tychoish/emt"
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -40,14 +41,22 @@ type CollectOptions struct {
 	WriterConstructor func(string) (io.WriteCloser, error)
 }
 
+func validateCondition(ec *erc.Collector, cond bool, str string) {
+	if !cond {
+		return
+	}
+
+	ec.Add(errors.New(str))
+}
+
 func (opts CollectOptions) Validate() error {
-	catcher := emt.NewBasicCatcher()
-	catcher.NewWhen(opts.FlushInterval < 10*time.Millisecond, "flush interval must be greater than 10ms")
-	catcher.NewWhen(opts.SampleCount < 10, "sample count must be greater than 10")
-	catcher.NewWhen(opts.BlockCount < 10, "block count must be greater than 10")
-	catcher.NewWhen(opts.OutputFilePrefix == "", "must specify prefix for output files")
-	catcher.NewWhen(opts.WriterConstructor == nil, "must specifiy a constructor ")
-	return catcher.Resolve()
+	ec := &erc.Collector{}
+	validateCondition(ec, opts.FlushInterval < 10*time.Millisecond, "flush interval must be greater than 10ms")
+	validateCondition(ec, opts.SampleCount < 10, "sample count must be greater than 10")
+	validateCondition(ec, opts.BlockCount < 10, "block count must be greater than 10")
+	validateCondition(ec, opts.OutputFilePrefix == "", "must specify prefix for output files")
+	validateCondition(ec, opts.WriterConstructor == nil, "must specifiy a constructor ")
+	return ec.Resolve()
 }
 
 // DefaultCollectionOptions produces a reasonable collection
@@ -69,7 +78,7 @@ type metricsFilterImpl struct {
 	mtx         sync.Mutex
 	collectors  map[string]ftdc.Collector
 	constructor func(string) ftdc.Collector
-	closers     []emt.CheckFunction
+	closers     []func() error
 }
 
 // NewFilter produces a sender that persists metrics collection to
@@ -170,8 +179,10 @@ func (mf *metricsFilterImpl) Close() error {
 	mf.mtx.Lock()
 	defer mf.mtx.Unlock()
 
-	catcher := emt.NewBasicCatcher()
-	catcher.CheckExtend(mf.closers)
+	catcher := &erc.Collector{}
+	for _, fn := range mf.closers {
+		catcher.Check(fn)
+	}
 	catcher.Add(mf.Sender.Close())
 
 	return catcher.Resolve()

@@ -54,6 +54,8 @@ func NewWriter(s Sender, p level.Priority) *WriterSender {
 	}
 }
 
+func (s *WriterSender) Unwrap() Sender { return s.Sender }
+
 // Write captures a sequence of bytes to the send interface. It never errors.
 func (s *WriterSender) Write(p []byte) (int, error) {
 	s.mu.Lock()

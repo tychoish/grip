@@ -6,3 +6,5 @@ data
 build
 cover.out
 cover.html
+coverage.html
+coverage.out

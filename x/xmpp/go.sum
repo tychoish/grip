@@ -1,0 +1,6 @@
+github.com/mattn/go-xmpp v0.0.0-20220513082406-1411b9cc8b9a h1:sKMsZuaXOyrN9kzdM3kGS4L5f0JTpno7PMIUVw5smzo=
+github.com/mattn/go-xmpp v0.0.0-20220513082406-1411b9cc8b9a/go.mod h1:Cs5mF0OsrRRmhkyOod//ldNPOwJsrBvJ+1WRspv0xoc=
+github.com/tychoish/emt v0.1.0 h1:OMJ/lKO17hxijZW2UdbZY4vOfTwVKZzTb8FB0g8fh74=
+github.com/tychoish/emt v0.1.0/go.mod h1:KMhVWIsL98Q8AoorphjsOQWabcNOoYqMSpODR/rtRb4=
+github.com/tychoish/grip v0.1.0 h1:9sqCK8j4teuRQBYEf5oivmju4k2SxSJfrMhHaW7EVc0=
+github.com/tychoish/grip v0.1.0/go.mod h1:MQJx1mQV4rUBK2G/UxB+e6zxBI4zNOg2iiB191vwmvk=

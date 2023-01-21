@@ -18,7 +18,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tychoish/emt"
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -46,8 +46,7 @@ func LogStackTraceAndExit(opDetails ...string) {
 //
 // Use in a common defer statement, such as:
 //
-//    defer recovery.LogStackTraceAndContinue("operation")
-//
+//	defer recovery.LogStackTraceAndContinue("operation")
 func LogStackTraceAndContinue(opDetails ...string) {
 	if p := recover(); p != nil {
 		logAndContinue(p, grip.NewLogger(grip.Sender()), message.MakeFields(getMessage(opDetails)))
@@ -62,15 +61,14 @@ func LogStackTraceAndContinue(opDetails ...string) {
 //
 // You must construct a recovery function as in the following example:
 //
-//     defer func() { err = recovery.HandlePanicWithError(recover(),  err, "op") }()
+//	defer func() { err = recovery.HandlePanicWithError(recover(),  err, "op") }()
 //
 // This defer statement must occur in a function that declares a
 // default error return value as in:
 //
-//     func operation() (err error) {}
-//
+//	func operation() (err error) {}
 func HandlePanicWithError(p interface{}, err error, opDetails ...string) error {
-	catcher := emt.NewSimpleCatcher()
+	catcher := &erc.Collector{}
 	catcher.Add(err)
 
 	if p != nil {
@@ -135,7 +133,7 @@ func SendStackTraceMessageAndExit(logger grip.Logger, m interface{}) {
 // the same rules as logging methods, and annotates those messages
 // with the stack trace and panic information.
 func AnnotateMessageWithPanicError(p interface{}, err error, m interface{}) error {
-	catcher := emt.NewSimpleCatcher()
+	catcher := &erc.Collector{}
 	catcher.Add(err)
 
 	if p != nil {
@@ -152,7 +150,7 @@ func AnnotateMessageWithPanicError(p interface{}, err error, m interface{}) erro
 // AnnotateMessageWithPanicError, but allows you to inject a custom
 // grip.Jounaler interface to receive the log message.
 func SendMessageWithPanicError(p interface{}, err error, logger grip.Logger, m interface{}) error {
-	catcher := emt.NewSimpleCatcher()
+	catcher := &erc.Collector{}
 	catcher.Add(err)
 
 	if p != nil {

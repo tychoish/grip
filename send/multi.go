@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -82,17 +82,11 @@ func AddToMulti(multi Sender, s Sender) error {
 }
 
 func (s *multiSender) Close() error {
-	errs := []string{}
+	catcher := &erc.Collector{}
 	for _, sender := range s.senders {
-		if err := sender.Close(); err != nil {
-			errs = append(errs, err.Error())
-		}
+		catcher.Add(sender.Close())
 	}
-	if len(errs) > 0 {
-		return errors.New(strings.Join(errs, "\n"))
-	}
-
-	return nil
+	return catcher.Resolve()
 }
 
 func (s *multiSender) add(sender Sender) error {
@@ -148,12 +142,10 @@ func (s *multiSender) Send(m message.Composer) {
 }
 
 func (s *multiSender) Flush(ctx context.Context) error {
-	var lastErr error
+	catcher := &erc.Collector{}
 	for _, sender := range s.senders {
-		if err := sender.Flush(ctx); err != nil {
-			lastErr = err
-		}
+		catcher.Add(sender.Flush(ctx))
 	}
 
-	return lastErr
+	return catcher.Resolve()
 }

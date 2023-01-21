@@ -3,7 +3,7 @@ package send
 import (
 	"log"
 
-	"github.com/tychoish/emt"
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/message"
 )
 
@@ -39,7 +39,7 @@ func ErrorHandlerFromSender(s Sender) ErrorHandler {
 // catcher. At the very least, consider using a catcher that has a
 // specified maxsize, and possibly timestamp annotating catcher as
 // well.
-func MakeCatcherErrorHandler(catcher emt.Catcher, fallback Sender) ErrorHandler {
+func MakeCatcherErrorHandler(catcher *erc.Collector, fallback Sender) ErrorHandler {
 	return func(err error, m message.Composer) {
 		if err == nil {
 			return

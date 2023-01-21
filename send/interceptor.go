@@ -22,6 +22,8 @@ func NewInterceptor(sender Sender, ifn func(message.Composer)) Sender {
 	}
 }
 
+func (s *interceptor) Unwrap() Sender { return s.Sender }
+
 func (s *interceptor) Send(m message.Composer) {
 	s.filter(m)
 	s.Sender.Send(m)
