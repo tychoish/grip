@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tychoish/birch/ftdc"
+	"github.com/tychoish/birch/x/ftdc"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
