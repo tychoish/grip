@@ -10,6 +10,6 @@ require (
 )
 
 require (
-	github.com/stretchr/testify v1.7.5 // indirect
+	github.com/stretchr/testify v1.8.0 // indirect
 	github.com/tychoish/fun v0.3.0 // indirect
 )

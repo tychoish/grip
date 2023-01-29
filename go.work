@@ -13,5 +13,6 @@ use (
 	./x/system
 	./x/twitter
 	./x/xmpp
+	./x/zap
 	./x/zerolog
 )
