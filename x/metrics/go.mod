@@ -5,8 +5,8 @@ go 1.18
 require (
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/tychoish/birch v0.1.0
-	github.com/tychoish/birch/x/ftdc v0.0.0-20230128152203-96cfeec93fb2
-	github.com/tychoish/fun v0.3.0
+	github.com/tychoish/birch/x/ftdc v0.0.0-20230129175603-45d936d8ebc3
+	github.com/tychoish/fun v0.3.3
 	github.com/tychoish/grip v0.1.1
 )
 
