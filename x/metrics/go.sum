@@ -19,6 +19,8 @@ github.com/tklauser/numcpus v0.5.0 h1:ooe7gN0fg6myJ0EKoTAf5hebTZrH52px3New/D9iJ+
 github.com/tklauser/numcpus v0.5.0/go.mod h1:OGzpTxpcIMNGYQdit2BYL1pvk/dSOaJWjKoflh+RQjo=
 github.com/tychoish/birch v0.1.0 h1:ASACb4zgCvh1GkcwW1Wdu6s+5lfjROPrxdXlqZipVdU=
 github.com/tychoish/birch v0.1.0/go.mod h1:0ksDaN9jaDnAN8uZwhnASaoM9pgGZQfZsJBYtSDHI/Q=
+github.com/tychoish/birch v0.1.1 h1:ZjsztmynMoRFlqOe3tUP9D1MBZItQ+c6oi+1Y1FC6Tw=
+github.com/tychoish/birch v0.1.1/go.mod h1:ApDPb1vnttFeLKXmOFSRj3Fk1ZNiYTWUmmOD5HYQYBM=
 github.com/tychoish/birch/x/ftdc v0.0.0-20230128152203-96cfeec93fb2 h1:PY3+pLz3A/nyGT+9QRJM/r8uhbtd1sHGeIvHiGjP6D4=
 github.com/tychoish/birch/x/ftdc v0.0.0-20230128152203-96cfeec93fb2/go.mod h1:2El2Zaa/taH0qPbNMBgvA080GDcUQ9fh8bn0cKPhxw0=
 github.com/tychoish/birch/x/ftdc v0.0.0-20230129175603-45d936d8ebc3 h1:SyOYFfefJxUrxiP1Hu/iKivdb0/itXCxItNf2tvsL50=
