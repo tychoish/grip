@@ -14,7 +14,9 @@ github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSS
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0 h1:pSgiaMZlXftHpm5L7V1+rVB+AZJydKsMxsQBIJw4PKk=
+github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/tychoish/fun v0.3.0 h1:6MXeGXEkCSkgSxK3hJOLg6h8ro2duXIqjwygof5Sbpk=
+github.com/tychoish/fun v0.3.0/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
 github.com/tychoish/grip v0.1.1 h1:P1hXdnagbrwIRWaO9+awGdEQKRkOpFBUdJf4llEyObc=
 github.com/tychoish/grip v0.1.1/go.mod h1:Vxl3fsRs/5aAsnS3ff7/OT3C+A/kEWf08FgA2xSJfMY=
 github.com/tychoish/sumologic v1.0.0 h1:Np1J+dQBhhi7e7XbnW6hX/689gquD/3SumMBYT5OyqI=

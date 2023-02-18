@@ -181,7 +181,7 @@ func (mf *metricsFilterImpl) Close() error {
 
 	catcher := &erc.Collector{}
 	for _, fn := range mf.closers {
-		catcher.Check(fn)
+		erc.Check(catcher, fn)
 	}
 	catcher.Add(mf.Sender.Close())
 
