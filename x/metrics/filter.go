@@ -55,7 +55,7 @@ func (opts CollectOptions) Validate() error {
 	validateCondition(ec, opts.SampleCount < 10, "sample count must be greater than 10")
 	validateCondition(ec, opts.BlockCount < 10, "block count must be greater than 10")
 	validateCondition(ec, opts.OutputFilePrefix == "", "must specify prefix for output files")
-	validateCondition(ec, opts.WriterConstructor == nil, "must specifiy a constructor ")
+	validateCondition(ec, opts.WriterConstructor == nil, "must specify a constructor ")
 	return ec.Resolve()
 }
 
@@ -153,8 +153,6 @@ func (mf *metricsFilterImpl) Send(msg message.Composer) {
 					"prefix":              mf.opts.OutputFilePrefix,
 				}))
 			}
-
-			coll.Add(msg.Raw())
 		}
 	}
 
@@ -251,7 +249,7 @@ func (mf *metricsFilterImpl) rotatingCollector(ctx context.Context, name string)
 		for {
 			select {
 			case <-bgFlushCtx.Done():
-				flusher(closeCollector)
+				_ = flusher(closeCollector)
 				return
 			case <-timer.C:
 				if err := flusher(reuseCollector); err != nil {

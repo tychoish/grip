@@ -49,7 +49,6 @@ func TestConstructorMustPassAuthTest(t *testing.T) {
 }
 
 func TestConstructorErrorsWithInvalidConfigs(t *testing.T) {
-	opts := setupFixture()
 	sender, err := NewIssueSender(context.Background(), nil, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
 
 	if sender != nil {
@@ -67,7 +66,7 @@ func TestConstructorErrorsWithInvalidConfigs(t *testing.T) {
 		t.Error("expected an error but got nil")
 	}
 
-	opts = &Options{
+	opts := &Options{
 		BasicAuthOpts: BasicAuth{
 			Username: "foo",
 			Password: "bar",
@@ -328,7 +327,7 @@ func TestCustomFields(t *testing.T) {
 	}
 
 	m := MakeIssue(jiraIssue)
-	if err := m.SetPriority(level.Warning); err != nil {
+	if err = m.SetPriority(level.Warning); err != nil {
 		t.Fatal(err)
 	}
 

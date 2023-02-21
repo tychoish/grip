@@ -263,8 +263,6 @@ func NewGoStatsRates(p level.Priority, msg string) message.Composer {
 	return s
 }
 
-func (s *GoRuntimeInfo) doCollect() { _ = s.Collect() }
-
 func (s *GoRuntimeInfo) build() {
 	goStatsCache.Lock()
 	defer goStatsCache.Unlock()
@@ -308,9 +306,9 @@ func (*GoRuntimeInfo) Schema() string   { return "runtime.0" }
 
 // Raw is part of the Composer interface and returns the GoRuntimeInfo
 // object itself.
-func (s *GoRuntimeInfo) Raw() interface{} { s.doCollect(); return s }
+func (s *GoRuntimeInfo) Raw() interface{} { s.Collect(); return s }
 func (s *GoRuntimeInfo) String() string {
-	s.doCollect()
+	s.Collect()
 
 	if s.rendered == "" {
 		s.rendered = renderStatsString(s.Message, s)

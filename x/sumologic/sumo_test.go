@@ -51,7 +51,7 @@ func TestConstructorEnvVar(t *testing.T) {
 		t.Fatal("sender should not have been nil")
 	}
 
-	if err := os.Unsetenv(sumoEndpointEnvVar); err != nil {
+	if err = os.Unsetenv(sumoEndpointEnvVar); err != nil {
 		t.Fatal(err)
 	}
 

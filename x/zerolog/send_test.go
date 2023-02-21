@@ -16,7 +16,14 @@ func TestZeroSender(t *testing.T) {
 			}
 
 		}()
-		NewSender("hello", send.LevelInfo{Threshold: level.Debug, Default: level.Info}, zerolog.Nop())
+		s, err := NewSender("hello", send.LevelInfo{Threshold: level.Debug, Default: level.Info}, zerolog.Nop())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if s == nil {
+			t.Fatal("s should not be nil")
+		}
+
 	})
 
 }

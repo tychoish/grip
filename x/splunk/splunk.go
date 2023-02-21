@@ -37,9 +37,9 @@ type ConnectionInfo struct {
 // GetConnectionInfo builds a SplunkConnectionInfo structure
 // reading default values from the following environment variables:
 //
-//		GRIP_SPLUNK_SERVER_URL
-//		GRIP_SPLUNK_CLIENT_TOKEN
-//		GRIP_SPLUNK_CHANNEL
+//	GRIP_SPLUNK_SERVER_URL
+//	GRIP_SPLUNK_CLIENT_TOKEN
+//	GRIP_SPLUNK_CHANNEL
 func GetConnectionInfo() ConnectionInfo {
 	return ConnectionInfo{
 		ServerURL: os.Getenv(splunkServerURL),
@@ -158,9 +158,9 @@ func buildSplunkLogger(name string, client *http.Client, info ConnectionInfo, l 
 // MakeSender constructs a new Sender implementation that reads
 // the hostname, username, and password from environment variables:
 //
-//		GRIP_SPLUNK_SERVER_URL
-//		GRIP_SPLUNK_CLIENT_TOKEN
-//		GRIP_SPLUNK_CLIENT_CHANNEL
+//	GRIP_SPLUNK_SERVER_URL
+//	GRIP_SPLUNK_CLIENT_TOKEN
+//	GRIP_SPLUNK_CLIENT_CHANNEL
 func MakeSender(name string) (send.Sender, error) {
 	info := GetConnectionInfo()
 	if err := info.validateFromEnv(); err != nil {

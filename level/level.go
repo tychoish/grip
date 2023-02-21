@@ -4,7 +4,6 @@ logging level schema, which mirror syslog and system's logging levels.
 
 Levels range from Emergency (0) to Debug (7), and the special type
 Priority and associated constants provide access to these values.
-
 */
 package level
 

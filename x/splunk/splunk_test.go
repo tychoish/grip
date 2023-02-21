@@ -115,7 +115,7 @@ func TestAutoConstructorFailsWhenEnvVarFails(t *testing.T) {
 
 	serverVal = "serverVal"
 
-	if err := os.Setenv(splunkServerURL, serverVal); err != nil {
+	if err = os.Setenv(splunkServerURL, serverVal); err != nil {
 		t.Fatal(err)
 	}
 	sender, err = MakeSender("name")

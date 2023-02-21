@@ -20,19 +20,19 @@
 // attached to a context or the global instance if one is not
 // configured.
 //
-// Basic Logger
+// # Basic Logger
 //
 // The Logger type provides helpers for sending messages at the
 // following levels:
 //
-//    Emergency + (fatal/panic)
-//    Alert
-//    Critical
-//    Error
-//    Warning
-//    Notice
-//    Info
-//    Debug
+//	Emergency + (fatal/panic)
+//	Alert
+//	Critical
+//	Error
+//	Warning
+//	Notice
+//	Info
+//	Debug
 //
 // These helpers also include Log* helpers to parameterize the level, as
 // well as the Send method for default logging (or when the level is

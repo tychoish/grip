@@ -3,9 +3,9 @@
 // Grip can automatically convert three types of functions into
 // messages:
 //
-//    func() Fields
-//    func() Composer
-//    func() error
+//	func() Fields
+//	func() Composer
+//	func() error
 //
 // The benefit of these functions is that they're only called if
 // the message is above the logging threshold. In the case of
@@ -23,13 +23,12 @@
 // use defer with io.Closer methods without wrapping the method in an
 // additional function, as in:
 //
-//     defer grip.Error(file.Close)
+//	defer grip.Error(file.Close)
 //
 // Although the WrapErrorFunc method, as in the following may permit
 // useful annotation, as follows, which has the same "lazy" semantics.
 //
-//     defer grip.Error(message.WrapErrorFunc(file.Close, message.Fields{}))
-//
+//	defer grip.Error(message.WrapErrorFunc(file.Close, message.Fields{}))
 package message
 
 import (
@@ -70,7 +69,7 @@ func MakeKVProducer(kp KVProducer) Composer {
 // as a way of writing simple Composer implementations in the form
 // anonymous functions, as in:
 //
-//    grip.Info(func() message.Fields {return message.Fields{"message": "hello world!"}})
+//	grip.Info(func() message.Fields {return message.Fields{"message": "hello world!"}})
 //
 // Grip can automatically convert these functions when passed to a
 // logging function.
@@ -132,7 +131,7 @@ func NewConvertedFieldsProducer(p level.Priority, mp func() map[string]interface
 // implement new Composers as functions returning an existing composer
 // type. Consider the following:
 //
-//    grip.Info(func() message.Composer { return WrapError(validateRequest(req), message.Fields{"op": "name"})})
+//	grip.Info(func() message.Composer { return WrapError(validateRequest(req), message.Fields{"op": "name"})})
 //
 // Grip can automatically convert these functions when passed to a
 // logging function.
@@ -221,12 +220,12 @@ func (cp *composerProducerMessage) Raw() interface{}         { cp.resolve(); ret
 // ConvertToComposer operation will construct a lazy Composer based on
 // this function, as in:
 //
-//    grip.Error(func() error { return errors.New("error message") })
+//	grip.Error(func() error { return errors.New("error message") })
 //
 // It may be useful also to pass a "closer" function in this form, as
 // in:
 //
-//    grip.Error(file.Close)
+//	grip.Error(file.Close)
 //
 // As a special case the WrapErrorFunc method has the same semantics
 // as other ErrorProducer methods, but makes it possible to annotate

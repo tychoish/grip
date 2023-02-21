@@ -29,22 +29,16 @@ func (b *Base) IsZero() bool {
 
 // Collect records the time, process name, and hostname. Useful in the
 // context of a Raw() method.
-func (b *Base) Collect() error {
+func (b *Base) Collect() {
 	if b.Pid > 0 {
-		return nil
+		return
 	}
 
-	var err error
-	b.Hostname, err = os.Hostname()
-	if err != nil {
-		return err
-	}
+	b.Hostname, _ = os.Hostname()
 
 	b.Time = time.Now()
 	b.Process = os.Args[0]
 	b.Pid = os.Getpid()
-
-	return nil
 }
 
 // Priority returns the configured priority of the message.

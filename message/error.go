@@ -53,7 +53,7 @@ func (e *errorMessage) String() string {
 func (e *errorMessage) Loggable() bool { return e.err != nil }
 
 func (e *errorMessage) Raw() interface{} {
-	_ = e.Collect()
+	e.Collect()
 	_ = e.String()
 
 	extended := fmt.Sprintf("%+v", e.err)

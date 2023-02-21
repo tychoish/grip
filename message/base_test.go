@@ -13,9 +13,7 @@ func TestCollectWorksWithUnsetPids(t *testing.T) {
 		t.Error("values should be equal")
 	}
 	base.Pid = 0
-	if err := base.Collect(); err != nil {
-		t.Fatal(err)
-	}
+	base.Collect()
 	if base.Hostname == "" {
 		t.Error("hostname should be populated")
 	}
@@ -30,9 +28,7 @@ func TestCollectNoopsIfPidIsSet(t *testing.T) {
 		t.Error("values should be equal")
 	}
 	base.Pid = 1
-	if err := base.Collect(); err != nil {
-		t.Fatal(err)
-	}
+	base.Collect()
 	if base.Hostname != "" {
 		t.Error("values should be equal")
 	}

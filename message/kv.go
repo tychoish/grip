@@ -107,7 +107,7 @@ func (m *kvMsg) String() string {
 		return m.cachedOutput
 	}
 	if !m.skipMetadata {
-		_ = m.Collect()
+		m.Collect()
 		m.fields = append(m.fields, KV{Key: "metadata", Value: &m.Base})
 	}
 

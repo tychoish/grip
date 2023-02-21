@@ -76,9 +76,4 @@ func (l *lineMessenger) String() string {
 	return l.Message
 }
 
-func (l *lineMessenger) Raw() interface{} {
-	_ = l.Collect()
-	_ = l.String()
-
-	return l
-}
+func (l *lineMessenger) Raw() interface{} { l.Collect(); _ = l.String(); return l }

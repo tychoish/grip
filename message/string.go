@@ -40,7 +40,7 @@ func (s *stringMessage) String() string { return s.Message }
 func (s *stringMessage) Loggable() bool { return s.Message != "" }
 func (s *stringMessage) Raw() interface{} {
 	if !s.skipMetadata {
-		_ = s.Collect()
+		s.Collect()
 	}
 	return s
 }

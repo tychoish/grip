@@ -148,7 +148,7 @@ func (m *fieldMessage) setup() {
 		return
 	}
 
-	_ = m.Collect()
+	m.Collect()
 
 	if b, ok := m.fields["metadata"]; !ok {
 		m.fields["metadata"] = &m.Base

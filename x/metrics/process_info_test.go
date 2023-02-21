@@ -18,7 +18,7 @@ func TestChildren(t *testing.T) {
 		t.Error(err)
 	}
 	cmd := exec.Command("sleep", "1")
-	if err := cmd.Start(); err != nil {
+	if err = cmd.Start(); err != nil {
 		t.Error(err)
 	}
 
