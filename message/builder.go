@@ -30,15 +30,6 @@ func NewBuilder(send func(Composer)) *Builder {
 	return &Builder{send: send}
 }
 
-// MakeBuilder constructs a Builder without a sender. Calling Send
-// results in an error but the Message() method can be used as a
-// finalizer in a chain.
-func MakeBuilder() *Builder {
-	b := &Builder{}
-	b.send = func(Composer) { b.catcher.Add(errors.New("cannot send message to unconfigured builder")) }
-	return b
-}
-
 // Send finalizes the chain and delivers the message. Send resolves
 // the built message using the Message method.
 //
@@ -46,6 +37,11 @@ func MakeBuilder() *Builder {
 // Group() is set to true, then the GroupComposer's default behavior
 // is used, otherwise, each message is sent individually.
 func (b *Builder) Send() {
+	if b.send == nil {
+		b.catcher.Add(errors.New("cannot send message to unconfigured builder"))
+		return
+	}
+
 	switch msg := b.Message().(type) {
 	case *GroupComposer:
 		if b.sendAsGroup {
