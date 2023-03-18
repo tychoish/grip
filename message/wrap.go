@@ -1,9 +1,13 @@
 package message
 
+import "github.com/tychoish/fun"
+
 type wrappedImpl struct {
 	parent Composer
 	Composer
 }
+
+func (wi *wrappedImpl) Unwrap() Composer { return wi.parent }
 
 // Wrap creates a new composer, converting the message to the
 // appropriate Composer type, using the Convert() function, while
@@ -25,23 +29,8 @@ func IsWrapped(c Composer) bool { wc, ok := c.(*wrappedImpl); return ok && wc.pa
 // there are group messages in the stack, they are added (flattened)
 // in the new output group.
 func Unwrap(comp Composer) Composer {
-	switch cp := comp.(type) {
-	case *wrappedImpl:
-		return MakeGroupComposer(append(
-			unwindGroup(Unwrap(cp.Composer)),
-			unwindGroup(Unwrap(cp.parent))...))
-	default:
-		return cp
+	if fun.IsWrapped(comp) {
+		return MakeGroupComposer(fun.Unwind(comp))
 	}
-}
-
-func unwindGroup(comp Composer) []Composer {
-	switch cp := comp.(type) {
-	case *GroupComposer:
-		return cp.messages
-	case Composer:
-		return []Composer{comp}
-	default:
-		return []Composer{}
-	}
+	return comp
 }

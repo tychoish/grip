@@ -46,6 +46,8 @@ func (b *Base) Priority() level.Priority {
 	return b.Level
 }
 
+// Structured returns true if there are any annotations. Otherwise
+// false. Most Composer implementations should override.
 func (b *Base) Structured() bool { return len(b.Context) >= 1 }
 
 // SetPriority allows you to configure the priority of the

@@ -3,6 +3,7 @@ package message
 import (
 	"testing"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/grip/level"
 )
 
@@ -78,7 +79,8 @@ func TestWrap(t *testing.T) {
 
 		comp = Unwrap(comp)
 
-		if size := sizeOfGroup(t, comp); size != 3 {
+		if size := sizeOfGroup(t, comp); size != 2 {
+			t.Log(comp)
 			t.Fatalf("incorrect number of messages: %d", size)
 		}
 
@@ -87,18 +89,18 @@ func TestWrap(t *testing.T) {
 		for _, m := range msgs {
 			set[m.String()] = struct{}{}
 		}
-		if len(set) != 3 {
-			t.Fatal("non-unique messages")
+		if len(set) != len(msgs) {
+			t.Fatal("non-unique messages", len(set), len(msgs))
 		}
 	})
 	t.Run("Nil", func(t *testing.T) {
-		out := unwindGroup(nil)
+		out := fun.Unwind[Composer](nil)
 		if out == nil {
 			t.Fatal("must produce slice")
 		}
 
-		if len(out) != 0 {
-			t.Fatal("should not propagate nil")
+		if len(out) != 1 {
+			t.Fatal("nil messages are weird but shouldn't be dropped")
 		}
 	})
 

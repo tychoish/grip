@@ -3,3 +3,5 @@ github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpE
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/tychoish/emt v0.1.0 h1:OMJ/lKO17hxijZW2UdbZY4vOfTwVKZzTb8FB0g8fh74=
 github.com/tychoish/emt v0.1.0/go.mod h1:KMhVWIsL98Q8AoorphjsOQWabcNOoYqMSpODR/rtRb4=
+golang.org/x/sys v0.5.0 h1:MUK/U/4lj1t1oPg0HfuXDN/Z1wv31ZJ/YcPiGccS4DU=
+golang.org/x/sys v0.5.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=

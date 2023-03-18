@@ -16,8 +16,8 @@ import (
 // provides the additional Messages() method to access the composer
 // objects as a slice.
 type GroupComposer struct {
-	messages []Composer
 	mutex    sync.RWMutex
+	messages []Composer
 }
 
 // BuildGroupComposer provides a variadic interface for creating a

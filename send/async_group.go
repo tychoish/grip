@@ -2,14 +2,16 @@ package send
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/erc"
+	"github.com/tychoish/fun/itertool"
+	"github.com/tychoish/fun/pubsub"
 	"github.com/tychoish/grip/message"
 )
 
 type asyncGroupSender struct {
-	pipes   []chan message.Composer
+	broker  *pubsub.Broker[message.Composer]
 	senders []Sender
 	cancel  context.CancelFunc
 	ctx     context.Context
@@ -29,15 +31,21 @@ func NewAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Sende
 	s := &asyncGroupSender{
 		senders: senders,
 		Base:    NewBase(""),
+		broker: pubsub.NewBroker[message.Composer](ctx, pubsub.BrokerOptions{
+			BufferSize:       bufferSize,
+			ParallelDispatch: true,
+		}),
 	}
 	s.ctx, s.cancel = context.WithCancel(ctx)
 
+	shutdown := make(chan struct{})
 	for i := 0; i < len(senders); i++ {
-		p := make(chan message.Composer, bufferSize)
-		s.pipes = append(s.pipes, p)
 		go func(pipe chan message.Composer, sender Sender) {
 			for {
 				select {
+				case <-shutdown:
+					s.broker.Unsubscribe(ctx, pipe)
+					return
 				case <-s.ctx.Done():
 					return
 				case m := <-pipe:
@@ -47,25 +55,18 @@ func NewAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Sende
 					sender.Send(m)
 				}
 			}
-		}(p, senders[i])
+		}(s.broker.Subscribe(ctx), senders[i])
 	}
 
 	s.closer = func() error {
-		s.cancel()
 		catcher := &erc.Collector{}
 
 		for _, sender := range s.senders {
 			catcher.Add(sender.Close())
 		}
 
-		for idx, pipe := range s.pipes {
-			if len(pipe) > 0 {
-				catcher.Add(fmt.Errorf("buffer for sender #%d has %d items remaining",
-					idx, len(pipe)))
-
-			}
-			close(pipe)
-		}
+		close(shutdown)
+		s.cancel()
 
 		return catcher.Resolve()
 	}
@@ -97,20 +98,19 @@ func (s *asyncGroupSender) Send(m message.Composer) {
 	if bl.Valid() && !bl.ShouldLog(m) {
 		return
 	}
-
-	for _, p := range s.pipes {
-		select {
-		case <-s.ctx.Done():
-		case p <- m:
-			continue
-		}
-	}
+	s.broker.Publish(s.ctx, m)
 }
 
 func (s *asyncGroupSender) Flush(ctx context.Context) error {
 	catcher := &erc.Collector{}
-	for _, sender := range s.senders {
-		catcher.Add(sender.Flush(ctx))
-	}
+
+	fun.ObserveWorkerFuncs(ctx,
+		itertool.Transform(ctx,
+			itertool.Slice(s.senders),
+			itertool.Transformer(func(s Sender) fun.WorkerFunc { return s.Flush }),
+		),
+		catcher.Add,
+	).Run(ctx)
+
 	return catcher.Resolve()
 }

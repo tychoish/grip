@@ -143,6 +143,7 @@ func (s *multiSender) Send(m message.Composer) {
 
 func (s *multiSender) Flush(ctx context.Context) error {
 	catcher := &erc.Collector{}
+
 	for _, sender := range s.senders {
 		catcher.Add(sender.Flush(ctx))
 	}

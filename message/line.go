@@ -27,6 +27,7 @@ func NewLines(p level.Priority, args ...interface{}) Composer {
 // fmt.Sprintln().
 func MakeLines(args ...interface{}) Composer {
 	m := &lineMessenger{}
+	m.lines = make([]any, 0, len(args))
 	for _, arg := range args {
 		if arg != nil {
 			m.lines = append(m.lines, arg)
@@ -45,6 +46,7 @@ func makeLinesFromStrings(p level.Priority, args []string) Composer {
 
 func newLinesFromStrings(args []string) Composer {
 	m := &lineMessenger{}
+	m.lines = make([]any, 0, len(args))
 	for _, arg := range args {
 		if arg != "" {
 			m.lines = append(m.lines, arg)
@@ -55,7 +57,7 @@ func newLinesFromStrings(args []string) Composer {
 }
 
 func (l *lineMessenger) Loggable() bool {
-	if len(l.lines) <= 0 {
+	if len(l.lines) == 0 {
 		return false
 	}
 
