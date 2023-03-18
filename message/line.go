@@ -8,7 +8,7 @@ import (
 )
 
 type lineMessenger struct {
-	lines   []interface{}
+	lines   []any
 	Base    `bson:"metadata" json:"metadata" yaml:"metadata"`
 	Message string `bson:"message" json:"message" yaml:"message"`
 }
@@ -17,7 +17,7 @@ type lineMessenger struct {
 // bunch of arguments, calls fmt.Sprintln() on the arguments passed to
 // the constructor during the String() operation. Use in combination
 // with Compose[*] logging methods.
-func NewLines(p level.Priority, args ...interface{}) Composer {
+func NewLines(p level.Priority, args ...any) Composer {
 	m := MakeLines(args...)
 	_ = m.SetPriority(p)
 	return m
@@ -25,7 +25,7 @@ func NewLines(p level.Priority, args ...interface{}) Composer {
 
 // MakeLines returns a message Composer roughly equivalent to
 // fmt.Sprintln().
-func MakeLines(args ...interface{}) Composer {
+func MakeLines(args ...any) Composer {
 	m := &lineMessenger{}
 	m.lines = make([]any, 0, len(args))
 	for _, arg := range args {
@@ -78,4 +78,4 @@ func (l *lineMessenger) String() string {
 	return l.Message
 }
 
-func (l *lineMessenger) Raw() interface{} { l.Collect(); _ = l.String(); return l }
+func (l *lineMessenger) Raw() any { l.Collect(); _ = l.String(); return l }

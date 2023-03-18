@@ -134,7 +134,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	senders["annotating"] = MakeAnnotating(annotatingBase, map[string]interface{}{
+	senders["annotating"] = MakeAnnotating(annotatingBase, map[string]any{
 		"one":    1,
 		"true":   true,
 		"string": "string",

@@ -30,7 +30,7 @@ func TestCollectOptions(t *testing.T) {
 }
 
 func TestSchemaComposer(t *testing.T) {
-	sc := []interface{}{
+	sc := []any{
 		CollectSystemInfo(),
 		CollectGoStatsTotals(),
 		CollectGoStatsRates(),

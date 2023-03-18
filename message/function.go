@@ -109,7 +109,7 @@ func MakeFieldsProducer(fp FieldsProducer) Composer {
 
 // MakeConvertedFieldsProducer converts a generic map to a fields
 // producer, as the message types are equivalent.
-func MakeConvertedFieldsProducer(mp func() map[string]interface{}) Composer {
+func MakeConvertedFieldsProducer(mp func() map[string]any) Composer {
 	if mp == nil {
 		return MakeProducer(nil)
 	}
@@ -118,7 +118,7 @@ func MakeConvertedFieldsProducer(mp func() map[string]interface{}) Composer {
 
 // NewConvertedFieldsProducer converts a generic map to a fields
 // producer at the specified priority, as the message types are equivalent,
-func NewConvertedFieldsProducer(p level.Priority, mp func() map[string]interface{}) Composer {
+func NewConvertedFieldsProducer(p level.Priority, mp func() map[string]any) Composer {
 	if mp == nil {
 		return NewProducer(p, nil)
 	}
@@ -178,7 +178,7 @@ func (cp *composerProducerMessage) resolve() {
 	}
 }
 
-func (cp *composerProducerMessage) Annotate(k string, v interface{}) error {
+func (cp *composerProducerMessage) Annotate(k string, v any) error {
 	cp.resolve()
 	return cp.cached.Annotate(k, v)
 }
@@ -208,7 +208,7 @@ func (cp *composerProducerMessage) Loggable() bool {
 func (*composerProducerMessage) Structured() bool            { return true }
 func (cp *composerProducerMessage) Priority() level.Priority { return cp.level }
 func (cp *composerProducerMessage) String() string           { cp.resolve(); return cp.cached.String() }
-func (cp *composerProducerMessage) Raw() interface{}         { cp.resolve(); return cp.cached.Raw() }
+func (cp *composerProducerMessage) Raw() any                 { cp.resolve(); return cp.cached.Raw() }
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -270,7 +270,7 @@ func (ep *errorProducerMessage) resolve() {
 	}
 }
 
-func (ep *errorProducerMessage) Annotate(k string, v interface{}) error {
+func (ep *errorProducerMessage) Annotate(k string, v any) error {
 	ep.resolve()
 	return ep.cached.Annotate(k, v)
 }
@@ -308,7 +308,7 @@ func (ep *errorProducerMessage) Structured() bool {
 
 func (ep *errorProducerMessage) Priority() level.Priority { return ep.level }
 func (ep *errorProducerMessage) String() string           { ep.resolve(); return ep.cached.String() }
-func (ep *errorProducerMessage) Raw() interface{}         { ep.resolve(); return ep.cached.Raw() }
+func (ep *errorProducerMessage) Raw() any                 { ep.resolve(); return ep.cached.Raw() }
 func (ep *errorProducerMessage) Error() string            { return ep.String() }
 func (ep *errorProducerMessage) Unwrap() error            { return ep.Cause() }
 
@@ -348,7 +348,7 @@ func (ep *errorProducerMessage) Format(s fmt.State, verb rune) {
 // (supporing unwrapping,) as well as the composer type, so you can
 // return the result of this function as an error to avoid needing to
 // manage multiple error annotations.
-func WrapErrorFunc(ep ErrorProducer, m interface{}) Composer {
+func WrapErrorFunc(ep ErrorProducer, m any) Composer {
 	return errorComposerShim{MakeProducer(func() Composer { return WrapError(ep(), m) })}
 }
 

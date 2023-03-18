@@ -52,7 +52,7 @@ func (e *errorMessage) String() string {
 
 func (e *errorMessage) Loggable() bool { return e.err != nil }
 
-func (e *errorMessage) Raw() interface{} {
+func (e *errorMessage) Raw() any {
 	e.Collect()
 	_ = e.String()
 

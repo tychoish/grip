@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-func panicString(p interface{}) string {
+func panicString(p any) string {
 	switch panicMesg := p.(type) {
 	case string:
 		return panicMesg
@@ -20,7 +20,7 @@ func panicString(p interface{}) string {
 	}
 }
 
-func panicError(p interface{}) error {
+func panicError(p any) error {
 	if p == nil {
 		return nil
 	}

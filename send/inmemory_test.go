@@ -33,8 +33,8 @@ func msgsToString(t *testing.T, sender Sender, msgs []message.Composer) []string
 	return strs
 }
 
-func msgsToRaw(msgs []message.Composer) []interface{} {
-	raw := make([]interface{}, 0, len(msgs))
+func msgsToRaw(msgs []message.Composer) []any {
+	raw := make([]any, 0, len(msgs))
 	for _, msg := range msgs {
 		raw = append(raw, msg.Raw())
 	}
@@ -638,7 +638,7 @@ func TestGetRawWithOverflow(t *testing.T) {
 	for i, msg := range s.msgs {
 		s.sender.Send(msg)
 		found := s.sender.GetRaw()
-		var expected []interface{}
+		var expected []any
 
 		if i+1 < maxCap {
 			if len(found) != i+1 {

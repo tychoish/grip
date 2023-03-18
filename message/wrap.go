@@ -13,7 +13,7 @@ func (wi *wrappedImpl) Unwrap() Composer { return wi.parent }
 // appropriate Composer type, using the Convert() function, while
 // preserving the parent composer. The Unwrap() function unwinds a
 // stack of composers, flattening it into a single group composer.
-func Wrap(parent Composer, msg interface{}) Composer {
+func Wrap(parent Composer, msg any) Composer {
 	return &wrappedImpl{
 		parent:   parent,
 		Composer: Convert(msg),

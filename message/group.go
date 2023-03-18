@@ -64,7 +64,7 @@ func (g *GroupComposer) String() string {
 
 // Raw returns a slice of interfaces containing the raw form of all
 // the constituent composers.
-func (g *GroupComposer) Raw() interface{} {
+func (g *GroupComposer) Raw() any {
 	g.mutex.RLock()
 	defer g.mutex.RUnlock()
 
@@ -72,7 +72,7 @@ func (g *GroupComposer) Raw() interface{} {
 		return g.messages[0].Raw()
 	}
 
-	out := []interface{}{}
+	out := []any{}
 	for _, m := range g.messages {
 		if m == nil {
 			continue
@@ -196,7 +196,7 @@ func (g *GroupComposer) Append(msgs ...Composer) {
 
 // Annotate calls the Annotate method of every non-nil component
 // Composer.
-func (g *GroupComposer) Annotate(k string, v interface{}) error {
+func (g *GroupComposer) Annotate(k string, v any) error {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 

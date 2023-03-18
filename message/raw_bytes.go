@@ -42,7 +42,7 @@ func NewSimpleBytes(p level.Priority, b []byte) Composer {
 func (s *bytesMessage) String() string { return string(s.data) }
 func (s *bytesMessage) Loggable() bool { return len(s.data) > 0 }
 
-func (s *bytesMessage) Raw() interface{} {
+func (s *bytesMessage) Raw() any {
 	if !s.skipMetadata {
 		s.Collect()
 	}

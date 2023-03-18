@@ -11,10 +11,10 @@ import (
 const testMessage = "hello world"
 
 type (
-	basicMethod func(interface{})
-	lnMethod    func(...interface{})
-	fMethod     func(string, ...interface{})
-	whenMethod  func(bool, interface{})
+	basicMethod func(any)
+	lnMethod    func(...any)
+	fMethod     func(string, ...any)
+	whenMethod  func(bool, any)
 )
 
 type LoggingMethodSuite struct {
@@ -114,7 +114,7 @@ func TestBasicMethod(t *testing.T) {
 		"trace":     {Trace, s.logger.Trace},
 	}
 
-	inputs := []interface{}{true, false, []string{"a", "b"}, message.Fields{"a": 1}, 1, "foo"}
+	inputs := []any{true, false, []string{"a", "b"}, message.Fields{"a": 1}, 1, "foo"}
 
 	for kind, loggers := range cases {
 		t.Run(kind, func(t *testing.T) {
@@ -244,15 +244,15 @@ func TestProgrgramaticLevelMethods(t *testing.T) {
 	s := setupFixtures(t)
 
 	type (
-		lgwhen   func(bool, level.Priority, interface{})
-		lgwhenln func(bool, level.Priority, ...interface{})
-		lgwhenf  func(bool, level.Priority, string, ...interface{})
-		lg       func(level.Priority, interface{})
-		lgln     func(level.Priority, ...interface{})
-		lgf      func(level.Priority, string, ...interface{})
+		lgwhen   func(bool, level.Priority, any)
+		lgwhenln func(bool, level.Priority, ...any)
+		lgwhenf  func(bool, level.Priority, string, ...any)
+		lg       func(level.Priority, any)
+		lgln     func(level.Priority, ...any)
+		lgf      func(level.Priority, string, ...any)
 	)
 
-	cases := map[string]interface{}{
+	cases := map[string]any{
 		"when": []lgwhen{LogWhen, s.logger.LogWhen},
 		"lg":   []lg{Log, s.logger.Log},
 		"lgln": []lgln{Logln, s.logger.Logln},

@@ -155,7 +155,7 @@ func TestLogger(t *testing.T) {
 		}
 		grip := NewLogger(sink)
 
-		cases := []interface{}{
+		cases := []any{
 			grip.Alert,
 			grip.Critical,
 			grip.Debug,
@@ -183,9 +183,9 @@ func TestLogger(t *testing.T) {
 			grip.NoticeWhen,
 			grip.WarningWhen,
 
-			func(w bool, m interface{}) { grip.LogWhen(w, level.Info, m) },
-			func(m interface{}) { grip.Log(level.Info, m) },
-			func(m string, a ...interface{}) { grip.Logf(level.Info, m, a...) },
+			func(w bool, m any) { grip.LogWhen(w, level.Info, m) },
+			func(m any) { grip.Log(level.Info, m) },
+			func(m string, a ...any) { grip.Logf(level.Info, m, a...) },
 			func(m ...message.Composer) { grip.Log(level.Info, m) },
 			func(m []message.Composer) { grip.Log(level.Info, m) },
 			func(w bool, m ...message.Composer) { grip.LogWhen(w, level.Info, m) },
@@ -210,19 +210,19 @@ func TestLogger(t *testing.T) {
 			switch log := logger.(type) {
 			case func(error):
 				log(errors.New(msg))
-			case func(interface{}):
+			case func(any):
 				log(msg)
-			case func(...interface{}):
+			case func(...any):
 				log(msg, "", nil)
-			case func(string, ...interface{}):
+			case func(string, ...any):
 				log("%s", msg)
-			case func(bool, interface{}):
+			case func(bool, any):
 				log(false, msg)
 				log(true, msg)
-			case func(bool, ...interface{}):
+			case func(bool, ...any):
 				log(false, msg, "", nil)
 				log(true, msg, "", nil)
-			case func(bool, string, ...interface{}):
+			case func(bool, string, ...any):
 				log(false, "%s", msg)
 				log(true, "%s", msg)
 			case func(...message.Composer):

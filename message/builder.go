@@ -110,8 +110,8 @@ func (b *Builder) When(cond bool) *Builder {
 	return b.set(When(cond, b.composer))
 }
 
-func (b *Builder) F(tmpl string, a ...interface{}) *Builder     { return b.set(MakeFormat(tmpl, a)) }
-func (b *Builder) Ln(args ...interface{}) *Builder              { return b.set(MakeLines(args...)) }
+func (b *Builder) F(tmpl string, a ...any) *Builder             { return b.set(MakeFormat(tmpl, a)) }
+func (b *Builder) Ln(args ...any) *Builder                      { return b.set(MakeLines(args...)) }
 func (b *Builder) Error(err error) *Builder                     { return b.set(MakeError(err)) }
 func (b *Builder) String(str string) *Builder                   { return b.set(MakeString(str)) }
 func (b *Builder) Strings(ss []string) *Builder                 { return b.set(newLinesFromStrings(ss)) }
@@ -121,9 +121,9 @@ func (b *Builder) ComposerProducer(f ComposerProducer) *Builder { return b.set(M
 func (b *Builder) ErrorProducer(f ErrorProducer) *Builder       { return b.set(MakeErrorProducer(f)) }
 func (b *Builder) KVProducer(f KVProducer) *Builder             { return b.set(MakeKVProducer(f)) }
 func (b *Builder) Composer(c Composer) *Builder                 { return b.set(c) }
-func (b *Builder) Any(msg interface{}) *Builder                 { return b.set(Convert(msg)) }
+func (b *Builder) Any(msg any) *Builder                         { return b.set(Convert(msg)) }
 func (b *Builder) StringMap(f map[string]string) *Builder       { return b.Fields(fromStrMap(f)) }
-func (b *Builder) AnyMap(f map[string]interface{}) *Builder     { return b.Fields(Fields(f)) }
+func (b *Builder) AnyMap(f map[string]any) *Builder             { return b.Fields(Fields(f)) }
 func (b *Builder) KV(kvs ...KV) *Builder                        { return b.KVs(kvs) }
 func (b *Builder) SetGroup(sendAsGroup bool) *Builder           { b.sendAsGroup = sendAsGroup; return b }
 func (b *Builder) Group() *Builder                              { b.sendAsGroup = true; return b }
@@ -168,7 +168,7 @@ func (b *Builder) KVs(kvs KVs) *Builder {
 // directly to the main body of their message. Some sender/message
 // formating handlers and message types may not render annotations in
 // all cases.
-func (b *Builder) Annotate(key string, val interface{}) *Builder {
+func (b *Builder) Annotate(key string, val any) *Builder {
 	if b.composer == nil {
 		return b.Fields(Fields{key: val})
 	}

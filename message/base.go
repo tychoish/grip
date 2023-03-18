@@ -65,7 +65,7 @@ func (b *Base) SetPriority(l level.Priority) error {
 // Annotate makes it possible for callers and senders to add
 // structured data to a message. This may be overridden for some
 // implementations
-func (b *Base) Annotate(key string, value interface{}) error {
+func (b *Base) Annotate(key string, value any) error {
 	if b.Context == nil {
 		b.Context = Fields{
 			key: value,

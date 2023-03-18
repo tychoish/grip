@@ -147,13 +147,13 @@ func (c *slackMessage) String() string {
 	return fmt.Sprintf("%s: %s", c.raw.Target, c.raw.Msg)
 }
 
-func (c *slackMessage) Raw() interface{} {
+func (c *slackMessage) Raw() any {
 	return &c.raw
 }
 
 // Annotate adds additional attachments to the message. The key value is ignored
 // if a SlackAttachment or *SlackAttachment is supplied
-func (c *slackMessage) Annotate(key string, data interface{}) error {
+func (c *slackMessage) Annotate(key string, data any) error {
 	var annotate *Attachment
 
 	switch v := data.(type) {

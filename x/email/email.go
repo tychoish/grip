@@ -78,7 +78,7 @@ func (e *emailMessage) Loggable() bool {
 	return true
 }
 
-func (e *emailMessage) Raw() interface{} {
+func (e *emailMessage) Raw() any {
 	return &e.data
 }
 

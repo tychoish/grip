@@ -28,14 +28,14 @@ type Issue struct {
 	Labels      []string `bson:"labels" json:"labels" yaml:"labels"`
 	FixVersions []string `bson:"versions" json:"versions" yaml:"versions"`
 	// ... other fields
-	Fields   map[string]interface{} `bson:"fields" json:"fields" yaml:"fields"`
-	Callback func(string)           `bson:"-" json:"-" yaml:"-"`
+	Fields   map[string]any `bson:"fields" json:"fields" yaml:"fields"`
+	Callback func(string)   `bson:"-" json:"-" yaml:"-"`
 }
 
 // Field is a struct composed of a key-value pair.
 type Field struct {
 	Key   string
-	Value interface{}
+	Value any
 }
 
 // MakeIssue creates a jiraMessage instance with the given JiraIssue.
@@ -55,7 +55,7 @@ func NewIssue(project, summary string, fields ...Field) message.Composer {
 	issue := &Issue{
 		Project: project,
 		Summary: summary,
-		Fields:  map[string]interface{}{},
+		Fields:  map[string]any{},
 	}
 
 	// Assign given fields to jira issue fields
@@ -84,13 +84,13 @@ func NewIssue(project, summary string, fields ...Field) message.Composer {
 	return MakeIssue(issue)
 }
 
-func (m *jiraMessage) String() string   { return m.issue.Summary }
-func (m *jiraMessage) Raw() interface{} { return m.issue }
-func (*jiraMessage) Structured() bool   { return true }
-func (m *jiraMessage) Loggable() bool   { return m.issue.Summary != "" && m.issue.Type != "" }
-func (m *jiraMessage) Annotate(k string, v interface{}) error {
+func (m *jiraMessage) String() string { return m.issue.Summary }
+func (m *jiraMessage) Raw() any       { return m.issue }
+func (*jiraMessage) Structured() bool { return true }
+func (m *jiraMessage) Loggable() bool { return m.issue.Summary != "" && m.issue.Type != "" }
+func (m *jiraMessage) Annotate(k string, v any) error {
 	if m.issue.Fields == nil {
-		m.issue.Fields = map[string]interface{}{}
+		m.issue.Fields = map[string]any{}
 	}
 
 	value, ok := v.(string)

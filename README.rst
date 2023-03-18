@@ -101,7 +101,7 @@ of an existing logger, consider something like: ::
     // create new logger that annotates all messages
     subLogger := grip.NewLogger(send.MakeAnnotating(
 	logger.Sender(),
-	map[string]interface{}{
+	map[string]any{
 		"module": "http",
 		"pid":    os.Getpid(),
 	}))
@@ -114,7 +114,7 @@ targets: ::
 	grip.Sender(),
 	send.NewAnnotating(
 	    logger.Sender(),
-	    map[string]interface{}{
+	    map[string]any{
 		    "module": "http",
 		    "pid":    os.Getpid(),
 	    })

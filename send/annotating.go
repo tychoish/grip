@@ -9,7 +9,7 @@ import (
 
 type annotatingSender struct {
 	Sender
-	annotations map[string]interface{}
+	annotations map[string]any
 }
 
 // MakeAnnotating adds the annotations defined in the annotations
@@ -23,7 +23,7 @@ type annotatingSender struct {
 // While you can wrap an existing sender with the annotator, changes
 // to the annotating sender (e.g. level, formater, error handler) will
 // propagate to the embedded sender.
-func MakeAnnotating(s Sender, annotations map[string]interface{}) Sender {
+func MakeAnnotating(s Sender, annotations map[string]any) Sender {
 	return &annotatingSender{
 		Sender:      s,
 		annotations: annotations,

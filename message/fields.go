@@ -20,12 +20,12 @@ type fieldMessage struct {
 	Base
 }
 
-// Fields is a convince type that wraps map[string]interface{} and is
+// Fields is a convince type that wraps map[string]any and is
 // used for attaching structured metadata to a build request. For
 // example:
 //
 //	message.Fields{"key0", <value>, "key1", <value>}
-type Fields map[string]interface{}
+type Fields map[string]any
 
 // NewFields constructs a full configured fields Composer.
 func NewFields(p level.Priority, f Fields) Composer {
@@ -210,9 +210,9 @@ func (m *fieldMessage) String() string {
 	return m.cachedOutput
 }
 
-func (m *fieldMessage) Raw() interface{} { return m.fields }
+func (m *fieldMessage) Raw() any { return m.fields }
 
-func (m *fieldMessage) Annotate(key string, value interface{}) error {
+func (m *fieldMessage) Annotate(key string, value any) error {
 	if _, ok := m.fields[key]; ok {
 		return fmt.Errorf("key '%s' already exists", key)
 	}

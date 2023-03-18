@@ -306,7 +306,7 @@ func (*GoRuntimeInfo) Schema() string   { return "runtime.0" }
 
 // Raw is part of the Composer interface and returns the GoRuntimeInfo
 // object itself.
-func (s *GoRuntimeInfo) Raw() interface{} { s.Collect(); return s }
+func (s *GoRuntimeInfo) Raw() any { s.Collect(); return s }
 func (s *GoRuntimeInfo) String() string {
 	s.Collect()
 

@@ -67,7 +67,7 @@ func LogStackTraceAndContinue(opDetails ...string) {
 // default error return value as in:
 //
 //	func operation() (err error) {}
-func HandlePanicWithError(p interface{}, err error, opDetails ...string) error {
+func HandlePanicWithError(p any, err error, opDetails ...string) error {
 	catcher := &erc.Collector{}
 	catcher.Add(err)
 
@@ -88,7 +88,7 @@ func HandlePanicWithError(p interface{}, err error, opDetails ...string) error {
 // It takes an interface which it converts to a message.Composer using
 // the same rules as logging methods, and annotates those messages
 // with the stack trace and panic information.
-func AnnotateMessageWithStackTraceAndContinue(m interface{}) {
+func AnnotateMessageWithStackTraceAndContinue(m any) {
 	if p := recover(); p != nil {
 		logAndContinue(p, grip.NewLogger(grip.Sender()), message.ConvertWithPriority(level.Critical, m))
 	}
@@ -97,7 +97,7 @@ func AnnotateMessageWithStackTraceAndContinue(m interface{}) {
 // SendStackTraceAndContinue is similar to
 // AnnotateMessageWithStackTraceAndContinue, but allows you to inject a
 // grip.Journaler interface to receive the log message.
-func SendStackTraceAndContinue(logger grip.Logger, m interface{}) {
+func SendStackTraceAndContinue(logger grip.Logger, m any) {
 	if p := recover(); p != nil {
 		logAndContinue(p, logger, message.ConvertWithPriority(level.Critical, m))
 	}
@@ -109,7 +109,7 @@ func SendStackTraceAndContinue(logger grip.Logger, m interface{}) {
 // It takes an interface which it converts to a message.Composer using
 // the same rules as logging methods, and annotates those messages
 // with the stack trace and panic information.
-func AnnotateMessageWithStackTraceAndExit(m interface{}) {
+func AnnotateMessageWithStackTraceAndExit(m any) {
 	if p := recover(); p != nil {
 		logAndExit(p, grip.NewLogger(grip.Sender()), message.ConvertWithPriority(level.Critical, m))
 	}
@@ -118,7 +118,7 @@ func AnnotateMessageWithStackTraceAndExit(m interface{}) {
 // SendStackTraceMessageAndExit is similar to
 // AnnotateMessageWithStackTraceAndExit, but allows you to inject a
 // grip.Journaler interface.
-func SendStackTraceMessageAndExit(logger grip.Logger, m interface{}) {
+func SendStackTraceMessageAndExit(logger grip.Logger, m any) {
 	if p := recover(); p != nil {
 		logAndExit(p, logger, message.ConvertWithPriority(level.Critical, m))
 	}
@@ -132,7 +132,7 @@ func SendStackTraceMessageAndExit(logger grip.Logger, m interface{}) {
 // It takes an interface which it converts to a message.Composer using
 // the same rules as logging methods, and annotates those messages
 // with the stack trace and panic information.
-func AnnotateMessageWithPanicError(p interface{}, err error, m interface{}) error {
+func AnnotateMessageWithPanicError(p any, err error, m any) error {
 	catcher := &erc.Collector{}
 	catcher.Add(err)
 
@@ -149,7 +149,7 @@ func AnnotateMessageWithPanicError(p interface{}, err error, m interface{}) erro
 // SendMessageWithPanicError is similar to
 // AnnotateMessageWithPanicError, but allows you to inject a custom
 // grip.Jounaler interface to receive the log message.
-func SendMessageWithPanicError(p interface{}, err error, logger grip.Logger, m interface{}) error {
+func SendMessageWithPanicError(p any, err error, logger grip.Logger, m any) error {
 	catcher := &erc.Collector{}
 	catcher.Add(err)
 
@@ -177,7 +177,7 @@ func getMessage(details []string) message.Fields {
 	return m
 }
 
-func logAndContinue(p interface{}, logger grip.Logger, msg message.Composer) {
+func logAndContinue(p any, logger grip.Logger, msg message.Composer) {
 	_ = msg.Annotate("panic", panicString(p))
 	_ = msg.Annotate("stack", message.MakeStack(3, "").Raw().(message.StackTrace).Frames)
 	_ = msg.Annotate(message.FieldsMsgName, "hit panic; recovering")
@@ -185,7 +185,7 @@ func logAndContinue(p interface{}, logger grip.Logger, msg message.Composer) {
 	logger.Alert(msg)
 }
 
-func logAndExit(p interface{}, logger grip.Logger, msg message.Composer) {
+func logAndExit(p any, logger grip.Logger, msg message.Composer) {
 	_ = msg.Annotate("panic", panicString(p))
 	_ = msg.Annotate("stack", message.MakeStack(3, "").Raw().(message.StackTrace).Frames)
 	_ = msg.Annotate(message.FieldsMsgName, "hit panic; exiting")

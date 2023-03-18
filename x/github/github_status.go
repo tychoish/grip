@@ -131,7 +131,7 @@ func (s *githubStatusMessageLogger) githubMessageFieldsToStatus(m *message.Field
 	return status
 }
 
-func getStringPtrFromField(i interface{}) (*string, bool) {
+func getStringPtrFromField(i any) (*string, bool) {
 	if ret, ok := i.(string); ok {
 		return &ret, true
 	}

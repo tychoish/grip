@@ -14,7 +14,7 @@ func TestAnnotatingSender(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	annotate := MakeAnnotating(insend, map[string]interface{}{"a": "b"})
+	annotate := MakeAnnotating(insend, map[string]any{"a": "b"})
 
 	annotate.Send(message.NewSimpleFields(level.Notice, message.Fields{"b": "a"}))
 	msg, ok := insend.GetMessageSafe()

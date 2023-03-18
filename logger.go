@@ -203,48 +203,48 @@ func (g Logger) TraceWhen(c bool, m any)                     { g.send(level.Trac
 // safe relative to other logging calls, or the GetGlobalJournaler
 // call, although all journaling methods are safe: as a result be sure
 // to only call this method during package and process initialization.
-func SetGlobalLogger(l Logger)                                  { std = l }
-func Sender() send.Sender                                       { return std.Sender() }
-func Build() *message.Builder                                   { return std.Build() }
-func Log(l level.Priority, msg interface{})                     { std.Log(l, msg) }
-func Logf(l level.Priority, msg string, a ...interface{})       { std.Logf(l, msg, a...) }
-func Logln(l level.Priority, a ...interface{})                  { std.Logln(l, a...) }
-func LogWhen(conditional bool, l level.Priority, m interface{}) { std.LogWhen(conditional, l, m) }
-func EmergencyPanic(msg interface{})                            { std.EmergencyPanic(msg) }
-func EmergencyFatal(msg interface{})                            { std.EmergencyFatal(msg) }
-func Emergency(msg interface{})                                 { std.Emergency(msg) }
-func Emergencyf(msg string, a ...interface{})                   { std.Emergencyf(msg, a...) }
-func Emergencyln(a ...interface{})                              { std.Emergencyln(a...) }
-func EmergencyWhen(conditional bool, m interface{})             { std.EmergencyWhen(conditional, m) }
-func Alert(msg interface{})                                     { std.Alert(msg) }
-func Alertf(msg string, a ...interface{})                       { std.Alertf(msg, a...) }
-func Alertln(a ...interface{})                                  { std.Alertln(a...) }
-func AlertWhen(conditional bool, m interface{})                 { std.AlertWhen(conditional, m) }
-func Critical(msg interface{})                                  { std.Critical(msg) }
-func Criticalf(msg string, a ...interface{})                    { std.Criticalf(msg, a...) }
-func Criticalln(a ...interface{})                               { std.Criticalln(a...) }
-func CriticalWhen(conditional bool, m interface{})              { std.CriticalWhen(conditional, m) }
-func Error(msg interface{})                                     { std.Error(msg) }
-func Errorf(msg string, a ...interface{})                       { std.Errorf(msg, a...) }
-func Errorln(a ...interface{})                                  { std.Errorln(a...) }
-func ErrorWhen(conditional bool, m interface{})                 { std.ErrorWhen(conditional, m) }
-func Warning(msg interface{})                                   { std.Warning(msg) }
-func Warningf(msg string, a ...interface{})                     { std.Warningf(msg, a...) }
-func Warningln(a ...interface{})                                { std.Warningln(a...) }
-func WarningWhen(conditional bool, m interface{})               { std.WarningWhen(conditional, m) }
-func Notice(msg interface{})                                    { std.Notice(msg) }
-func Noticef(msg string, a ...interface{})                      { std.Noticef(msg, a...) }
-func Noticeln(a ...interface{})                                 { std.Noticeln(a...) }
-func NoticeWhen(conditional bool, m interface{})                { std.NoticeWhen(conditional, m) }
-func Info(msg interface{})                                      { std.Info(msg) }
-func Infof(msg string, a ...interface{})                        { std.Infof(msg, a...) }
-func Infoln(a ...interface{})                                   { std.Infoln(a...) }
-func InfoWhen(conditional bool, message interface{})            { std.InfoWhen(conditional, message) }
-func Debug(msg interface{})                                     { std.Debug(msg) }
-func Debugf(msg string, a ...interface{})                       { std.Debugf(msg, a...) }
-func Debugln(a ...interface{})                                  { std.Debugln(a...) }
-func DebugWhen(conditional bool, m interface{})                 { std.DebugWhen(conditional, m) }
-func Trace(msg interface{})                                     { std.Trace(msg) }
-func Tracef(msg string, a ...interface{})                       { std.Tracef(msg, a...) }
-func Traceln(a ...interface{})                                  { std.Traceln(a...) }
-func TraceWhen(conditional bool, m interface{})                 { std.TraceWhen(conditional, m) }
+func SetGlobalLogger(l Logger)                          { std = l }
+func Sender() send.Sender                               { return std.Sender() }
+func Build() *message.Builder                           { return std.Build() }
+func Log(l level.Priority, msg any)                     { std.Log(l, msg) }
+func Logf(l level.Priority, msg string, a ...any)       { std.Logf(l, msg, a...) }
+func Logln(l level.Priority, a ...any)                  { std.Logln(l, a...) }
+func LogWhen(conditional bool, l level.Priority, m any) { std.LogWhen(conditional, l, m) }
+func EmergencyPanic(msg any)                            { std.EmergencyPanic(msg) }
+func EmergencyFatal(msg any)                            { std.EmergencyFatal(msg) }
+func Emergency(msg any)                                 { std.Emergency(msg) }
+func Emergencyf(msg string, a ...any)                   { std.Emergencyf(msg, a...) }
+func Emergencyln(a ...any)                              { std.Emergencyln(a...) }
+func EmergencyWhen(conditional bool, m any)             { std.EmergencyWhen(conditional, m) }
+func Alert(msg any)                                     { std.Alert(msg) }
+func Alertf(msg string, a ...any)                       { std.Alertf(msg, a...) }
+func Alertln(a ...any)                                  { std.Alertln(a...) }
+func AlertWhen(conditional bool, m any)                 { std.AlertWhen(conditional, m) }
+func Critical(msg any)                                  { std.Critical(msg) }
+func Criticalf(msg string, a ...any)                    { std.Criticalf(msg, a...) }
+func Criticalln(a ...any)                               { std.Criticalln(a...) }
+func CriticalWhen(conditional bool, m any)              { std.CriticalWhen(conditional, m) }
+func Error(msg any)                                     { std.Error(msg) }
+func Errorf(msg string, a ...any)                       { std.Errorf(msg, a...) }
+func Errorln(a ...any)                                  { std.Errorln(a...) }
+func ErrorWhen(conditional bool, m any)                 { std.ErrorWhen(conditional, m) }
+func Warning(msg any)                                   { std.Warning(msg) }
+func Warningf(msg string, a ...any)                     { std.Warningf(msg, a...) }
+func Warningln(a ...any)                                { std.Warningln(a...) }
+func WarningWhen(conditional bool, m any)               { std.WarningWhen(conditional, m) }
+func Notice(msg any)                                    { std.Notice(msg) }
+func Noticef(msg string, a ...any)                      { std.Noticef(msg, a...) }
+func Noticeln(a ...any)                                 { std.Noticeln(a...) }
+func NoticeWhen(conditional bool, m any)                { std.NoticeWhen(conditional, m) }
+func Info(msg any)                                      { std.Info(msg) }
+func Infof(msg string, a ...any)                        { std.Infof(msg, a...) }
+func Infoln(a ...any)                                   { std.Infoln(a...) }
+func InfoWhen(conditional bool, message any)            { std.InfoWhen(conditional, message) }
+func Debug(msg any)                                     { std.Debug(msg) }
+func Debugf(msg string, a ...any)                       { std.Debugf(msg, a...) }
+func Debugln(a ...any)                                  { std.Debugln(a...) }
+func DebugWhen(conditional bool, m any)                 { std.DebugWhen(conditional, m) }
+func Trace(msg any)                                     { std.Trace(msg) }
+func Tracef(msg string, a ...any)                       { std.Tracef(msg, a...) }
+func Traceln(a ...any)                                  { std.Traceln(a...) }
+func TraceWhen(conditional bool, m any)                 { std.TraceWhen(conditional, m) }

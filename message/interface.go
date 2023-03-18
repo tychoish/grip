@@ -22,7 +22,7 @@ type Composer interface {
 	// A "raw" format of the logging output for use by some Sender
 	// implementations that write logged items to interfaces that
 	// accept JSON or another structured format.
-	Raw() interface{}
+	Raw() any
 
 	// Returns "true" when the message has content and should be
 	// logged, and false otherwise. When false, the sender can
@@ -38,7 +38,7 @@ type Composer interface {
 	// Annotate makes it possible for Senders and Journalers to
 	// add structured data to a log message. May return an error
 	// when the key alrady exists.
-	Annotate(string, interface{}) error
+	Annotate(string, any) error
 
 	// Priority returns the priority of the message.
 	Priority() level.Priority
@@ -48,7 +48,7 @@ type Composer interface {
 // ConvertWithPriority can coerce unknown objects into Composer
 // instances, as possible. This method will override the priority of
 // composers set to it.
-func ConvertWithPriority(p level.Priority, message interface{}) Composer {
+func ConvertWithPriority(p level.Priority, message any) Composer {
 	if cmp, ok := message.(Composer); ok {
 		if pri := cmp.Priority(); pri != level.Invalid {
 			p = pri
@@ -62,7 +62,7 @@ func ConvertWithPriority(p level.Priority, message interface{}) Composer {
 }
 
 // Convert produces a composer interface for arbitrary input.
-func Convert(message interface{}) Composer {
+func Convert(message any) Composer {
 	switch message := message.(type) {
 	case Composer:
 		return message
@@ -80,7 +80,7 @@ func Convert(message interface{}) Composer {
 		return MakeProducer(message)
 	case func() Composer:
 		return MakeProducer(message)
-	case func() map[string]interface{}:
+	case func() map[string]any:
 		return MakeConvertedFieldsProducer(message)
 	case ErrorProducer:
 		return MakeErrorProducer(message)
@@ -88,7 +88,7 @@ func Convert(message interface{}) Composer {
 		return MakeErrorProducer(message)
 	case []string:
 		return newLinesFromStrings(message)
-	case []interface{}:
+	case []any:
 		return buildFromSlice(message)
 	case []byte:
 		return MakeBytes(message)
@@ -96,7 +96,7 @@ func Convert(message interface{}) Composer {
 		return MakeFields(message)
 	case KVs:
 		return MakeKVs(message)
-	case map[string]interface{}:
+	case map[string]any:
 		return MakeFields(Fields(message))
 	case [][]string:
 		grp := make([]Composer, len(message))
@@ -110,7 +110,7 @@ func Convert(message interface{}) Composer {
 			grp[idx] = MakeBytes(message[idx])
 		}
 		return MakeGroupComposer(grp)
-	case []map[string]interface{}:
+	case []map[string]any:
 		grp := make([]Composer, len(message))
 		for idx := range message {
 			grp[idx] = MakeFields(message[idx])
@@ -134,7 +134,7 @@ func Convert(message interface{}) Composer {
 			grp[idx] = MakeFieldsProducer(message[idx])
 		}
 		return MakeGroupComposer(grp)
-	case []func() map[string]interface{}:
+	case []func() map[string]any:
 		grp := make([]Composer, len(message))
 		for idx := range message {
 			grp[idx] = MakeConvertedFieldsProducer(message[idx])
@@ -164,7 +164,7 @@ func Convert(message interface{}) Composer {
 			grp[idx] = MakeErrorProducer(message[idx])
 		}
 		return MakeGroupComposer(grp)
-	case [][]interface{}:
+	case [][]any:
 		grp := make([]Composer, len(message))
 		for idx := range message {
 			grp[idx] = buildFromSlice(message[idx])
@@ -183,7 +183,7 @@ func Convert(message interface{}) Composer {
 	}
 }
 
-func buildFromSlice(vals []interface{}) Composer {
+func buildFromSlice(vals []any) Composer {
 	if len(vals)%2 != 0 {
 		return MakeLines(vals...)
 	}

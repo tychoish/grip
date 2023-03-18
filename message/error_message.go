@@ -27,7 +27,7 @@ func NewErrorWrappedComposer(err error, m Composer) Composer {
 // loggable error message for non-nil errors with a normal formatted
 // message (e.g. fmt.Sprintf). These messages only log if the error is
 // non-nil.
-func NewErrorWrapMessage(p level.Priority, err error, base string, args ...interface{}) Composer {
+func NewErrorWrapMessage(p level.Priority, err error, base string, args ...any) Composer {
 	return NewErrorWrappedComposer(err, NewFormat(p, base, args...))
 }
 
@@ -36,19 +36,19 @@ func NewErrorWrapMessage(p level.Priority, err error, base string, args ...inter
 // message for non-nil errors with a normal formatted message
 // (e.g. fmt.Sprintf). These messages only log if the error is
 // non-nil.
-func NewErrorWrap(err error, base string, args ...interface{}) Composer {
+func NewErrorWrap(err error, base string, args ...any) Composer {
 	return NewErrorWrappedComposer(err, MakeFormat(base, args...))
 }
 
 // WrapError wraps an error and creates a composer converting the
 // argument into a composer in the same manner as the front end logging methods.
-func WrapError(err error, m interface{}) Composer {
+func WrapError(err error, m any) Composer {
 	return NewErrorWrappedComposer(err, ConvertWithPriority(level.Priority(0), m))
 }
 
 // WrapErrorf wraps an error and creates a composer using a
 // Sprintf-style formated composer.
-func WrapErrorf(err error, msg string, args ...interface{}) Composer {
+func WrapErrorf(err error, msg string, args ...any) Composer {
 	return NewErrorWrappedComposer(err, MakeFormat(msg, args...))
 }
 
@@ -86,7 +86,7 @@ func (m *errorComposerWrap) Loggable() bool {
 	return m.err != nil
 }
 
-func (m *errorComposerWrap) Raw() interface{} {
+func (m *errorComposerWrap) Raw() any {
 	errStr := m.err.Error()
 	out := Fields{
 		"error": errStr,
@@ -111,6 +111,6 @@ func (m *errorComposerWrap) Raw() interface{} {
 	return out
 }
 
-func (m *errorComposerWrap) Annotate(k string, v interface{}) error {
+func (m *errorComposerWrap) Annotate(k string, v any) error {
 	return m.Composer.Annotate(k, v)
 }

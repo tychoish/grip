@@ -123,6 +123,6 @@ func (c *githubStatusMessage) String() string {
 	return c.str
 }
 
-func (c *githubStatusMessage) Raw() interface{} {
+func (c *githubStatusMessage) Raw() any {
 	return &c.raw
 }

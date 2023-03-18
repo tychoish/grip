@@ -38,7 +38,7 @@ func NewSimpleString(p level.Priority, message string) Composer {
 
 func (s *stringMessage) String() string { return s.Message }
 func (s *stringMessage) Loggable() bool { return s.Message != "" }
-func (s *stringMessage) Raw() interface{} {
+func (s *stringMessage) Raw() any {
 	if !s.skipMetadata {
 		s.Collect()
 	}

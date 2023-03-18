@@ -154,7 +154,7 @@ func (*SystemInfo) Structured() bool { return true }
 func (*SystemInfo) Schema() string   { return "sysinfo.0" }
 
 // Raw always returns the SystemInfo object.
-func (s *SystemInfo) Raw() interface{} { return s }
+func (s *SystemInfo) Raw() any { return s }
 
 // String returns a string representation of the message, lazily
 // rendering the message, and caching it privately.
@@ -273,7 +273,7 @@ func shouldSaveError(err error) bool {
 	return err != nil && err.Error() != "not implemented yet"
 }
 
-func renderStatsString(msg string, data interface{}) string {
+func renderStatsString(msg string, data any) string {
 	out, err := json.Marshal(data)
 	if err != nil {
 		return msg

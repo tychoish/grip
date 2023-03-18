@@ -50,7 +50,7 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		MakeErrorProducer(func() error { return errors.New(testMsg) }):                  testMsg,
 		NewErrorProducer(level.Error, func() error { return errors.New(testMsg) }):      testMsg,
 		NewFieldsProducer(level.Error, func() Fields { return Fields{"pro": "ducer"} }): "[pro='ducer']",
-		NewConvertedFieldsProducer(level.Error, func() map[string]interface{} { return map[string]interface{}{"pro": "ducer"} }): "[pro='ducer']",
+		NewConvertedFieldsProducer(level.Error, func() map[string]any { return map[string]any{"pro": "ducer"} }): "[pro='ducer']",
 		// NewEmailMessage(level.Error, Email{
 		//	Recipients: []string{"someone@example.com"},
 		//	Subject:    "Test msg",
@@ -212,12 +212,12 @@ func TestStackMessages(t *testing.T) {
 func TestComposerConverter(t *testing.T) {
 	const testMsg = "hello world"
 
-	cases := []interface{}{
+	cases := []any{
 		MakeLines(testMsg),
 		testMsg,
 		errors.New(testMsg),
 		[]string{testMsg},
-		[]interface{}{testMsg},
+		[]any{testMsg},
 		[]byte(testMsg),
 		[]Composer{MakeString(testMsg)},
 	}
@@ -232,14 +232,14 @@ func TestComposerConverter(t *testing.T) {
 		}
 	}
 
-	cases = []interface{}{
+	cases = []any{
 		nil,
 		"",
-		[]interface{}{},
+		[]any{},
 		[]string{},
 		[]byte{},
 		Fields{},
-		map[string]interface{}{},
+		map[string]any{},
 	}
 
 	for idx, msg := range cases {
@@ -255,11 +255,11 @@ func TestComposerConverter(t *testing.T) {
 
 	}
 
-	outputCases := map[string]interface{}{
+	outputCases := map[string]any{
 		"1":           1,
 		"2":           int32(2),
 		"message='3'": Fields{"message": 3},
-		"message='4'": map[string]interface{}{"message": "4"},
+		"message='4'": map[string]any{"message": "4"},
 	}
 
 	for out, in := range outputCases {

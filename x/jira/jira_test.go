@@ -321,7 +321,7 @@ func TestCustomFields(t *testing.T) {
 	jiraIssue := &Issue{
 		Summary: "test",
 		Type:    "type",
-		Fields: map[string]interface{}{
+		Fields: map[string]any{
 			"customfield_12345": []string{"hi", "bye"},
 		},
 	}

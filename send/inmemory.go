@@ -151,9 +151,9 @@ func (s *InMemorySender) GetString() ([]string, error) {
 }
 
 // GetRaw returns all the current messages in the buffer as empty interfaces.
-func (s *InMemorySender) GetRaw() []interface{} {
+func (s *InMemorySender) GetRaw() []any {
 	msgs := s.Get()
-	raw := make([]interface{}, 0, len(msgs))
+	raw := make([]any, 0, len(msgs))
 	for _, msg := range msgs {
 		raw = append(raw, msg.Raw())
 	}
