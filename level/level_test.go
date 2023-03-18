@@ -19,11 +19,10 @@ func TestLevel(t *testing.T) {
 	t.Run("Valid", func(t *testing.T) {
 		t.Run("TooLow", func(t *testing.T) {
 			assert(t, !Priority(0).IsValid())
-			assert(t, !Priority(-1).IsValid())
 		})
 		t.Run("TooHigh", func(t *testing.T) {
 			assert(t, !Priority(101).IsValid())
-			assert(t, !Priority(1000).IsValid())
+			assert(t, !Priority(255).IsValid())
 		})
 		t.Run("Edges", func(t *testing.T) {
 			assert(t, Priority(1).IsValid())

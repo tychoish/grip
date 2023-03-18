@@ -55,7 +55,7 @@ func TestTwitter(t *testing.T) {
 			}
 		})
 		t.Run("SetInvalidLevel", func(t *testing.T) {
-			s, err := NewSender(ctx, &Options{}, send.LevelInfo{Default: -1, Threshold: -1})
+			s, err := NewSender(ctx, &Options{}, send.LevelInfo{Default: 0, Threshold: 0})
 			if err == nil {
 				t.Error("expected error condition")
 			}

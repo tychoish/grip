@@ -54,7 +54,7 @@ type kvMsg struct {
 }
 
 // MakeKVs constructs a new Composer using KV pairs.
-func MakeKVs(kvs KVs) Composer { m := &kvMsg{fields: kvs}; return m }
+func MakeKVs(kvs KVs) Composer { return &kvMsg{fields: kvs} }
 
 // MakeKV constructs a new Composer using KV pairs.
 func MakeKV(kvs ...KV) Composer { return MakeKVs(kvs) }

@@ -219,9 +219,10 @@ func TestNameSetterRoundTrip(t *testing.T) {
 func TestLevelSetterRejectsInvalidSettings(t *testing.T) {
 	levels := []LevelInfo{
 		{level.Invalid, level.Invalid},
-		{level.Priority(-10), level.Priority(-1)},
-		{level.Debug, level.Priority(-1)},
-		{level.Priority(800), level.Priority(-2)},
+		{level.Priority(0), level.Priority(0)},
+		{level.Debug, level.Priority(0)},
+		{level.Priority(0), level.Info},
+		{level.Priority(225), level.Priority(225)},
 	}
 
 	for n, sender := range senderFixture(t) {
