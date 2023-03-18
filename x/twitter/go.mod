@@ -1,6 +1,6 @@
 module github.com/tychoish/grip/x/twitter
 
-go 1.18
+go 1.19
 
 require (
 	github.com/dghubble/go-twitter v0.0.0-20220626024101-68c0170dc641

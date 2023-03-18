@@ -2,13 +2,13 @@ name: test
 on: [push]
 
 jobs:
-  run:
+  unittest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
       - uses: actions/setup-go@v3
         with:
-          go-version: "1.18"
+          go-version: "1.19"
       - uses: actions/cache@v1
         with:
           path: ~/go/pkg/mod
@@ -27,4 +27,4 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.45.2
+          version: v1.51.2

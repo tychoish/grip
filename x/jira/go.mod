@@ -1,6 +1,6 @@
 module github.com/tychoish/grip/x/jira
 
-go 1.18
+go 1.19
 
 require (
 	github.com/andygrunwald/go-jira v1.15.1

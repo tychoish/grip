@@ -1,6 +1,6 @@
 module github.com/tychoish/grip/x/splunk
 
-go 1.18
+go 1.19
 
 require (
 	github.com/fuyufjh/splunk-hec-go v0.4.0

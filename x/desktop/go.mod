@@ -1,6 +1,6 @@
 module github.com/tychoish/grip/x/desktop
 
-go 1.18
+go 1.19
 
 require (
 	github.com/gen2brain/beeep v0.0.0-20220518085355-d7852edf42fc

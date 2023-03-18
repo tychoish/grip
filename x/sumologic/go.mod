@@ -1,6 +1,6 @@
 module github.com/tychoish/grip/x/sumologic
 
-go 1.18
+go 1.19
 
 replace github.com/nutmegdevelopment/sumologic => github.com/tychoish/sumologic v1.0.0
 
