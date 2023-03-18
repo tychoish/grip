@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/dghubble/go-twitter v0.0.0-20220626024101-68c0170dc641
 	github.com/dghubble/oauth1 v0.7.1
-	github.com/tychoish/grip v0.1.1
+	github.com/tychoish/grip v0.1.3
 )
 
 require (
