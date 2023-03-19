@@ -2,6 +2,7 @@ package send
 
 import (
 	"context"
+	"runtime"
 	"sync"
 
 	"github.com/tychoish/fun"
@@ -22,23 +23,27 @@ type asyncGroupSender struct {
 	Base
 }
 
-// NewAsyncGroup produces an implementation of the Sender interface that,
-// like the MultiSender, distributes a single message to a group of underlying
-// sender implementations.
+// NewAsyncGroup produces an implementation of the Sender interface
+// that, like the MultiSender, distributes a single message to a group
+// of underlying sender implementations.
 //
-// This sender does not guarantee ordering of messages, and Send operations may
-// if the underlying senders fall behind the buffer size.
+// This sender does not guarantee ordering of messages. The buffer
+// size controls the size of the buffer between each sender and the
+// individual senders.
 //
-// The sender takes ownership of the underlying Senders, so closing this sender
-// closes all underlying Senders.
+// The sender takes ownership of the underlying Senders, so closing
+// this sender closes all underlying Senders.
 func NewAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Sender {
 	s := &asyncGroupSender{
 		baseCtx:        ctx,
 		shutdownSignal: make(chan struct{}),
-		senders:        fun.Must(pubsub.NewDeque[Sender](pubsub.DequeOptions{Unlimited: true})),
+		// unlimited number of senders, bufferSize is
+		// constrained buy the buffer size in the broker.
+		senders: fun.Must(pubsub.NewDeque[Sender](pubsub.DequeOptions{Unlimited: true})),
 		broker: pubsub.NewBroker[message.Composer](ctx, pubsub.BrokerOptions{
 			BufferSize:       bufferSize,
 			ParallelDispatch: true,
+			WorkerPoolSize:   runtime.NumCPU(),
 		}),
 	}
 	for idx := range senders {
@@ -53,9 +58,10 @@ func NewAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Sende
 	}
 
 	wg := &s.wg
-	s.closer.Set(func() error {
-		catcher := &erc.Collector{}
+	s.closer.Set(func() (err error) {
 		s.doClose.Do(func() {
+			catcher := &erc.Collector{}
+			defer func() { err = catcher.Resolve() }()
 			s.cancel()
 			catcher.Add(s.senders.Close())
 
@@ -67,7 +73,9 @@ func NewAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Sende
 			close(shutdown)
 			wg.Wait(ctx)
 		})
-		return catcher.Resolve()
+
+		// let the defer in the closer set the err
+		return
 	})
 	return s
 }
