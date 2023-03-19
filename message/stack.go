@@ -164,8 +164,8 @@ func captureStack(skip int) []StackFrame {
 		trace = append(trace, StackFrame{
 			Function: runtime.FuncForPC(pc).Name(),
 			File:     file,
-			Line:     line})
-
+			Line:     line,
+		})
 		skip++
 	}
 
