@@ -12,7 +12,7 @@ import (
 
 type nativeLogger struct {
 	logger *log.Logger
-	*Base
+	Base
 }
 
 // NewFile creates a Sender implementation that writes log
@@ -32,7 +32,7 @@ func NewFile(name, filePath string, l LevelInfo) (Sender, error) {
 // the specified file. The Sender instance is not configured: Pass to
 // Journaler.SetSender or call SetName before using.
 func MakeFile(filePath string) (Sender, error) {
-	s := &nativeLogger{Base: NewBase("")}
+	s := &nativeLogger{}
 	s.SetFormatter(MakeDefaultFormatter())
 
 	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -40,17 +40,17 @@ func MakeFile(filePath string) (Sender, error) {
 		return nil, fmt.Errorf("error opening logging file, %s", err.Error())
 	}
 
-	s.level = LevelInfo{level.Trace, level.Trace}
+	s.level.Set(LevelInfo{level.Trace, level.Trace})
 
-	s.reset = func() {
+	s.reset.Set(func() {
 		prefix := fmt.Sprintf("[%s] ", s.Name())
 		s.logger = log.New(f, prefix, log.LstdFlags)
 		s.SetErrorHandler(ErrorHandlerFromLogger(log.New(os.Stderr, prefix, log.LstdFlags)))
-	}
+	})
 
-	s.closer = func() error {
+	s.closer.Set(func() error {
 		return f.Close()
-	}
+	})
 
 	return s, nil
 }
@@ -92,9 +92,7 @@ func WrapWriter(wr io.Writer) Sender {
 		return s.Sender
 	}
 
-	s := &nativeLogger{
-		Base: NewBase(""),
-	}
+	s := &nativeLogger{}
 	_ = s.SetLevel(LevelInfo{level.Trace, level.Trace})
 
 	s.SetResetHook(func() {
@@ -120,7 +118,7 @@ func NewWrappedWriter(name string, wr io.Writer, l LevelInfo) (Sender, error) {
 
 func (s *nativeLogger) Send(m message.Composer) {
 	if s.Level().ShouldLog(m) {
-		out, err := s.formatter(m)
+		out, err := s.Formatter()(m)
 		if err != nil {
 			s.ErrorHandler()(err, m)
 			return

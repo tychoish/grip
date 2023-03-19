@@ -3,8 +3,9 @@ package send
 import (
 	"context"
 	"fmt"
-	"sync"
+	"sync/atomic"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/grip/message"
 )
 
@@ -13,37 +14,29 @@ import (
 // implementations. All implementations of the functions
 type Base struct {
 	// data exposed via the interface and tools to track them
-	name   string
-	level  LevelInfo
-	mutex  sync.RWMutex
-	closed bool
+	name   fun.Atomic[string]
+	level  fun.Atomic[LevelInfo]
+	closed atomic.Bool
 
 	// function literals which allow customizable functionality.
 	// they are set either in the constructor (e.g. MakeBase) of
 	// via the SetErrorHandler/SetFormatter injector.
-	errHandler ErrorHandler
-	reset      func()
-	closer     func() error
-	formatter  MessageFormatter
+	errHandler fun.Atomic[ErrorHandler]
+	reset      fun.Atomic[func()]
+	closer     fun.Atomic[func() error]
+	formatter  fun.Atomic[MessageFormatter]
 }
 
 // NewBase constructs a basic Base structure with no op functions for
 // reset, close, and error handling.
-func NewBase(n string) *Base {
-	return &Base{
-		name:       n,
-		reset:      func() {},
-		closer:     func() error { return nil },
-		errHandler: func(error, message.Composer) {},
-	}
-}
+func NewBase(n string) *Base { b := &Base{}; b.name.Set(n); return b }
 
 // MakeBase constructs a Base structure that allows callers to specify
 // the reset and caller function.
 func MakeBase(n string, reseter func(), closer func() error) *Base {
 	b := NewBase(n)
-	b.reset = reseter
-	b.closer = closer
+	b.reset.Set(reseter)
+	b.closer.Set(closer)
 
 	return b
 }
@@ -51,107 +44,65 @@ func MakeBase(n string, reseter func(), closer func() error) *Base {
 // Close calls the closer function if it is defined and it has not already been
 // closed.
 func (b *Base) Close() error {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	if b.closed {
+	if swapped := b.closed.CompareAndSwap(false, true); !swapped {
 		return nil
 	}
 
-	if b.closer != nil {
-		if err := b.closer(); err != nil {
+	if closer := b.closer.Get(); closer != nil {
+		if err := closer(); err != nil {
 			return err
 		}
 	}
-	b.closed = true
+
 	return nil
 }
 
 // Name returns the name of the Sender.
-func (b *Base) Name() string {
-	b.mutex.RLock()
-	defer b.mutex.RUnlock()
-
-	return b.name
-}
+func (b *Base) Name() string { return b.name.Get() }
 
 // SetName allows clients to change the name of the Sender.
-func (b *Base) SetName(name string) {
-	b.mutex.Lock()
-	b.name = name
-	b.mutex.Unlock()
+func (b *Base) SetName(name string) { b.name.Set(name); b.doReset() }
 
-	b.reset()
+func (b *Base) SetResetHook(f func()) { b.reset.Set(f) }
+
+func (b *Base) doReset() {
+	if reset := b.reset.Get(); reset != nil {
+		reset()
+	}
 }
 
-func (b *Base) SetResetHook(f func()) {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	b.reset = f
-}
-
-func (b *Base) SetCloseHook(f func() error) {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	b.closer = f
-}
+func (b *Base) SetCloseHook(f func() error) { b.closer.Set(f) }
 
 // SetFormatter users to set the formatting function used to construct log messages.
-func (b *Base) SetFormatter(mf MessageFormatter) {
-	if mf == nil {
-		return
-	}
-
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-	b.formatter = mf
-
-	return
-}
+func (b *Base) SetFormatter(mf MessageFormatter) { b.formatter.Set(mf) }
 
 // Formatter returns the formatter, defaulting to using the string
 // form of the message if no formatter is configured.
 func (b *Base) Formatter() MessageFormatter {
 	return func(m message.Composer) (string, error) {
-		b.mutex.RLock()
+		fn := b.formatter.Get()
 
-		if b.formatter == nil {
-			b.mutex.RUnlock()
+		if fn == nil {
 			return m.String(), nil
 		}
-		defer b.mutex.RUnlock()
 
-		return b.formatter(m)
+		return fn(m)
 	}
 }
 
 // SetErrorHandler configures the error handling function for this Sender.
-func (b *Base) SetErrorHandler(eh ErrorHandler) {
-	if eh == nil {
-		return
-	}
-
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-	b.errHandler = eh
-
-	return
-}
+func (b *Base) SetErrorHandler(eh ErrorHandler) { b.errHandler.Set(eh) }
 
 // ErrorHandler returns an error handling functioncalls the error handler, and is a wrapper around the
 // embedded ErrorHandler function.
 func (b *Base) ErrorHandler() ErrorHandler {
 	return func(err error, m message.Composer) {
-		if err == nil {
+		fn := b.errHandler.Get()
+		if err == nil || fn == nil {
 			return
 		}
 
-		b.mutex.RLock()
-		defer b.mutex.RUnlock()
-
-		b.errHandler(err, m)
+		b.errHandler.Get()(err, m)
 	}
 }
 
@@ -162,21 +113,13 @@ func (b *Base) SetLevel(l LevelInfo) error {
 		return fmt.Errorf("level settings are not valid: %+v", l)
 	}
 
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	b.level = l
+	b.level.Set(l)
 
 	return nil
 }
 
 // Level reports the currently configured level for the Sender.
-func (b *Base) Level() LevelInfo {
-	b.mutex.RLock()
-	defer b.mutex.RUnlock()
-
-	return b.level
-}
+func (b *Base) Level() LevelInfo { return b.level.Get() }
 
 // Flush provides a default implementation of the Flush method for
 // senders that don't cache messages locally.

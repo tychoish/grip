@@ -39,7 +39,7 @@ func NewTesting(t *testing.T, name string, l LevelInfo) Sender {
 
 func (s *testLogger) Send(m message.Composer) {
 	if s.Level().ShouldLog(m) {
-		out, err := s.formatter(m)
+		out, err := s.Formatter()(m)
 		if err != nil {
 			s.t.Logf("formating message [type=%T]: %v", m, err)
 			return

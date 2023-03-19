@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/grip/level"
 )
 
@@ -19,13 +20,11 @@ func WrapWriterPlain(wr io.Writer) Sender {
 		return s.Sender
 	}
 
-	s := &nativeLogger{
-		Base: NewBase(""),
-	}
+	s := &nativeLogger{}
 	s.logger = log.New(wr, "", 0)
 
 	s.SetFormatter(MakePlainFormatter())
-	_ = s.SetLevel(LevelInfo{Default: level.Trace, Threshold: level.Trace})
+	fun.InvariantMust(s.SetLevel(LevelInfo{Default: level.Trace, Threshold: level.Trace}))
 	return s
 }
 
@@ -58,10 +57,8 @@ func NewPlainFile(name, file string, l LevelInfo) (Sender, error) {
 // using the plain log formatter. This Sender writes all output to
 // standard error.
 func MakePlain() Sender {
-	s := &nativeLogger{
-		Base: NewBase(""),
-	}
-	_ = s.SetLevel(LevelInfo{level.Trace, level.Trace})
+	s := &nativeLogger{}
+	fun.InvariantMust(s.SetLevel(LevelInfo{level.Trace, level.Trace}))
 	s.SetFormatter(MakePlainFormatter())
 	s.SetResetHook(func() {
 		s.logger = log.New(os.Stdout, "", 0)
@@ -74,9 +71,9 @@ func MakePlain() Sender {
 // MakePlainFile writes all output to a file, but does not
 // prepend any log formatting to each message.
 func MakePlainFile(filePath string) (Sender, error) {
-	s := &nativeLogger{Base: NewBase("")}
+	s := &nativeLogger{}
 	s.SetFormatter(MakeDefaultFormatter())
-	_ = s.SetLevel(LevelInfo{level.Trace, level.Trace})
+	fun.InvariantMust(s.SetLevel(LevelInfo{level.Trace, level.Trace}))
 
 	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
@@ -96,10 +93,8 @@ func MakePlainFile(filePath string) (Sender, error) {
 // using the plain log formatter. This Sender writes all output to
 // standard error.
 func MakePlainStdError() Sender {
-	s := &nativeLogger{
-		Base: NewBase(""),
-	}
-	_ = s.SetLevel(LevelInfo{Default: level.Trace, Threshold: level.Trace})
+	s := &nativeLogger{}
+	fun.InvariantMust(s.SetLevel(LevelInfo{Default: level.Trace, Threshold: level.Trace}))
 	s.SetFormatter(MakePlainFormatter())
 	s.SetResetHook(func() {
 		s.logger = log.New(os.Stderr, "", 0)

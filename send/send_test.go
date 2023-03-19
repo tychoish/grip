@@ -297,9 +297,6 @@ func TestBaseConstructor(t *testing.T) {
 		if newed.level != made.level {
 			t.Error("elements should be equal")
 		}
-		if newed.closer() != made.closer() {
-			t.Error("elements should be equal")
-		}
 
 		for _, s := range []*Base{made, newed} {
 			s.SetFormatter(nil)

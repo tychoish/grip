@@ -44,7 +44,7 @@ func TestAsyncGroupSender(t *testing.T) {
 	if newLevel == s.Level() {
 		t.Error("elements should not be equal")
 	}
-	impl.level = newLevel
+	impl.level.Set(newLevel)
 	if newLevel != s.Level() {
 		t.Error("elements shold be equal")
 	}

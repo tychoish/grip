@@ -58,7 +58,7 @@ func NewAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Sende
 		}(s.broker.Subscribe(ctx), senders[i])
 	}
 
-	s.closer = func() error {
+	s.closer.Set(func() error {
 		catcher := &erc.Collector{}
 
 		for _, sender := range s.senders {
@@ -69,7 +69,7 @@ func NewAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Sende
 		s.cancel()
 
 		return catcher.Resolve()
-	}
+	})
 	return s
 }
 
