@@ -12,6 +12,6 @@ require (
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
-	github.com/tychoish/fun v0.8.0 // indirect
+	github.com/tychoish/fun v0.8.1 // indirect
 	golang.org/x/sys v0.0.0-20221013171732-95e765b1cc43 // indirect
 )
