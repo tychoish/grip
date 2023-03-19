@@ -115,11 +115,13 @@ func (s *bufferedSender) intervalFlush(ctx context.Context, interval time.Durati
 		case <-ctx.Done():
 			return
 		case <-timer.C:
-			s.mu.Lock()
-			if len(s.buffer) > 0 && time.Since(s.lastFlush) >= interval {
-				s.flush()
-			}
-			s.mu.Unlock()
+			func() {
+				s.mu.Lock()
+				defer s.mu.Unlock()
+				if len(s.buffer) > 0 && time.Since(s.lastFlush) >= interval {
+					s.flush()
+				}
+			}()
 			_ = timer.Reset(interval)
 		}
 	}

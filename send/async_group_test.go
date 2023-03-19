@@ -3,7 +3,9 @@ package send
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/tychoish/fun/testt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -58,7 +60,7 @@ func TestAsyncGroupSender(t *testing.T) {
 		t.Error("elements shold be equal")
 	}
 
-	if err := s.Flush(context.TODO()); err != nil {
+	if err := s.Flush(testt.ContextWithTimeout(t, time.Second)); err != nil {
 		t.Error(err)
 	}
 	if err := s.Close(); err != nil {

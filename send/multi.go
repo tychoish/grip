@@ -67,18 +67,25 @@ func MakeMulti(senders ...Sender) Sender {
 }
 
 // AddToMulti is a helper function that takes two Sender instances,
-// the first of which must be a multi sender. If this is true, then
-// AddToMulti adds the second Sender to the first Sender's list of
-// Senders.
+// the first of which must be a multi or async group sender. If this
+// is true, then AddToMulti adds the second Sender to the first
+// Sender's list of Senders.
 //
-// Returns an error if the first instance is not a multi sender.
+// Returns an error if the first instance is not a multi sender, or if
+// the async group sender has been closed.
 func AddToMulti(multi Sender, s Sender) error {
-	sender, ok := multi.(*multiSender)
-	if !ok {
+	switch sender := multi.(type) {
+	case *multiSender:
+		return sender.add(s)
+	case *asyncGroupSender:
+		if err := sender.senders.PushBack(s); err != nil {
+			return err
+		}
+		sender.startSenderWorker(s)
+		return nil
+	default:
 		return fmt.Errorf("%s is not a multi sender", multi.Name())
 	}
-
-	return sender.add(s)
 }
 
 func (s *multiSender) Close() error {
