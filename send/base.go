@@ -102,7 +102,7 @@ func (b *Base) ErrorHandler() ErrorHandler {
 			return
 		}
 
-		b.errHandler.Get()(err, m)
+		fn(err, m)
 	}
 }
 
