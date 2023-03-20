@@ -3,7 +3,6 @@ package message
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/tychoish/grip/level"
 )
@@ -71,20 +70,6 @@ func (m *errorComposerWrap) Cause() error      { return m.err }
 func (m *errorComposerWrap) Is(err error) bool { return errors.Is(m.err, err) }
 func (m *errorComposerWrap) As(err any) bool   { return errors.As(m.err, err) }
 func (m *errorComposerWrap) Unwrap() Composer  { return m.Composer }
-func (m *errorComposerWrap) Format(s fmt.State, verb rune) {
-	switch verb {
-	case 'v':
-		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v\n", m.err)
-			_, _ = io.WriteString(s, m.String())
-			return
-		}
-		fallthrough
-	case 's', 'q':
-		_, _ = io.WriteString(s, m.Error())
-	}
-}
-
 func (m *errorComposerWrap) Loggable() bool {
 	return m.err != nil
 }
