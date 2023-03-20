@@ -75,7 +75,7 @@ func (m *errorComposerWrap) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v\n", unwrapCause(m.err))
+			fmt.Fprintf(s, "%+v\n", m.err)
 			_, _ = io.WriteString(s, m.String())
 			return
 		}

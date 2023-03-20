@@ -300,7 +300,7 @@ func TestErrors(t *testing.T) {
 				case fun.IsWrapped(cmp):
 				case fun.IsWrapped(cmp.(error)):
 				default:
-					t.Error("should be wrapped error or wrapped composer")
+					t.Errorf("should be wrapped error or wrapped composer: %T", cmp)
 				}
 			})
 			t.Run("Value", func(t *testing.T) {
@@ -308,12 +308,6 @@ func TestErrors(t *testing.T) {
 					t.Error("elements should be equal")
 				}
 			})
-			t.Run("ExtendedFormat", func(t *testing.T) {
-				if fmt.Sprintf("%+v", cmp) == fmt.Sprintf("%v", cmp) {
-					t.Errorf("extended values should not be the same")
-				}
-			})
-
 		})
 	}
 }

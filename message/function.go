@@ -33,8 +33,6 @@ package message
 
 import (
 	"errors"
-	"fmt"
-	"io"
 
 	"github.com/tychoish/grip/level"
 )
@@ -234,7 +232,7 @@ type ErrorProducer func() error
 
 type errorProducerMessage struct {
 	ep     ErrorProducer
-	cached Composer
+	cached *errorMessage
 	level  level.Priority
 }
 
@@ -266,7 +264,8 @@ func MakeErrorProducer(ep ErrorProducer) Composer {
 
 func (ep *errorProducerMessage) resolve() {
 	if ep.cached == nil {
-		ep.cached = NewError(ep.level, ep.ep())
+		ep.cached = &errorMessage{err: ep.ep()}
+		_ = ep.cached.SetPriority(ep.level)
 	}
 }
 
@@ -310,36 +309,9 @@ func (ep *errorProducerMessage) Priority() level.Priority { return ep.level }
 func (ep *errorProducerMessage) String() string           { ep.resolve(); return ep.cached.String() }
 func (ep *errorProducerMessage) Raw() any                 { ep.resolve(); return ep.cached.Raw() }
 func (ep *errorProducerMessage) Error() string            { return ep.String() }
-func (ep *errorProducerMessage) Unwrap() error            { return ep.Cause() }
-
-func (ep *errorProducerMessage) Cause() error {
-	ep.resolve()
-
-	switch err := ep.cached.(type) {
-	case *errorComposerWrap:
-		return err.err
-	case *errorMessage:
-		return err.err
-	case error:
-		return err
-	default:
-		return nil
-	}
-}
-
-func (ep *errorProducerMessage) Format(s fmt.State, verb rune) {
-	switch verb {
-	case 'v':
-		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v\n", unwrapCause(ep))
-			_, _ = io.WriteString(s, ep.String())
-			return
-		}
-		fallthrough
-	case 's', 'q':
-		_, _ = io.WriteString(s, ep.Error())
-	}
-}
+func (ep *errorProducerMessage) Is(err error) bool        { ep.resolve(); return errors.Is(ep.cached, err) }
+func (ep *errorProducerMessage) As(err any) bool          { ep.resolve(); return errors.As(ep.cached, err) }
+func (ep *errorProducerMessage) Unwrap() error            { ep.resolve(); return ep.cached }
 
 // WrapErrorFunc produces a lazily-composed wrapped error message. The
 // function is only called is
@@ -356,32 +328,5 @@ type errorComposerShim struct {
 	Composer
 }
 
-func (ecs errorComposerShim) Error() string { return ecs.Composer.String() }
-func (ecs errorComposerShim) Unwrap() error { return ecs.Cause() }
-
-func (ecs errorComposerShim) Cause() error {
-	switch err := ecs.Composer.(type) {
-	case *errorComposerWrap:
-		return err.err
-	case *errorMessage:
-		return err.err
-	case error:
-		return err
-	default:
-		return nil
-	}
-}
-
-func (ecs errorComposerShim) Format(s fmt.State, verb rune) {
-	switch verb {
-	case 'v':
-		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v\n", unwrapCause(ecs))
-			_, _ = io.WriteString(s, ecs.String())
-			return
-		}
-		fallthrough
-	case 's', 'q':
-		_, _ = io.WriteString(s, ecs.Error())
-	}
-}
+func (ecs errorComposerShim) Error() string    { return ecs.Composer.String() }
+func (ecs errorComposerShim) Unwrap() Composer { return ecs.Composer }

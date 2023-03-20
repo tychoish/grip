@@ -6,8 +6,8 @@
 package message
 
 import (
+	"errors"
 	"fmt"
-	"io"
 
 	"github.com/tychoish/grip/level"
 )
@@ -27,9 +27,7 @@ type errorMessage struct {
 // pkg/errors.Causer and errors.Unwrapper interface and so can be
 // passed as errors and used with existing error-wrapping mechanisms.
 func NewError(p level.Priority, err error) Composer {
-	m := &errorMessage{
-		err: err,
-	}
+	m := &errorMessage{err: err}
 
 	_ = m.SetPriority(p)
 	return m
@@ -51,6 +49,7 @@ func (e *errorMessage) String() string {
 }
 
 func (e *errorMessage) Loggable() bool { return e.err != nil }
+func (e *errorMessage) Unwrap() error  { return e.err }
 
 func (e *errorMessage) Raw() any {
 	e.Collect()
@@ -80,23 +79,6 @@ func unwrapCause(err error) error {
 	return err
 }
 
-func (e *errorMessage) Error() string { return e.String() }
-func (e *errorMessage) Cause() error  { return e.err }
-func (e *errorMessage) Unwrap() error { return e.err }
-func (e *errorMessage) Format(s fmt.State, verb rune) {
-	if e.err == nil {
-		return
-	}
-
-	switch verb {
-	case 'v':
-		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v\n", unwrapCause(e.err))
-			_, _ = io.WriteString(s, e.String())
-			return
-		}
-		fallthrough
-	case 's', 'q':
-		_, _ = io.WriteString(s, e.Error())
-	}
-}
+func (e *errorMessage) Error() string     { return e.String() }
+func (e *errorMessage) Is(err error) bool { return errors.Is(e.err, err) }
+func (e *errorMessage) As(err any) bool   { return errors.As(e.err, err) }
