@@ -72,15 +72,16 @@ func (b *Builder) Send() {
 func (b *Builder) Message() Composer {
 	if b.composer != nil {
 		b.composer = Unwrap(b.composer)
+
+		if b.catcher.HasErrors() {
+			return NewErrorWrappedComposer(b.catcher.Resolve(), b.composer)
+		}
+
+		return b.composer
 	} else {
 		return MakeError(b.catcher.Resolve())
 	}
 
-	if b.catcher.HasErrors() {
-		return NewErrorWrappedComposer(b.catcher.Resolve(), b.composer)
-	}
-
-	return b.composer
 }
 
 // Level sets the priority of the message. Call this after creating a

@@ -1,6 +1,7 @@
 package message
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -65,9 +66,11 @@ func (m *errorComposerWrap) String() string {
 	return m.cached
 }
 
-func (m *errorComposerWrap) Error() string { return m.String() }
-func (m *errorComposerWrap) Cause() error  { return m.err }
-func (m *errorComposerWrap) Unwrap() error { return m.err }
+func (m *errorComposerWrap) Error() string     { return m.String() }
+func (m *errorComposerWrap) Cause() error      { return m.err }
+func (m *errorComposerWrap) Is(err error) bool { return errors.Is(m.err, err) }
+func (m *errorComposerWrap) As(err any) bool   { return errors.As(m.err, err) }
+func (m *errorComposerWrap) Unwrap() Composer  { return m.Composer }
 func (m *errorComposerWrap) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':

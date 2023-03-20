@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/grip/level"
 )
 
@@ -295,11 +296,11 @@ func TestErrors(t *testing.T) {
 				if _, ok := cmp.(error); !ok {
 					t.Errorf("%T should implement error, but doesn't", cmp)
 				}
-				if _, ok := cmp.(error); !ok {
-					t.Errorf("%T should implement error, but doesn't", cmp)
-				}
-				if _, ok := cmp.(unwrapper); !ok {
-					t.Errorf("%T should implement unwrapper, but doesn't", cmp)
+				switch {
+				case fun.IsWrapped(cmp):
+				case fun.IsWrapped(cmp.(error)):
+				default:
+					t.Error("should be wrapped error or wrapped composer")
 				}
 			})
 			t.Run("Value", func(t *testing.T) {

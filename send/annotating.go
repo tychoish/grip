@@ -35,7 +35,7 @@ func (s *annotatingSender) Send(m message.Composer) {
 	}
 
 	ec := &erc.Collector{}
-	errs := []string{}
+
 	for k, v := range s.annotations {
 		ec.Add(m.Annotate(k, v))
 	}

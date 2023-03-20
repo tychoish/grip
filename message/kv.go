@@ -115,6 +115,7 @@ func (m *kvMsg) String() string {
 	for idx, kv := range m.fields {
 		if str, ok := kv.Value.(fmt.Stringer); ok {
 			out[idx] = fmt.Sprintf("%s='%s'", kv.Key, str.String())
+
 		} else {
 			out[idx] = fmt.Sprintf("%s='%v'", kv.Key, kv.Value)
 		}
