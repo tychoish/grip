@@ -47,6 +47,20 @@ func GetConnectionInfo() ConnectionInfo {
 	}
 }
 
+const completeFormatTmpl = "[%s] (p=%s) %s"
+
+// MakeXMPPFormatter returns a MessageFormatter that will produce
+// messages in the following format, used primarily by the xmpp logger:
+//
+//	[<name>] (p=<priority>) <message>
+//
+// It can never error.
+func MakeXMPPFormatter(name string) send.MessageFormatter {
+	return func(m message.Composer) (string, error) {
+		return fmt.Sprintf(completeFormatTmpl, name, m.Priority(), m.String()), nil
+	}
+}
+
 // NewSender constructs a new Sender implementation that sends
 // messages to an XMPP user, "target", using the credentials specified in
 // the XMPPConnectionInfo struct. The constructor will attempt to exablish
@@ -120,9 +134,9 @@ func constructXMPPLogger(name, target string, info ConnectionInfo) (send.Sender,
 
 	s.SetCloseHook(func() error { return s.info.client.Close() })
 	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
-	s.SetFormatter(send.MakeXMPPFormatter(s.Name()))
+	s.SetFormatter(MakeXMPPFormatter(s.Name()))
 	s.SetResetHook(func() {
-		s.SetFormatter(send.MakeXMPPFormatter(s.Name()))
+		s.SetFormatter(MakeXMPPFormatter(s.Name()))
 		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
 	})
 

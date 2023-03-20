@@ -10,9 +10,8 @@ import (
 )
 
 const (
-	defaultFormatTmpl  = "[p=%s]: %s"
-	callSiteTmpl       = "[p=%s] [%s:%d]: %s"
-	completeFormatTmpl = "[%s] (p=%s) %s"
+	defaultFormatTmpl = "[p=%s]: %s"
+	callSiteTmpl      = "[p=%s] [%s:%d]: %s"
 )
 
 // MessageFormatter is a function type used by senders to construct the
@@ -66,18 +65,6 @@ func MakeCallSiteFormatter(depth int) MessageFormatter {
 	return func(m message.Composer) (string, error) {
 		file, line := callerInfo(depth)
 		return fmt.Sprintf(callSiteTmpl, m.Priority(), file, line, m), nil
-	}
-}
-
-// MakeXMPPFormatter returns a MessageFormatter that will produce
-// messages in the following format, used primarily by the xmpp logger:
-//
-//	[<name>] (p=<priority>) <message>
-//
-// It can never error.
-func MakeXMPPFormatter(name string) MessageFormatter {
-	return func(m message.Composer) (string, error) {
-		return fmt.Sprintf(completeFormatTmpl, name, m.Priority(), m.String()), nil
 	}
 }
 
