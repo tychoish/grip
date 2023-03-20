@@ -61,15 +61,19 @@ func ConvertWithPriority(p level.Priority, message any) Composer {
 	return out
 }
 
+type anySlice[S ~[]E, E any] interface{}
+
 // Convert produces a composer interface for arbitrary input.
-func Convert(message any) Composer {
-	switch message := message.(type) {
+func Convert[T any](input T) Composer {
+	switch message := any(input).(type) {
 	case Composer:
 		return message
 	case []Composer:
 		return MakeGroupComposer(message)
 	case string:
 		return MakeString(message)
+	case []byte:
+		return MakeBytes(message)
 	case error:
 		return MakeError(message)
 	case FieldsProducer:
@@ -90,97 +94,51 @@ func Convert(message any) Composer {
 		return newLinesFromStrings(message)
 	case []any:
 		return buildFromSlice(message)
-	case []byte:
-		return MakeBytes(message)
 	case Fields:
 		return MakeFields(message)
 	case KVs:
 		return MakeKVs(message)
 	case map[string]any:
 		return MakeFields(Fields(message))
-	case [][]string:
-		grp := make([]Composer, len(message))
-		for idx := range message {
-			grp[idx] = newLinesFromStrings(message[idx])
-		}
-		return MakeGroupComposer(grp)
-	case [][]byte:
-		grp := make([]Composer, len(message))
-		for idx := range message {
-			grp[idx] = MakeBytes(message[idx])
-		}
-		return MakeGroupComposer(grp)
-	case []map[string]any:
-		grp := make([]Composer, len(message))
-		for idx := range message {
-			grp[idx] = MakeFields(message[idx])
-		}
-		return MakeGroupComposer(grp)
-	case []Fields:
-		grp := make([]Composer, len(message))
-		for idx := range message {
-			grp[idx] = MakeFields(message[idx])
-		}
-		return MakeGroupComposer(grp)
-	case []FieldsProducer:
-		grp := make([]Composer, len(message))
-		for idx := range message {
-			grp[idx] = MakeFieldsProducer(message[idx])
-		}
-		return MakeGroupComposer(grp)
-	case []func() Fields:
-		grp := make([]Composer, len(message))
-		for idx := range message {
-			grp[idx] = MakeFieldsProducer(message[idx])
-		}
-		return MakeGroupComposer(grp)
-	case []func() map[string]any:
-		grp := make([]Composer, len(message))
-		for idx := range message {
-			grp[idx] = MakeConvertedFieldsProducer(message[idx])
-		}
-		return MakeGroupComposer(grp)
-	case []ComposerProducer:
-		grp := make([]Composer, len(message))
-		for idx := range message {
-			grp[idx] = MakeProducer(message[idx])
-		}
-		return MakeGroupComposer(grp)
-	case []func() Composer:
-		grp := make([]Composer, len(message))
-		for idx := range message {
-			grp[idx] = MakeProducer(message[idx])
-		}
-		return MakeGroupComposer(grp)
-	case []ErrorProducer:
-		grp := make([]Composer, len(message))
-		for idx := range message {
-			grp[idx] = MakeErrorProducer(message[idx])
-		}
-		return MakeGroupComposer(grp)
-	case []func() error:
-		grp := make([]Composer, len(message))
-		for idx := range message {
-			grp[idx] = MakeErrorProducer(message[idx])
-		}
-		return MakeGroupComposer(grp)
-	case [][]any:
-		grp := make([]Composer, len(message))
-		for idx := range message {
-			grp[idx] = buildFromSlice(message[idx])
-		}
-		return MakeGroupComposer(grp)
-	case []KVs:
-		grp := make([]Composer, len(message))
-		for idx := range message {
-			grp[idx] = MakeKVs(message[idx])
-		}
-		return MakeGroupComposer(grp)
 	case nil:
 		return MakeKV()
+	case [][]string:
+		return convertSlice(message)
+	case [][]byte:
+		return convertSlice(message)
+	case []map[string]any:
+		return convertSlice(message)
+	case []Fields:
+		return convertSlice(message)
+	case []FieldsProducer:
+		return convertSlice(message)
+	case []func() Fields:
+		return convertSlice(message)
+	case []func() map[string]any:
+		return convertSlice(message)
+	case []ComposerProducer:
+		return convertSlice(message)
+	case []func() Composer:
+		return convertSlice(message)
+	case []ErrorProducer:
+		return convertSlice(message)
+	case []func() error:
+		return convertSlice(message)
+	case [][]any:
+		return convertSlice(message)
+	case []KVs:
+		return convertSlice(message)
 	default:
 		return MakeFormat("%+v", message)
 	}
+}
+
+func convertSlice[T any](in []T) Composer {
+	out := make([]Composer, len(in))
+	for idx := range in {
+		out[idx] = Convert(in[idx])
+	}
+	return MakeGroupComposer(out)
 }
 
 func buildFromSlice(vals []any) Composer {
