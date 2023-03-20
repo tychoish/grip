@@ -24,6 +24,10 @@ func TestContext(t *testing.T) {
 	logger := NewLogger(send.MakeStdOutput())
 	ctx = WithLogger(ctx, logger)
 
+	if !HasContextLogger(ctx, string(defaultContextKey)) {
+		t.Error(ctx)
+	}
+
 	if Context(ctx) == std {
 		t.Fatal("context logger should not return standard if set")
 	}
