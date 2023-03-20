@@ -63,22 +63,6 @@ func (e *errorMessage) Raw() any {
 	return e
 }
 
-func unwrapCause(err error) error {
-	// stolen from pkg/errors
-	type causer interface {
-		Cause() error
-	}
-
-	for err != nil {
-		cause, ok := err.(causer)
-		if !ok {
-			break
-		}
-		err = cause.Cause()
-	}
-	return err
-}
-
 func (e *errorMessage) Error() string     { return e.String() }
 func (e *errorMessage) Is(err error) bool { return errors.Is(e.err, err) }
 func (e *errorMessage) As(err any) bool   { return errors.As(e.err, err) }

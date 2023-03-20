@@ -276,14 +276,6 @@ func TestComposerConverter(t *testing.T) {
 
 }
 
-type causer interface {
-	Cause() error
-}
-
-type unwrapper interface {
-	Unwrap() error
-}
-
 func TestErrors(t *testing.T) {
 	for name, cmp := range map[string]Composer{
 		"Wrapped":         WrapError(errors.New("err"), "wrap"),

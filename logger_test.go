@@ -1,41 +1,17 @@
 package grip
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"testing"
 
+	"github.com/tychoish/fun/assert/check"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
-
-func TestContext(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	if Context(ctx) != std {
-		t.Fatal("context does not default to standard")
-	}
-
-	logger := NewLogger(send.MakeStdOutput())
-	ctx = WithLogger(ctx, logger)
-
-	if !HasContextLogger(ctx, string(defaultContextKey)) {
-		t.Error(ctx)
-	}
-
-	if Context(ctx) == std {
-		t.Fatal("context logger should not return standard if set")
-	}
-
-	if Context(ctx) != logger {
-		t.Fatal("context should return expected value")
-	}
-}
 
 func TestLogger(t *testing.T) {
 	const name = "gripTest"
@@ -65,7 +41,7 @@ func TestLogger(t *testing.T) {
 			}()
 
 			gripImpl := NewLogger(testSender(t))
-
+			gripImpl.sendPanic(level.Invalid, message.MakeLines("foo"))
 			gripImpl.Log(level.Critical, message.MakeLines("foo"))
 		}()
 
@@ -80,6 +56,17 @@ func TestLogger(t *testing.T) {
 			gripImpl := NewLogger(testSender(t))
 			gripImpl.sendPanic(level.Info, message.MakeLines("foo"))
 		}()
+		func() {
+			// call a panic function with a recoverer set.
+			defer func() {
+				if r := recover(); r == nil {
+					t.Fatal("did not panic in expected situation")
+				}
+			}()
+
+			EmergencyPanic(message.MakeLines("bar"))
+		}()
+
 	})
 	t.Run("PanicRespectsThreshold", func(t *testing.T) {
 		grip := NewLogger(testSender(t))
@@ -104,6 +91,20 @@ func TestLogger(t *testing.T) {
 
 		grip.sendPanic(level.Debug, message.MakeLines("foo"))
 	})
+	t.Run("PriorityIsSet", func(t *testing.T) {
+		m := message.NewLines(level.Info, "hello")
+		logger := NewLogger(testSender(t))
+		check.Equal(t, m.Priority(), level.Info)
+		logger.send(95, m)
+		check.Equal(t, m.Priority(), 95)
+		logger.send(0, m)
+		check.Equal(t, m.Priority(), 95)
+		logger.send(level.Warning, m)
+		check.Equal(t, m.Priority(), level.Warning)
+		logger.send(level.Priority(103), m)
+		logger.send(level.Warning, m)
+	})
+
 	t.Run("ConditionalSend", func(t *testing.T) {
 		// because sink is an internal type (implementation of
 		// sender,) and "GetMessage" isn't in the interface, though it
@@ -194,6 +195,8 @@ func TestLogger(t *testing.T) {
 			func(m []message.Composer) { grip.Log(level.Info, m) },
 			func(w bool, m ...message.Composer) { grip.LogWhen(w, level.Info, m) },
 			func(w bool, m []message.Composer) { grip.LogWhen(w, level.Info, m) },
+
+			func(in any) { grip.Build().Any(in).Level(level.Info).Send() },
 		}
 
 		const msg = "hello world!"
@@ -310,6 +313,15 @@ func TestLogger(t *testing.T) {
 		}
 
 	})
+	t.Run("StandardName", func(t *testing.T) {
+		check.Equal(t, "grip", std.impl.Name())
+		prev := os.Args[0]
+		defer func() { os.Args[0] = prev }()
+		os.Args[0] = "merlin"
+
+		setupDefault()
+		check.Equal(t, "merlin", std.impl.Name())
+	})
 
 }
 
@@ -317,16 +329,46 @@ func TestLogger(t *testing.T) {
 // http://stackoverflow.com/a/33404435 to test a function that exits
 // since it's impossible to "catch" an os.Exit
 func TestSendFatalExits(t *testing.T) {
-	grip := NewLogger(send.MakeStdOutput())
-	if os.Getenv("SHOULD_CRASH") == "1" {
-		grip.sendFatal(level.Error, message.MakeLines("foo"))
-		return
-	}
+	t.Run("Exit", func(t *testing.T) {
+		grip := NewLogger(send.MakeStdOutput())
+		if os.Getenv("SHOULD_CRASH") == "1" {
+			grip.sendFatal(level.Error, message.MakeLines("foo"))
+			return
+		}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestSendFatalExits")
-	cmd.Env = append(os.Environ(), "SHOULD_CRASH=1")
-	err := cmd.Run()
-	if err == nil {
-		t.Errorf("sendFatal should have exited 0, instead: %+v", err)
-	}
+		cmd := exec.Command(os.Args[0], "-test.run=TestSendFatalExits")
+		cmd.Env = append(os.Environ(), "SHOULD_CRASH=1")
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		err := cmd.Run()
+		if err == nil {
+			t.Errorf("sendFatal should have exited 0, instead: %+v", err)
+		}
+	})
+
+	t.Run("EmergencyFatal", func(t *testing.T) {
+		if os.Getenv("SHOULD_CRASH") == "1" {
+			EmergencyFatal("bar")
+			return
+		}
+
+		cmd := exec.Command(os.Args[0], "-test.run=TestSendFatalExits")
+		cmd.Env = append(os.Environ(), "SHOULD_CRASH=1")
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		err := cmd.Run()
+		if err == nil {
+			t.Errorf("sendFatal should have exited 0, instead: %+v", err)
+		}
+	})
+
+	t.Run("RespectsPriority", func(t *testing.T) {
+		grip := NewLogger(send.MakeStdOutput())
+		grip.impl.SetErrorHandler(send.ErrorHandlerFromSender(std.Sender()))
+		_ = grip.impl.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Warning})
+		// shouldn't fail
+		grip.sendFatal(level.Debug, message.Convert("hello world"))
+		grip.sendFatal(0, message.Convert("hello world"))
+	})
+
 }

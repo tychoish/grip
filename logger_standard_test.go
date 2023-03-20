@@ -3,6 +3,7 @@ package grip
 import (
 	"testing"
 
+	"github.com/tychoish/fun/assert"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -141,6 +142,8 @@ func TestBasicMethod(t *testing.T) {
 				lgrMsg := s.loggingSender.GetMessage()
 				stdMsg := s.stdSender.GetMessage()
 				if lgrMsg.Rendered != stdMsg.Rendered {
+					t.Log("rendered", lgrMsg.Rendered)
+					t.Log("standard", stdMsg.Rendered)
 					t.Error("values should be equal")
 				}
 			}
@@ -306,4 +309,16 @@ func TestProgrgramaticLevelMethods(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBuilder(t *testing.T) {
+	s := setupFixtures(t)
+
+	Build().Level(level.Info).String("hello").Send()
+	s.logger.Build().Level(level.Info).String("hello").Send()
+
+	assert.Equal(t,
+		s.loggingSender.GetMessage().Rendered,
+		s.stdSender.GetMessage().Rendered,
+	)
 }

@@ -40,7 +40,6 @@
 package grip
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,8 +51,10 @@ import (
 
 var std Logger
 
-func init() {
-	sender := send.WrapWriter(log.Writer())
+func init() { setupDefault() }
+
+func setupDefault() {
+	sender := send.MakeStdOutput()
 	if !strings.Contains(os.Args[0], "go-build") {
 		sender.SetName(filepath.Base(os.Args[0]))
 	} else {

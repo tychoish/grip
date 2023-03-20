@@ -37,13 +37,6 @@ func MakeLines(args ...any) Composer {
 	return m
 }
 
-func makeLinesFromStrings(p level.Priority, args []string) Composer {
-	m := newLinesFromStrings(args)
-	_ = m.SetPriority(p)
-
-	return m
-}
-
 func newLinesFromStrings(args []string) Composer {
 	m := &lineMessenger{}
 	m.lines = make([]any, 0, len(args))

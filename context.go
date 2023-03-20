@@ -2,7 +2,9 @@ package grip
 
 import "context"
 
-const defaultContextKey = "__GRIP_STD_LOGGER"
+type ctxKey string
+
+const defaultContextKey ctxKey = "__GRIP_STD_LOGGER"
 
 // WithLogger attaches a Logger instance to the context
 func WithLogger(ctx context.Context, logger Logger) context.Context {
@@ -20,7 +22,7 @@ func Context(ctx context.Context) Logger { return ContextLoger(ctx, string(defau
 // default logger, or even just using the standard Context is
 // preferable.
 func WithContextLogger(ctx context.Context, logger Logger, name string) context.Context {
-	return context.WithValue(ctx, name, logger)
+	return context.WithValue(ctx, ctxKey(name), logger)
 }
 
 // ContextLoger produces a logger stored in the context by a given
@@ -31,7 +33,7 @@ func ContextLoger(ctx context.Context, name string) Logger {
 		return std
 	}
 
-	val := ctx.Value(name)
+	val := ctx.Value(ctxKey(name))
 	if l, ok := val.(Logger); ok {
 		return l
 	}
@@ -41,6 +43,6 @@ func ContextLoger(ctx context.Context, name string) Logger {
 // HasContextLogger checks the provided context to see if a logger
 // with the given name is attached to the provided context.
 func HasContextLogger(ctx context.Context, name string) bool {
-	_, ok := ctx.Value(name).(Logger)
+	_, ok := ctx.Value(ctxKey(name)).(Logger)
 	return ok
 }

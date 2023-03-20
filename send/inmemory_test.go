@@ -13,7 +13,6 @@ import (
 const maxCap = 10
 
 type InMemorySuite struct {
-	maxCap int
 	msgs   []message.Composer
 	sender *InMemorySender
 }

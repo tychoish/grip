@@ -2,12 +2,25 @@ package message
 
 import (
 	"testing"
+
+	"github.com/tychoish/grip/level"
 )
 
 func TestConditionalMessage(t *testing.T) {
 	comp := When(true, "foo")
 	if !comp.Loggable() {
 		t.Error("value should be true")
+	}
+
+	if err := comp.SetPriority(level.Error); err != nil {
+		t.Error(err)
+	}
+	if comp.Priority() != level.Error {
+		t.Error(comp.Priority())
+	}
+
+	if comp.Structured() {
+		t.Error(comp.(*condComposer).msg)
 	}
 
 	comp = When(false, "foo")

@@ -101,6 +101,7 @@ func WrapWriter(wr io.Writer) Sender {
 	})
 	s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
 	s.SetFormatter(MakeDefaultFormatter())
+	s.doReset()
 
 	return s
 }

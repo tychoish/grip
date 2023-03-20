@@ -8,6 +8,9 @@ linters:
     - ineffassign
     - misspell
     - unconvert
+    - unused
+    - staticcheck
+    - nolintlint
 
 linters-settings:
   govet:
