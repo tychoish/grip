@@ -77,7 +77,7 @@ func MakePlainFile(filePath string) (Sender, error) {
 
 	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		return nil, fmt.Errorf("error opening logging file, %s", err.Error())
+		return nil, fmt.Errorf("error opening logging file: %w", err)
 	}
 
 	fallback := log.New(os.Stderr, "", log.LstdFlags)

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tychoish/fun/assert/check"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -312,4 +313,25 @@ func TestBaseConstructor(t *testing.T) {
 	if !sink.HasMessage() {
 		t.Error("should be true")
 	}
+}
+
+func TestSenderConstructorFails(t *testing.T) {
+	var err error
+	li := LevelInfo{Default: level.Debug, Threshold: level.Info}
+	_, err = NewJSONFile("hello", "/root/log", li)
+	check.Error(t, err)
+	check.ErrorIs(t, err, os.ErrPermission)
+
+	_, err = NewCallSiteFile("hello", "/root/log", 1, li)
+	check.Error(t, err)
+	check.ErrorIs(t, err, os.ErrPermission)
+
+	_, err = NewPlainFile("hello", "/root/log", li)
+	check.Error(t, err)
+	check.ErrorIs(t, err, os.ErrPermission)
+
+	_, err = NewFile("hello", "/root/log", li)
+	check.Error(t, err)
+	check.ErrorIs(t, err, os.ErrPermission)
+
 }
