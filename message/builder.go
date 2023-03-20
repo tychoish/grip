@@ -111,7 +111,7 @@ func (b *Builder) When(cond bool) *Builder {
 	return b.set(When(cond, b.composer))
 }
 
-func (b *Builder) F(tmpl string, a ...any) *Builder             { return b.set(MakeFormat(tmpl, a)) }
+func (b *Builder) F(tmpl string, a ...any) *Builder             { return b.set(MakeFormat(tmpl, a...)) }
 func (b *Builder) Ln(args ...any) *Builder                      { return b.set(MakeLines(args...)) }
 func (b *Builder) Error(err error) *Builder                     { return b.set(MakeError(err)) }
 func (b *Builder) String(str string) *Builder                   { return b.set(MakeString(str)) }
