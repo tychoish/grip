@@ -27,11 +27,19 @@ type LoggingMethodSuite struct {
 
 func setupFixtures(t *testing.T) *LoggingMethodSuite {
 	t.Helper()
+	lvl := send.LevelInfo{Default: level.Trace, Threshold: level.Trace}
 
 	s := &LoggingMethodSuite{
 		defaultSender: Sender(),
 		stdSender:     send.MakeInternalLogger(),
 		loggingSender: send.MakeInternalLogger(),
+	}
+	if err := s.stdSender.SetLevel(lvl); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.loggingSender.SetLevel(lvl); err != nil {
+		t.Fatal(err)
 	}
 
 	SetGlobalLogger(NewLogger(s.stdSender))

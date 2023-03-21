@@ -9,7 +9,7 @@ import (
 
 type testLogger struct {
 	t *testing.T
-	*Base
+	Base
 }
 
 // MakeTesting constructs a fully configured Sender implementation that
@@ -21,18 +21,10 @@ type testLogger struct {
 // By default, this constructor creates a sender with a level threshold
 // of "debug" and a default log level of "info."
 func MakeTesting(t *testing.T) Sender {
-	return NewTesting(t, t.Name(), LevelInfo{Threshold: level.Debug, Default: level.Info})
-}
-
-// NewTesting produces a sender implementation that logs using the
-// testing.T's logging facility for better integration with unit
-// tests. Construct and register such a sender for grip.Journaler
-// instances that you use inside of tests to have logging that
-// correctly respects go test's verbosity.
-func NewTesting(t *testing.T, name string, l LevelInfo) Sender {
-	s, err := setup(&testLogger{t: t, Base: NewBase(name)}, name, l)
-	if err != nil {
-		t.Fatalf("problem setting up logger %s: %v", name, err)
+	s := &testLogger{t: t}
+	s.SetName(t.Name())
+	if err := s.SetLevel(LevelInfo{Threshold: level.Debug, Default: level.Info}); err != nil {
+		t.Fatalf("problem setting up logger %s: %v", t.Name(), err)
 	}
 	return s
 }

@@ -17,8 +17,9 @@ func TestLogger(t *testing.T) {
 	const name = "gripTest"
 	testSender := func(t *testing.T) send.Sender {
 		t.Helper()
-		sender, err := send.NewStdOutput(name, send.LevelInfo{Default: level.Info, Threshold: level.Trace})
-		if err != nil {
+		sender := send.MakePlain()
+		sender.SetName(name)
+		if err := sender.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Trace}); err != nil {
 			t.Fatal(err)
 		}
 		if sender.Name() != name {

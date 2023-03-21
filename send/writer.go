@@ -39,16 +39,12 @@ type WriterSender struct {
 // called, this sender flushes the buffer. WriterSender does not own the
 // underlying Sender, so users are responsible for closing the underlying Sender
 // if/when it is appropriate to release its resources.
-func MakeWriter(s Sender) *WriterSender { return NewWriter(s, s.Level().Default) }
-
-// NewWriter returns an sender interface that also implements
-// io.Writer. Specify a priority used as the level for messages sent.
-func NewWriter(s Sender, p level.Priority) *WriterSender {
+func MakeWriter(s Sender) *WriterSender {
 	buffer := new(bytes.Buffer)
 
 	return &WriterSender{
 		Sender:   s,
-		priority: p,
+		priority: s.Level().Default,
 		writer:   bufio.NewWriter(buffer),
 		buffer:   buffer,
 	}

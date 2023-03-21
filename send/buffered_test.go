@@ -12,6 +12,8 @@ import (
 )
 
 func TestBufferedSend(t *testing.T) {
+	t.Parallel()
+
 	s, err := NewInternalLogger("buffs", LevelInfo{level.Debug, level.Debug})
 	if err != nil {
 		t.Fatal(err)
@@ -94,6 +96,8 @@ func TestBufferedSend(t *testing.T) {
 }
 
 func TestFlush(t *testing.T) {
+	t.Parallel()
+
 	s, err := NewInternalLogger("buffs", LevelInfo{level.Debug, level.Debug})
 	if err != nil {
 		t.Fatal(err)
@@ -146,6 +150,8 @@ func TestFlush(t *testing.T) {
 }
 
 func TestBufferedClose(t *testing.T) {
+	t.Parallel()
+
 	s, err := NewInternalLogger("buffs", LevelInfo{level.Debug, level.Debug})
 	if err != nil {
 		t.Fatal(err)
@@ -209,6 +215,8 @@ func TestBufferedClose(t *testing.T) {
 }
 
 func TestIntervalFlush(t *testing.T) {
+	t.Parallel()
+
 	s, err := NewInternalLogger("buffs", LevelInfo{level.Debug, level.Debug})
 	if err != nil {
 		t.Fatal(err)
@@ -237,6 +245,6 @@ func TestIntervalFlush(t *testing.T) {
 }
 
 func newBufferedSender(sender Sender, interval time.Duration, size int) *bufferedSender {
-	bs := NewBuffered(sender, interval, size)
+	bs := MakeBuffered(sender, interval, size)
 	return bs.(*bufferedSender)
 }

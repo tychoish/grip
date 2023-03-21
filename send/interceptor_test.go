@@ -16,7 +16,7 @@ func TestInterceptor(t *testing.T) {
 	var count int
 	filter := func(m message.Composer) { count++ }
 
-	icept := NewInterceptor(base, filter)
+	icept := MakeFilter(base, filter)
 
 	if base.Len() != 0 {
 		t.Error("elements should be equal")

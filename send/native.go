@@ -15,19 +15,6 @@ type nativeLogger struct {
 	Base
 }
 
-// NewFile creates a Sender implementation that writes log
-// output to a file. Returns an error but falls back to a standard
-// output logger if there's problems with the file. Internally using
-// the go standard library logging system.
-func NewFile(name, filePath string, l LevelInfo) (Sender, error) {
-	s, err := MakeFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	return setup(s, name, l)
-}
-
 // MakeFile creates a file-based logger, writing output to
 // the specified file. The Sender instance is not configured: Pass to
 // Journaler.SetSender or call SetName before using.
@@ -51,15 +38,9 @@ func MakeFile(filePath string) (Sender, error) {
 	s.closer.Set(func() error {
 		return f.Close()
 	})
+	s.doReset()
 
 	return s, nil
-}
-
-// NewStdOutput creates a new Sender interface that writes all
-// loggable messages to a standard output logger that uses Go's
-// standard library logging system.
-func NewStdOutput(name string, l LevelInfo) (Sender, error) {
-	return setup(MakeStdOutput(), name, l)
 }
 
 // MakeStdOutput returns an unconfigured native standard-out logger. You
@@ -73,12 +54,6 @@ func MakeStdOutput() Sender {
 // writes all logging output to standard error.
 func MakeStdError() Sender {
 	return WrapWriter(os.Stderr)
-}
-
-// NewStdError constructs a configured Sender that writes all
-// output to standard error.
-func NewStdError(name string, l LevelInfo) (Sender, error) {
-	return setup(MakeStdError(), name, l)
 }
 
 // WrapWriter constructs a new unconfigured sender that directly
@@ -104,17 +79,6 @@ func WrapWriter(wr io.Writer) Sender {
 	s.doReset()
 
 	return s
-}
-
-// NewWrappedWriter constructs a fully configured Sender
-// implementation that writes all data to the underlying writer.
-// These loggers prepend time and logger name information to the
-// beginning of log lines.
-//
-// As a special case, if the writer is a *WriterSender, then this
-// method will unwrap and return the underlying sender from the writer.
-func NewWrappedWriter(name string, wr io.Writer, l LevelInfo) (Sender, error) {
-	return setup(WrapWriter(wr), name, l)
 }
 
 func (s *nativeLogger) Send(m message.Composer) {

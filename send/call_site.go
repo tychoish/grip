@@ -27,14 +27,6 @@ Create a call site logger with one of the following constructors:
 */
 package send
 
-// NewCallSit returns a fully configured Sender
-// implementation that writes log messages to standard output in a
-// format that includes the filename and line number of the call site
-// of the logger.
-func NewCallSit(name string, depth int, l LevelInfo) (Sender, error) {
-	return setup(MakeCallSite(depth), name, l)
-}
-
 // MakeCallSite constructs an unconfigured call site
 // logger that writes output to standard output. You must set the name
 // of the logger using SetName or your Journaler's SetSender method
@@ -44,19 +36,6 @@ func MakeCallSite(depth int) Sender {
 	s.SetFormatter(MakeCallSiteFormatter(depth))
 
 	return s
-}
-
-// NewCallSiteFile returns a fully configured Sender
-// implementation that writes log messages to a specified file in a
-// format that includes the filename and line number of the call site
-// of the logger.
-func NewCallSiteFile(name, fileName string, depth int, l LevelInfo) (Sender, error) {
-	s, err := MakeCallSiteFile(fileName, depth)
-	if err != nil {
-		return nil, err
-	}
-
-	return setup(s, name, l)
 }
 
 // MakeCallSiteFile constructs an unconfigured call site logger

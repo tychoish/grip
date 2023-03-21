@@ -23,7 +23,7 @@ type asyncGroupSender struct {
 	Base
 }
 
-// NewAsyncGroup produces an implementation of the Sender interface
+// MakeAsyncGroup produces an implementation of the Sender interface
 // that, like the MultiSender, distributes a single message to a group
 // of underlying sender implementations.
 //
@@ -33,7 +33,7 @@ type asyncGroupSender struct {
 //
 // The sender takes ownership of the underlying Senders, so closing
 // this sender closes all underlying Senders.
-func NewAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Sender {
+func MakeAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Sender {
 	s := &asyncGroupSender{
 		baseCtx:        ctx,
 		shutdownSignal: make(chan struct{}),
@@ -102,12 +102,6 @@ func (s *asyncGroupSender) startSenderWorker(newSender Sender) {
 }
 
 func (s *asyncGroupSender) SetLevel(l LevelInfo) error {
-	// if the base level isn't valid, then we shouldn't overwrite
-	// constinuent senders (this is the indication that they were overridden.)
-	if !s.Base.Level().Valid() {
-		return nil
-	}
-
 	if err := s.Base.SetLevel(l); err != nil {
 		return err
 	}

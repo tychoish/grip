@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/assert/check"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -35,103 +36,137 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 	internal.output = make(chan *InternalMessage)
 	senders["internal"] = internal
 
-	native, err := NewStdOutput("native", l)
-	if err != nil {
-		t.Fatal(err)
-	}
-	senders["native"] = native
+	senders["writer"] = MakeWriter(MakePlain())
 
-	senders["writer"] = MakeWriter(native)
-
+	var err error
 	var plain, plainerr, plainfile Sender
-	plain, err = NewPlainStdOutput("plain", l)
+	plain = MakePlain()
+	err = plain.SetLevel(l)
 	if err != nil {
 		t.Fatal(err)
 	}
+	plain.SetName("plain")
+
 	senders["plain"] = plain
 
-	plainerr, err = NewPlainStdError("plain.err", l)
+	plainerr = MakePlainStdError()
+	plainerr.SetName("plain.err")
+	err = plainerr.SetLevel(l)
 	if err != nil {
 		t.Fatal(err)
 	}
 	senders["plain.err"] = plainerr
 
-	plainfile, err = NewPlainFile("plain.file", filepath.Join(tempDir, "plain.file"), l)
+	plainfile, err = MakePlainFile(filepath.Join(tempDir, "plain.file"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	plainfile.SetName("plain.file")
+	err = plainfile.SetLevel(l)
 	if err != nil {
 		t.Fatal(err)
 	}
 	senders["plain.file"] = plainfile
 
 	var asyncOne, asyncTwo Sender
-	asyncOne, err = NewStdOutput("async-one", l)
+	asyncOne = MakeStdOutput()
+	asyncOne.SetName("async-one")
+	err = asyncOne.SetLevel(l)
 	if err != nil {
 		t.Fatal(err)
 	}
-	asyncTwo, err = NewStdOutput("async-two", l)
+	asyncTwo = MakeStdOutput()
+	asyncTwo.SetName("async-two")
+	err = asyncTwo.SetLevel(l)
 	if err != nil {
 		t.Fatal(err)
 	}
-	senders["async"] = NewAsyncGroup(context.Background(), 16, asyncOne, asyncTwo)
+	senders["async"] = MakeAsyncGroup(context.Background(), 16, asyncOne, asyncTwo)
 
-	nativeErr, err := NewStdError("error", l)
+	nativeErr := MakeStdError()
+	nativeErr.SetName("error")
+	err = nativeErr.SetLevel(l)
 	if err != nil {
 		t.Fatal(err)
 	}
 	senders["error"] = nativeErr
 
-	nativeFile, err := NewFile("native-file", filepath.Join(tempDir, "file"), l)
+	nativeFile, err := MakeFile(filepath.Join(tempDir, "file"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	nativeFile.SetName("native-file")
+	err = nativeFile.SetLevel(l)
 	if err != nil {
 		t.Fatal(err)
 	}
 	senders["native-file"] = nativeFile
 
-	callsite, err := NewCallSit("callsite", 1, l)
-	if err != nil {
+	callsite := MakeCallSite(1)
+	callsite.SetName("callsite")
+	if err = callsite.SetLevel(l); err != nil {
 		t.Fatal(err)
 	}
 	senders["callsite"] = callsite
 
-	callsiteFile, err := NewCallSiteFile("callsite", filepath.Join(tempDir, "cs"), 1, l)
+	callsiteFile, err := MakeCallSiteFile(filepath.Join(tempDir, "cs"), 1)
+	callsiteFile.SetName("callsite")
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err = callsiteFile.SetLevel(l); err != nil {
 		t.Fatal(err)
 	}
 	senders["callsite-file"] = callsiteFile
 
-	jsons, err := NewJSON("json", LevelInfo{level.Info, level.Notice})
-	if err != nil {
+	jsons := MakeJSON()
+	jsons.SetName("json")
+	if err = jsons.SetLevel(LevelInfo{level.Info, level.Notice}); err != nil {
 		t.Fatal(err)
 	}
 	senders["json"] = jsons
 
-	jsonf, err := NewJSONFile("json", filepath.Join(tempDir, "js"), l)
+	jsonf, err := MakeJSONFile(filepath.Join(tempDir, "js"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err = jsonf.SetLevel(l); err != nil {
+		t.Error(err)
+	}
+	jsonf.SetName("json")
 	senders["json"] = jsonf
 
 	var sender Sender
 	multiSenders := []Sender{}
 	for i := 0; i < 4; i++ {
-		sender, err = NewStdOutput(fmt.Sprintf("native-%d", i), l)
-		if err != nil {
+		sender = MakeStdOutput()
+		sender.SetName(fmt.Sprintf("native-%d", i))
+		if err = sender.SetLevel(l); err != nil {
 			t.Fatal(err)
 		}
 		multiSenders = append(multiSenders, sender)
 	}
 
-	multi, err := NewMulti("multi", l, multiSenders)
+	multi, err := NewMulti("multi", multiSenders)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err = multi.SetLevel(l); err != nil {
 		t.Fatal(err)
 	}
 	senders["multi"] = multi
 
-	bufferedInternal, err := NewStdOutput("buffered", l)
+	bufferedInternal := MakeStdOutput()
+	bufferedInternal.SetName("buffered")
+	err = bufferedInternal.SetLevel(l)
 	if err != nil {
 		t.Fatal(err)
 	}
-	senders["buffered"] = NewBuffered(bufferedInternal, minInterval, 1)
+	senders["buffered"] = MakeBuffered(bufferedInternal, minInterval, 1)
 
-	annotatingBase, err := NewStdOutput("async-one", l)
+	annotatingBase := MakeStdOutput()
+	annotatingBase.SetName("async-one")
+	err = annotatingBase.SetLevel(l)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,6 +184,9 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 		}
 		senders[name].SetFormatter(MakeDefaultFormatter())
 	}
+
+	senders["testing"] = MakeTesting(t)
+
 	t.Cleanup(func() {
 		if runtime.GOOS == "windows" {
 			_ = senders["native-file"].Close()
@@ -202,6 +240,7 @@ func randomString(n int, r *rand.Rand) string {
 }
 
 func TestNameSetterRoundTrip(t *testing.T) {
+	t.Parallel()
 	rand := rand.New(rand.NewSource(time.Now().Unix()))
 	for _, sender := range senderFixture(t) {
 		for i := 0; i < 100; i++ {
@@ -218,6 +257,7 @@ func TestNameSetterRoundTrip(t *testing.T) {
 }
 
 func TestLevelSetterRejectsInvalidSettings(t *testing.T) {
+	t.Parallel()
 	levels := []LevelInfo{
 		{level.Invalid, level.Invalid},
 		{level.Priority(0), level.Priority(0)},
@@ -233,32 +273,36 @@ func TestLevelSetterRejectsInvalidSettings(t *testing.T) {
 			// to its constituent senders.
 			continue
 		}
+		t.Run(n, func(t *testing.T) {
+			if err := sender.SetLevel(LevelInfo{level.Debug, level.Alert}); err != nil {
+				t.Fatal(err)
+			}
 
-		if err := sender.SetLevel(LevelInfo{level.Debug, level.Alert}); err != nil {
-			t.Fatal(err)
-		}
-		for _, l := range levels {
-			if !sender.Level().Valid() {
-				t.Error("sender should not validate")
+			for idx, l := range levels {
+				t.Run(fmt.Sprint(idx), func(t *testing.T) {
+					if !sender.Level().Valid() {
+						t.Error("sender should not validate")
+					}
+					if l.Valid() {
+						t.Error("level is validate")
+					}
+					if err := sender.SetLevel(l); err == nil {
+						t.Error("setting invalid level should error")
+					}
+					if !sender.Level().Valid() {
+						t.Error("level should be valid")
+					}
+					if l == sender.Level() {
+						t.Error("values should NOT be equal")
+					}
+				})
 			}
-			if l.Valid() {
-				t.Error("level is validate")
-			}
-			if err := sender.SetLevel(l); err == nil {
-				t.Error("setting invalid level should error")
-			}
-			if !sender.Level().Valid() {
-				t.Error("level should be valid")
-			}
-			if l == sender.Level() {
-				t.Error("values should NOT be equal")
-			}
-		}
-
+		})
 	}
 }
 
 func TestCloserShouldUsuallyNoop(t *testing.T) {
+	t.Parallel()
 	for _, sender := range senderFixture(t) {
 		if err := sender.Close(); err != nil {
 			t.Fatal(err)
@@ -266,17 +310,37 @@ func TestCloserShouldUsuallyNoop(t *testing.T) {
 	}
 }
 
+func TestRejectBadSetLevels(t *testing.T) {
+	t.Parallel()
+	for name, sender := range senderFixture(t) {
+		t.Run(name, func(t *testing.T) {
+			if err := sender.SetLevel(LevelInfo{level.Info, level.Info}); err != nil {
+				t.Error(err)
+			}
+			if err := sender.SetLevel(LevelInfo{}); err == nil {
+				t.Error("should not be able to set invalid level")
+			}
+		})
+	}
+}
+
 func TestBasicNoopSendTest(t *testing.T) {
+	t.Parallel()
 	rand := rand.New(rand.NewSource(time.Now().Unix()))
-	for _, sender := range functionalMockSenders(t, senderFixture(t)) {
-		for i := -10; i <= 110; i += 5 {
-			m := NewString(level.Priority(i), "hello world! "+randomString(10, rand))
-			sender.Send(m)
-		}
+	for name, sender := range functionalMockSenders(t, senderFixture(t)) {
+		t.Run(name, func(t *testing.T) {
+			for i := -10; i <= 110; i += 5 {
+				m := NewString(level.Priority(i), "hello world! "+randomString(10, rand))
+				sender.Send(m)
+			}
+		})
+
 	}
 }
 
 func TestBaseConstructor(t *testing.T) {
+	t.Parallel()
+
 	sink, err := NewInternalLogger("sink", LevelInfo{level.Debug, level.Debug})
 	if err != nil {
 		t.Error(err)
@@ -317,21 +381,37 @@ func TestBaseConstructor(t *testing.T) {
 
 func TestSenderConstructorFails(t *testing.T) {
 	var err error
-	li := LevelInfo{Default: level.Debug, Threshold: level.Info}
-	_, err = NewJSONFile("hello", "/root/log", li)
+	_, err = MakeJSONFile("/root/log")
 	check.Error(t, err)
 	check.ErrorIs(t, err, os.ErrPermission)
 
-	_, err = NewCallSiteFile("hello", "/root/log", 1, li)
+	_, err = MakeCallSiteFile("/root/log", 1)
 	check.Error(t, err)
 	check.ErrorIs(t, err, os.ErrPermission)
 
-	_, err = NewPlainFile("hello", "/root/log", li)
+	_, err = MakePlainFile("/root/log")
 	check.Error(t, err)
 	check.ErrorIs(t, err, os.ErrPermission)
 
-	_, err = NewFile("hello", "/root/log", li)
+	_, err = MakeFile("/root/log")
 	check.Error(t, err)
 	check.ErrorIs(t, err, os.ErrPermission)
+}
 
+func TestWrapping(t *testing.T) {
+	base := MakePlain()
+
+	for name, sender := range map[string]Sender{
+		"Annotating":  MakeAnnotating(base, map[string]any{"hello": 52}),
+		"Buffered":    MakeBuffered(base, time.Millisecond, 10),
+		"Interceptor": MakeFilter(base, func(c message.Composer) {}),
+		"Writer":      MakeWriter(base),
+	} {
+		t.Run(name, func(t *testing.T) {
+			us := fun.Unwrap(sender)
+			check.True(t, fun.IsWrapped(sender))
+			check.True(t, us != nil)
+			check.True(t, us == base)
+		})
+	}
 }

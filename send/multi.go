@@ -2,7 +2,6 @@ package send
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/tychoish/fun/erc"
@@ -12,7 +11,7 @@ import (
 
 type multiSender struct {
 	senders []Sender
-	*Base
+	Base
 }
 
 // NewMulti configures a new sender implementation that takes a
@@ -26,25 +25,13 @@ type multiSender struct {
 //
 // The Sender takes ownership of the underlying Senders, so closing this Sender
 // closes all underlying Senders.
-func NewMulti(name string, l LevelInfo, senders []Sender) (Sender, error) {
-	if !l.Valid() {
-		return nil, fmt.Errorf("invalid level specification: %+v", l)
-	}
-
-	if len(senders) == 0 {
-		return nil, errors.New("must specify at least one sender when creating a multi sender")
-	}
-
+func NewMulti(name string, senders []Sender) (Sender, error) {
 	for _, sender := range senders {
 		sender.SetName(name)
-		_ = sender.SetLevel(l)
 	}
 
-	s := &multiSender{senders: senders, Base: NewBase(name)}
-
-	if err := s.Base.SetLevel(l); err != nil {
-		return nil, fmt.Errorf("level %+v is not valid", l)
-	}
+	s := &multiSender{senders: senders}
+	s.SetName(name)
 
 	return s, nil
 }
@@ -60,7 +47,7 @@ func NewMulti(name string, l LevelInfo, senders []Sender) (Sender, error) {
 // The Sender takes ownership of the underlying Senders, so closing this Sender
 // closes all underlying Senders.
 func MakeMulti(senders ...Sender) Sender {
-	s := &multiSender{senders: senders, Base: NewBase("")}
+	s := &multiSender{senders: senders}
 	_ = s.Base.SetLevel(LevelInfo{Default: level.Invalid, Threshold: level.Invalid})
 
 	return s
@@ -76,7 +63,8 @@ func MakeMulti(senders ...Sender) Sender {
 func AddToMulti(multi Sender, s Sender) error {
 	switch sender := multi.(type) {
 	case *multiSender:
-		return sender.add(s)
+		sender.add(s)
+		return nil
 	case *asyncGroupSender:
 		if err := sender.senders.PushBack(s); err != nil {
 			return err
@@ -96,15 +84,13 @@ func (s *multiSender) Close() error {
 	return catcher.Resolve()
 }
 
-func (s *multiSender) add(sender Sender) error {
+func (s *multiSender) add(sender Sender) {
 	sender.SetName(s.Base.Name())
-
 	// ignore the error here; if the Base value on the multiSender
 	// is not set, then senders should just have their own level values.
 	_ = sender.SetLevel(s.Base.Level())
-
 	s.senders = append(s.senders, sender)
-	return nil
+	return
 }
 
 func (s *multiSender) Name() string { return s.Base.Name() }
@@ -118,12 +104,6 @@ func (s *multiSender) SetName(n string) {
 
 func (s *multiSender) Level() LevelInfo { return s.Base.Level() }
 func (s *multiSender) SetLevel(l LevelInfo) error {
-	// if the base level isn't valid, then we shouldn't overwrite
-	// constinuent senders (this is the indication that they were overridden.)
-	if !s.Base.Level().Valid() {
-		return nil
-	}
-
 	if err := s.Base.SetLevel(l); err != nil {
 		return err
 	}

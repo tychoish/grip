@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/testt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -28,32 +29,14 @@ func TestAsyncGroupSender(t *testing.T) {
 	if err := cs.SetLevel(LevelInfo{Default: level.Debug, Threshold: level.Notice}); err != nil {
 		t.Error(err)
 	}
-	if !cs.Level().Valid() {
-		t.Fail()
-	}
 
-	s := NewAsyncGroup(ctx, 2, cs)
-
-	// if it's not valid to start with then we shouldn't make it
-	// valid by setting it to avoid constituents being overridden,
-	if s.Level().Valid() {
-		t.Fail()
-	}
-	if err := s.SetLevel(LevelInfo{Default: level.Info, Threshold: level.Alert}); err != nil {
-		t.Error(err)
-	}
-	if s.Level().Valid() {
-		t.Fail()
-	}
-	if !cs.Level().Valid() {
-		t.Fail()
-	}
-
+	s := MakeAsyncGroup(ctx, 2, cs)
 	impl, ok := s.(*asyncGroupSender)
 	if !ok {
-		t.Fail()
+		t.Fatalf("%T", s)
 	}
-	newLevel := LevelInfo{Default: level.Info, Threshold: level.Alert}
+
+	newLevel := LevelInfo{Default: level.Notice, Threshold: level.Alert}
 	if newLevel == s.Level() {
 		t.Error("elements should not be equal")
 	}
@@ -69,6 +52,15 @@ func TestAsyncGroupSender(t *testing.T) {
 	}
 	if newLevel != s.Level() {
 		t.Error("elements shold be equal")
+	}
+
+	if err := s.SetLevel(LevelInfo{}); err == nil {
+		t.Error("should error")
+	} else {
+		errs := fun.Unwind(err)
+		if len(errs) != 1 {
+			t.Error(len(errs), errs)
+		}
 	}
 
 	if err := s.Flush(testt.ContextWithTimeout(t, time.Second)); err != nil {

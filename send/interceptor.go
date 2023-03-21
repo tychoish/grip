@@ -7,7 +7,7 @@ type interceptor struct {
 	filter func(message.Composer)
 }
 
-// NewInterceptor constructs an intercepting sender implementation
+// MakeFilter constructs an intercepting sender implementation
 // that wraps another sender, and passes all messages (regardless of
 // loggability or level,) through a filtering function.
 //
@@ -15,7 +15,7 @@ type interceptor struct {
 // able to inject metrics collection into existing logging pipelines,
 // though the interceptor may be used for filtering or pre-processing
 // as well.
-func NewInterceptor(sender Sender, ifn func(message.Composer)) Sender {
+func MakeFilter(sender Sender, ifn func(message.Composer)) Sender {
 	return &interceptor{
 		Sender: sender,
 		filter: ifn,

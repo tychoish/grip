@@ -13,7 +13,7 @@ import (
 // under-priority and unloggable messages. Used  for testing
 // purposes.
 type InternalSender struct {
-	*Base
+	Base
 	name   string
 	output chan *InternalMessage
 	mu     sync.RWMutex
@@ -38,11 +38,11 @@ type InternalMessage struct {
 func NewInternalLogger(name string, l LevelInfo) (*InternalSender, error) {
 	s := MakeInternalLogger()
 
+	s.SetName(name)
+
 	if err := s.SetLevel(l); err != nil {
 		return nil, err
 	}
-
-	s.SetName(name)
 
 	return s, nil
 }
@@ -50,10 +50,7 @@ func NewInternalLogger(name string, l LevelInfo) (*InternalSender, error) {
 // MakeInternalLogger constructs an internal sender object, typically
 // for use in testing.
 func MakeInternalLogger() *InternalSender {
-	s := &InternalSender{
-		Base:   NewBase(""),
-		output: make(chan *InternalMessage, 1000),
-	}
+	s := &InternalSender{output: make(chan *InternalMessage, 1000)}
 
 	return s
 }

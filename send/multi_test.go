@@ -8,6 +8,8 @@ import (
 )
 
 func TestMultiSenderRespectsLevel(t *testing.T) {
+	t.Parallel()
+
 	// this is a limited test to prevent level filtering to behave
 	// differently than expected
 
