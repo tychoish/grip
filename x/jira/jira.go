@@ -112,7 +112,7 @@ func (j *jiraJournal) Send(m message.Composer) {
 
 		issueKey, err := j.opts.client.PostIssue(issueFields)
 		if err != nil {
-			j.ErrorHandler()(err, message.NewFormat(m.Priority(), m.String()))
+			j.ErrorHandler()(err, m)
 			return
 		}
 		populateKey(m, issueKey)
@@ -268,10 +268,10 @@ func (c *jiraClientImpl) CreateClient(client *http.Client, baseURL string) error
 func (c *jiraClientImpl) Authenticate(ctx context.Context, opts jiraAuthOpts) error {
 	if opts.username != "" {
 		if opts.addBasicAuthHeader {
-			c.Client.Authentication.SetBasicAuth(opts.username, opts.password)
+			c.Client.Authentication.SetBasicAuth(opts.username, opts.password) //nolint
 
 		} else {
-			authed, err := c.Client.Authentication.AcquireSessionCookie(opts.username, opts.password)
+			authed, err := c.Client.Authentication.AcquireSessionCookie(opts.username, opts.password) //nolint
 			if err != nil {
 				return fmt.Errorf("problem authenticating to jira as '%s' [%s]", opts.username, err.Error())
 			}

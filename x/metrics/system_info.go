@@ -84,10 +84,7 @@ func NewSystemInfo(priority level.Priority, message string) message.Composer {
 		NumCPU:  runtime.NumCPU(),
 	}
 
-	if err = s.SetPriority(priority); err != nil {
-		s.Errors = append(s.Errors, err.Error())
-		return s
-	}
+	s.SetPriority(priority)
 
 	s.loggable = true
 

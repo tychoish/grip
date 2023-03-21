@@ -67,7 +67,7 @@ type githubStatusMessage struct {
 // API, with the repository and ref stored in the composer
 func NewStatusMessageWithRepo(p level.Priority, status Status) message.Composer {
 	s := MakeStatusMessageWithRepo(status)
-	_ = s.SetPriority(p)
+	s.SetPriority(p)
 
 	return s
 }
@@ -84,7 +84,7 @@ func MakeStatusMessageWithRepo(status Status) message.Composer {
 // API.
 func NewStatusMessage(p level.Priority, context string, state State, URL, description string) message.Composer {
 	s := MakeStatusMessage(context, state, URL, description)
-	_ = s.SetPriority(p)
+	s.SetPriority(p)
 
 	return s
 }

@@ -93,20 +93,23 @@ func TestJiraCommentSendMethod(t *testing.T) {
 		t.Fatal("expected values to be equal")
 	}
 
-	m := message.NewString(level.Debug, "sending debug level comment")
+	m := message.MakeString("sending debug level comment")
+	m.SetPriority(level.Debug)
 	sender.Send(m)
 	if mock.numSent != numShouldHaveSent {
 		t.Fatal("expected values to be equal")
 	}
 
-	m = message.NewString(level.Alert, "sending alert level comment")
+	m = message.MakeString("sending alert level comment")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	numShouldHaveSent++
 	if mock.numSent != numShouldHaveSent {
 		t.Fatal("expected values to be equal")
 	}
 
-	m = message.NewString(level.Emergency, "sending emergency level comment")
+	m = message.MakeString("sending emergency level comment")
+	m.SetPriority(level.Emergency)
 	sender.Send(m)
 	numShouldHaveSent++
 	if mock.numSent != numShouldHaveSent {
@@ -135,7 +138,8 @@ func TestJiraCommentSendMethodWithError(t *testing.T) {
 		t.Fatal("expected false")
 	}
 
-	m := message.NewString(level.Alert, "test")
+	m := message.MakeString("test")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if mock.numSent != 1 {
 		t.Fatal("expected values to be equal")

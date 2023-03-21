@@ -22,7 +22,7 @@ type Comment struct {
 // JIRA sender
 func NewComment(p level.Priority, issueID, body string) message.Composer {
 	s := MakeComment(issueID, body)
-	_ = s.SetPriority(p)
+	s.SetPriority(p)
 
 	return s
 }

@@ -148,10 +148,7 @@ func NewProcessInfo(priority level.Priority, pid int32, message string) message.
 		Pid:     pid,
 	}
 
-	if err := p.SetPriority(priority); err != nil {
-		p.saveError("priority", err)
-		return p
-	}
+	p.SetPriority(priority)
 
 	proc, err := process.NewProcess(pid)
 	p.saveError("process", err)

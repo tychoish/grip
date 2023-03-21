@@ -93,19 +93,22 @@ func TestSendMethod(t *testing.T) {
 		t.Fatalf("expected 'mock.numSent' to be 0, but was %d", mock.numSent)
 	}
 
-	m := message.NewString(level.Debug, "hello")
+	m := message.MakeString("hello")
+	m.SetPriority(level.Debug)
 	s.sender.Send(m)
 	if mock.numSent != 0 {
 		t.Fatalf("expected 'mock.numSent' to be 0, but was %d", mock.numSent)
 	}
 
-	m = message.NewString(level.Alert, "")
+	m = message.MakeString("")
+	m.SetPriority(level.Alert)
 	s.sender.Send(m)
 	if mock.numSent != 0 {
 		t.Fatalf("expected 'mock.numSent' to be 0, but was %d", mock.numSent)
 	}
 
-	m = message.NewString(level.Alert, "world")
+	m = message.MakeString("world")
+	m.SetPriority(level.Alert)
 	s.sender.Send(m)
 	if mock.numSent != 1 {
 		t.Fatalf("expected 'mock.numSent' to be 1, but was %d", mock.numSent)
@@ -125,7 +128,8 @@ func TestSendMethodWithError(t *testing.T) {
 		t.Fatal("expected false")
 	}
 
-	m := message.NewString(level.Alert, "world")
+	m := message.MakeString("world")
+	m.SetPriority(level.Alert)
 	s.sender.Send(m)
 	if mock.numSent != 1 {
 		t.Fatalf("expected 'mock.numSent' to be 1, but was %d", mock.numSent)

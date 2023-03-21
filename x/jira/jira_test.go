@@ -106,19 +106,22 @@ func TestSendMethod(t *testing.T) {
 		t.Errorf("%q should be equal to %q", mock.numSent, 0)
 	}
 
-	m := message.NewString(level.Debug, "hello")
+	m := message.MakeString("hello")
+	m.SetPriority(level.Debug)
 	sender.Send(m)
 	if mock.numSent != 0 {
 		t.Errorf("%q should be equal to %q", mock.numSent, 0)
 	}
 
-	m = message.NewString(level.Alert, "")
+	m = message.MakeString("")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if mock.numSent != 0 {
 		t.Errorf("%q should be equal to %q", mock.numSent, 0)
 	}
 
-	m = message.NewString(level.Alert, "world")
+	m = message.MakeString("world")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if mock.numSent != 1 {
 		t.Errorf("%q should be equal to %q", mock.numSent, 1)
@@ -146,7 +149,8 @@ func TestSendMethodWithError(t *testing.T) {
 		t.Fatal("messsage should have failed to send")
 	}
 
-	m := message.NewString(level.Alert, "world")
+	m := message.MakeString("world")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if mock.numSent != 1 {
 		t.Errorf("%q should be equal to %q", mock.numSent, 1)
@@ -231,9 +235,9 @@ func TestGetFieldsWithJiraIssue(t *testing.T) {
 }
 
 func TestGetFieldsWithFields(t *testing.T) {
-	testFields := message.Fields{"key0": 12, "key1": 42}
 	msg := "Get the message"
-	m := message.MakeAnnotated(msg, testFields)
+	testFields := message.Fields{"key0": 12, "key1": 42, "message": msg}
+	m := message.MakeFields(testFields)
 
 	fields := getFields(m)
 	if fields.Summary != msg {
@@ -262,7 +266,8 @@ func TestTruncate(t *testing.T) {
 		t.Errorf("%q should be equal to %q", mock.numSent, 0)
 	}
 
-	m := message.NewString(level.Info, "aaa")
+	m := message.MakeString("aaa")
+	m.SetPriority(level.Info)
 	if !ok {
 		t.Error("shoud not have been false")
 	}
@@ -275,7 +280,8 @@ func TestTruncate(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		longString.WriteString("a")
 	}
-	m = message.NewString(level.Info, longString.String())
+	m = message.MakeString(longString.String())
+	m.SetPriority(level.Info)
 	if !ok {
 		t.Error("shoud not have been false")
 	}
@@ -290,7 +296,8 @@ func TestTruncate(t *testing.T) {
 		buffer.WriteString("a")
 	}
 
-	m = message.NewString(level.Info, buffer.String())
+	m = message.MakeString(buffer.String())
+	m.SetPriority(level.Info)
 	if !ok {
 		t.Error("shoud not have been false")
 	}
@@ -327,9 +334,7 @@ func TestCustomFields(t *testing.T) {
 	}
 
 	m := MakeIssue(jiraIssue)
-	if err = m.SetPriority(level.Warning); err != nil {
-		t.Fatal(err)
-	}
+	m.SetPriority(level.Warning)
 
 	sender.Send(m)
 
@@ -388,9 +393,7 @@ func TestPopulateKey(t *testing.T) {
 		t.Errorf("%q should be equal to %q", 0, count)
 	}
 	m := MakeIssue(jiraIssue)
-	if err := m.SetPriority(level.Alert); err != nil {
-		t.Fatal(err)
-	}
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if 1 != count {
 		t.Errorf("%q should be equal to %q", 1, count)
@@ -400,12 +403,12 @@ func TestPopulateKey(t *testing.T) {
 		t.Errorf("%q should be equal to %q", mock.issueKey, issue.IssueKey)
 	}
 
-	messageFields := message.NewAnnotated(level.Info, "something", message.Fields{
+	messageFields := message.MakeFields(message.Fields{
+		"msg":     "something",
 		"message": "foo",
 	})
-	if !ok {
-		t.Error("shoud not have been false")
-	}
+
+	messageFields.SetPriority(level.Info)
 	sender.Send(messageFields)
 	messageIssue := messageFields.Raw().(message.Fields)
 	if mock.issueKey != messageIssue[jiraIssueKey] {
@@ -437,10 +440,7 @@ func TestWhenCallbackNil(t *testing.T) {
 	}
 
 	m := MakeIssue(jiraIssue)
-	if err := m.SetPriority(level.Alert); err != nil {
-		t.Fatal(err)
-	}
-
+	m.SetPriority(level.Alert)
 	func() {
 		// should not panic
 		sender.Send(m)

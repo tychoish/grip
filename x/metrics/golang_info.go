@@ -186,7 +186,7 @@ func MakeGoStatsTotals(msg string) message.Composer {
 func NewGoStatsTotals(p level.Priority, msg string) message.Composer {
 	s := &GoRuntimeInfo{Message: msg}
 	s.build()
-	_ = s.SetPriority(p)
+	s.SetPriority(p)
 	return s
 }
 
@@ -222,7 +222,7 @@ func MakeGoStatsDeltas(msg string) message.Composer {
 func NewGoStatsDeltas(p level.Priority, msg string) message.Composer {
 	s := &GoRuntimeInfo{Message: msg, useDeltas: true}
 	s.build()
-	_ = s.SetPriority(p)
+	s.SetPriority(p)
 	return s
 }
 
@@ -259,7 +259,7 @@ func MakeGoStatsRates(msg string) message.Composer {
 func NewGoStatsRates(p level.Priority, msg string) message.Composer {
 	s := &GoRuntimeInfo{Message: msg, useRates: true}
 	s.build()
-	_ = s.SetPriority(p)
+	s.SetPriority(p)
 	return s
 }
 

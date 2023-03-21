@@ -134,7 +134,7 @@ func TestDefaultGetContents(t *testing.T) {
 
 func TestResetRecips(t *testing.T) {
 	opts := setupFixture(t)
-	if len(opts.toAddrs) < 0 {
+	if len(opts.toAddrs) == 0 {
 		t.Fatal("'len(opts.toAddrs) > 0' should be true")
 	}
 	opts.ResetRecipients()
@@ -376,19 +376,23 @@ func TestSendMethod(t *testing.T) {
 		t.Fatal("values should be equal")
 	}
 
-	m := message.NewString(level.Debug, "hello")
+	var m message.Composer
+	m = message.MakeString("hello")
+	m.SetPriority(level.Debug)
 	sender.Send(m)
 	if 0 != mock.numMsgs {
 		t.Fatal("values should be equal")
 	}
 
-	m = message.NewString(level.Alert, "")
+	m = message.MakeString("")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if 0 != mock.numMsgs {
 		t.Fatal("values should be equal")
 	}
 
-	m = message.NewString(level.Alert, "world")
+	m = message.MakeString("world")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if 1 != mock.numMsgs {
 		t.Fatal("values should be equal")
@@ -416,7 +420,8 @@ func TestSendMethodWithError(t *testing.T) {
 		t.Fatal("should be false")
 	}
 
-	m := message.NewString(level.Alert, "world")
+	m := message.MakeString("world")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if 1 != mock.numMsgs {
 		t.Fatal("values should be equal")

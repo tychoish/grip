@@ -97,20 +97,23 @@ func TestCommentSendMethod(t *testing.T) {
 		t.Errorf("%q should be equal to %q", mock.numSent, 0)
 	}
 
-	m := message.NewString(level.Debug, "sending debug level comment")
+	m := message.MakeString("sending debug level comment")
+	m.SetPriority(level.Debug)
 	sender.Send(m)
 	if mock.numSent != numShouldHaveSent {
 		t.Errorf("%q should be equal to %q", mock.numSent, numShouldHaveSent)
 	}
 
-	m = message.NewString(level.Alert, "sending alert level comment")
+	m = message.MakeString("sending alert level comment")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	numShouldHaveSent++
 	if mock.numSent != numShouldHaveSent {
 		t.Errorf("%q should be equal to %q", mock.numSent, numShouldHaveSent)
 	}
 
-	m = message.NewString(level.Emergency, "sending emergency level comment")
+	m = message.MakeString("sending emergency level comment")
+	m.SetPriority(level.Emergency)
 	sender.Send(m)
 	numShouldHaveSent++
 	if mock.numSent != numShouldHaveSent {
@@ -140,7 +143,8 @@ func TestCommentSendMethodWithError(t *testing.T) {
 		t.Errorf("should have failed")
 	}
 
-	m := message.NewString(level.Alert, "test")
+	m := message.MakeString("test")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if mock.numSent != 1 {
 		t.Errorf("%q should be equal to %q", mock.numSent, 1)

@@ -51,14 +51,13 @@ func MakeSyslogSender(network, raddr string) send.Sender {
 
 		if s.logger != nil {
 			if err := s.logger.Close(); err != nil {
-				s.ErrorHandler()(err, message.NewErrorWrapMessage(level.Error, err,
-					"problem closing syslogger"))
+				s.ErrorHandler()(err, message.MakeString("problem closing syslogger"))
 			}
 		}
 
 		w, err := syslog.Dial(network, raddr, syslog.LOG_DEBUG, s.Name())
 		if err != nil {
-			s.ErrorHandler()(err, message.NewErrorWrapMessage(level.Error, err,
+			s.ErrorHandler()(err, message.WrapErrorf(err,
 				"error restarting syslog [%s] for logger: %s", err.Error(), s.Name()))
 			return
 		}

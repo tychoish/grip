@@ -149,8 +149,8 @@ func TestFilter(t *testing.T) {
 				seenData++
 			}
 		}
-		if seenData > len(bufs)+1/2 {
-			t.Error("less than half of the writers saw data", seenData, len(bufs)+1/2)
+		if seenData > (len(bufs)+1)/2 {
+			t.Error("less than half of the writers saw data", seenData, (len(bufs)+1)/2)
 		}
 	})
 	t.Run("Rotation", func(t *testing.T) {

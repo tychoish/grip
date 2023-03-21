@@ -90,7 +90,7 @@ func (s *smtpLogger) Send(m message.Composer) {
 // options. You must also set at least one recipient address using the
 // AddRecipient or AddRecipients functions. You can add or reset the
 // recipients after configuring the options or the sender.
-type SMTPOptions struct { // nolint
+type SMTPOptions struct {
 	// Name controls both the name of the logger, and the name on
 	// the from header field.
 	Name string

@@ -33,7 +33,7 @@ type emailMessage struct {
 // NewMessage returns a composer for emails
 func NewMessage(l level.Priority, e Message) message.Composer {
 	m := MakeEmailMessage(e)
-	_ = m.SetPriority(l)
+	m.SetPriority(l)
 
 	return m
 }

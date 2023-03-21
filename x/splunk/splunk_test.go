@@ -141,7 +141,9 @@ func TestSendMethod(t *testing.T) {
 		t.Errorf("%q should be equal to %q", mock.httpSent, 0)
 	}
 
-	m := message.NewString(level.Debug, "hello")
+	var m message.Composer
+	m = message.MakeString("hello")
+	m.SetPriority(level.Debug)
 	s.sender.Send(m)
 	if mock.numSent != 0 {
 		t.Errorf("%q should be equal to %q", mock.numSent, 0)
@@ -150,7 +152,8 @@ func TestSendMethod(t *testing.T) {
 		t.Errorf("%q should be equal to %q", mock.httpSent, 0)
 	}
 
-	m = message.NewString(level.Alert, "")
+	m = message.MakeString("")
+	m.SetPriority(level.Alert)
 	s.sender.Send(m)
 	if mock.numSent != 0 {
 		t.Errorf("%q should be equal to %q", mock.numSent, 0)
@@ -159,7 +162,8 @@ func TestSendMethod(t *testing.T) {
 		t.Errorf("%q should be equal to %q", mock.httpSent, 0)
 	}
 
-	m = message.NewString(level.Alert, "world")
+	m = message.MakeString("world")
+	m.SetPriority(level.Alert)
 	s.sender.Send(m)
 	if mock.numSent != 1 {
 		t.Errorf("%q should be equal to %q", mock.numSent, 1)
@@ -185,7 +189,8 @@ func TestSendMethodWithError(t *testing.T) {
 		t.Error("shoud not have been true")
 	}
 
-	m := message.NewString(level.Alert, "world")
+	m := message.MakeString("world")
+	m.SetPriority(level.Alert)
 	s.sender.Send(m)
 	if mock.numSent != 1 {
 		t.Errorf("%q should be equal to %q", mock.numSent, 1)
@@ -217,10 +222,14 @@ func TestBatchSendMethod(t *testing.T) {
 		t.Errorf("%q should be equal to %q", mock.httpSent, 0)
 	}
 
-	m1 := message.NewString(level.Alert, "hello")
-	m2 := message.NewString(level.Debug, "hello")
-	m3 := message.NewString(level.Alert, "")
-	m4 := message.NewString(level.Alert, "hello")
+	m1 := message.MakeString("hello")
+	m1.SetPriority(level.Alert)
+	m2 := message.MakeString("hello")
+	m2.SetPriority(level.Debug)
+	m3 := message.MakeString("")
+	m3.SetPriority(level.Alert)
+	m4 := message.MakeString("hello")
+	m4.SetPriority(level.Alert)
 
 	g := message.BuildGroupComposer(m1, m2, m3, m4)
 
@@ -249,10 +258,14 @@ func TestBatchSendMethodWithEror(t *testing.T) {
 		t.Error("shoud not have been true")
 	}
 
-	m1 := message.NewString(level.Alert, "hello")
-	m2 := message.NewString(level.Debug, "hello")
-	m3 := message.NewString(level.Alert, "")
-	m4 := message.NewString(level.Alert, "hello")
+	m1 := message.MakeString("hello")
+	m1.SetPriority(level.Alert)
+	m2 := message.MakeString("hello")
+	m2.SetPriority(level.Debug)
+	m3 := message.MakeString("")
+	m3.SetPriority(level.Alert)
+	m4 := message.MakeString("hello")
+	m4.SetPriority(level.Alert)
 
 	g := message.BuildGroupComposer(m1, m2, m3, m4)
 

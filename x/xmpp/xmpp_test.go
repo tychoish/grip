@@ -124,20 +124,24 @@ func TestSendMethod(t *testing.T) {
 	if 0 != mock.numSent {
 		t.Error("incorrect value for mock.numSent:", 0)
 	}
+	var m message.Composer
 
-	m := message.NewString(level.Debug, "hello")
+	m = message.MakeString("hello")
+	m.SetPriority(level.Debug)
 	sender.Send(m)
 	if 0 != mock.numSent {
 		t.Error("incorrect value for mock.numSent:", 0)
 	}
 
-	m = message.NewString(level.Alert, "")
+	m = message.MakeString("")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if 0 != mock.numSent {
 		t.Error("incorrect value for mock.numSent:", 0)
 	}
 
-	m = message.NewString(level.Alert, "world")
+	m = message.MakeString("world")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if 1 != mock.numSent {
 		t.Error("incorrect value for 1:", mock.numSent)
@@ -165,7 +169,8 @@ func TestSendMethodWithError(t *testing.T) {
 		t.Error("failed to send but should not have")
 	}
 
-	m := message.NewString(level.Alert, "world")
+	m := message.MakeString("world")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if 1 != mock.numSent {
 		t.Error("incorrect value for mock.numSent:", 1)
