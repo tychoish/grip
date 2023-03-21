@@ -111,7 +111,9 @@ func TestLogger(t *testing.T) {
 		// because sink is an internal type (implementation of
 		// sender,) and "GetMessage" isn't in the interface, though it
 		// is exported, we can't pass the sink between functions.
-		sink, err := send.NewInternalLogger("sink", send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+		sink := send.MakeInternalLogger()
+		sink.SetName("sink")
+		err := sink.SetLevel(send.LevelInfo{Default: level.Debug, Threshold: level.Info})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -158,7 +160,9 @@ func TestLogger(t *testing.T) {
 		}
 	})
 	t.Run("CatchMethods", func(t *testing.T) {
-		sink, err := send.NewInternalLogger("sink", send.LevelInfo{Default: level.Debug, Threshold: level.Trace})
+		sink := send.MakeInternalLogger()
+		sink.SetName("sink")
+		err := sink.SetLevel(send.LevelInfo{Threshold: level.Trace, Default: level.Debug})
 		if err != nil {
 			t.Fatal(err)
 		}

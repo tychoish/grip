@@ -8,7 +8,9 @@ import (
 )
 
 func TestInterceptor(t *testing.T) {
-	base, err := NewInternalLogger("test", LevelInfo{Default: level.Info, Threshold: level.Debug})
+	base := MakeInternalLogger()
+	base.SetName("test")
+	err := base.SetLevel(LevelInfo{Threshold: level.Debug, Default: level.Info})
 	if err != nil {
 		t.Fatal(err)
 	}

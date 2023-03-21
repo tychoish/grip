@@ -35,24 +35,14 @@ type InternalMessage struct {
 // format and puts them into an internal channel, that allows you to
 // access the massages via the extra "GetMessage" method. Useful for
 // testing.
-func NewInternalLogger(name string, l LevelInfo) (*InternalSender, error) {
-	s := MakeInternalLogger()
-
-	s.SetName(name)
-
-	if err := s.SetLevel(l); err != nil {
-		return nil, err
-	}
-
-	return s, nil
+func NewInternalLogger(size int) *InternalSender {
+	return &InternalSender{output: make(chan *InternalMessage, size)}
 }
 
 // MakeInternalLogger constructs an internal sender object, typically
 // for use in testing.
 func MakeInternalLogger() *InternalSender {
-	s := &InternalSender{output: make(chan *InternalMessage, 1000)}
-
-	return s
+	return NewInternalLogger(1000)
 }
 
 // GetMessage pops the first message in the queue and returns.

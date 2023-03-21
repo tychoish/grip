@@ -341,7 +341,9 @@ func TestBasicNoopSendTest(t *testing.T) {
 func TestBaseConstructor(t *testing.T) {
 	t.Parallel()
 
-	sink, err := NewInternalLogger("sink", LevelInfo{level.Debug, level.Debug})
+	sink := MakeInternalLogger()
+	sink.SetName("sink")
+	err := sink.SetLevel(LevelInfo{level.Debug, level.Debug})
 	if err != nil {
 		t.Error(err)
 	}

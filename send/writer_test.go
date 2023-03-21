@@ -7,9 +7,11 @@ import (
 )
 
 func TestSenderWriter(t *testing.T) {
-	sink, err := NewInternalLogger("sink", LevelInfo{level.Debug, level.Debug})
+	sink := MakeInternalLogger()
+	sink.SetName("sink")
+	err := sink.SetLevel(LevelInfo{Threshold: level.Debug, Default: level.Debug})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	ws := MakeWriter(sink)

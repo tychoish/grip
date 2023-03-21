@@ -9,7 +9,9 @@ import (
 )
 
 func TestAnnotatingSender(t *testing.T) {
-	insend, err := NewInternalLogger("annotatingSender", LevelInfo{Threshold: level.Debug, Default: level.Debug})
+	insend := MakeInternalLogger()
+	insend.SetName("annotatingSender")
+	err := insend.SetLevel(LevelInfo{Threshold: level.Debug, Default: level.Debug})
 	if err != nil {
 		t.Fatal(err)
 	}
