@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/andygrunwald/go-jira v1.15.1
 	github.com/dghubble/oauth1 v0.7.1
-	github.com/tychoish/grip v0.1.3
+	github.com/tychoish/grip v0.1.4-0.20230321143621-05c974012a82
 )
 
 require (
@@ -15,5 +15,5 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/testify v1.8.0 // indirect
 	github.com/trivago/tgo v1.0.7 // indirect
-	github.com/tychoish/fun v0.8.2 // indirect
+	github.com/tychoish/fun v0.8.3 // indirect
 )
