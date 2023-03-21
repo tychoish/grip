@@ -3,6 +3,7 @@ package send
 import (
 	"log"
 
+	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
@@ -28,7 +29,8 @@ func ErrorHandlerFromSender(s Sender) ErrorHandler {
 		if err == nil {
 			return
 		}
-
-		s.Send(message.WrapError(err, m))
+		em := message.WrapError(err, m)
+		em.SetPriority(level.Error)
+		s.Send(em)
 	}
 }

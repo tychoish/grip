@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -22,10 +23,12 @@ func (tm *twitterClientMock) Send(in string) error { tm.Content = in; return tm.
 func (tm *twitterClientMock) reset()               { tm.VerifyError = nil; tm.SendError = nil; tm.Content = "" }
 
 func newMockedTwitterSender(client *twitterClientMock) *twitterLogger {
-	return &twitterLogger{
+	s := &twitterLogger{
 		Base:    send.NewBase("mock-twitter"),
 		twitter: client,
 	}
+	fun.InvariantMust(s.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Info}))
+	return s
 }
 
 func TestTwitter(t *testing.T) {
@@ -74,7 +77,8 @@ func TestTwitter(t *testing.T) {
 		})
 		mock.reset()
 		t.Run("SendValidCase", func(t *testing.T) {
-			msg := message.NewSimpleString(level.Info, "hi")
+			msg := message.MakeString("hi")
+			msg.SetPriority(level.Info)
 			s := newMockedTwitterSender(mock)
 			s.Send(msg)
 			if mock.Content != msg.String() {
@@ -83,7 +87,9 @@ func TestTwitter(t *testing.T) {
 		})
 		mock.reset()
 		t.Run("WithError", func(t *testing.T) {
-			errsender, err := send.NewInternalLogger("errr", send.LevelInfo{Default: level.Info, Threshold: level.Info})
+			errsender := send.MakeInternalLogger()
+			errsender.SetName("errr")
+			err := errsender.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Info})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -91,7 +97,8 @@ func TestTwitter(t *testing.T) {
 			s.SetErrorHandler(send.ErrorHandlerFromSender(errsender))
 			mock.SendError = errors.New("sendERROR")
 
-			msg := message.NewSimpleString(level.Info, "hi")
+			msg := message.MakeString("hi")
+			msg.SetPriority(level.Notice)
 			s.Send(msg)
 			if !errsender.HasMessage() {
 				t.Error("should be true")
@@ -103,7 +110,9 @@ func TestTwitter(t *testing.T) {
 		mock.reset()
 	})
 	t.Run("WithError", func(t *testing.T) {
-		errsender, err := send.NewInternalLogger("errr", send.LevelInfo{Default: level.Info, Threshold: level.Info})
+		errsender := send.NewInternalLogger(2)
+		errsender.SetName("errr")
+		err := errsender.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Info})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -112,10 +121,11 @@ func TestTwitter(t *testing.T) {
 			twitter: &twitterClientImpl{twitter: (&Options{}).resolve(ctx)},
 			Base:    send.NewBase("fake"),
 		}
-
+		_ = s.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Info})
 		s.SetErrorHandler(send.ErrorHandlerFromSender(errsender))
 
-		msg := message.NewSimpleString(level.Info, "hi")
+		msg := message.MakeString("hi")
+		msg.SetPriority(level.Info)
 		s.Send(msg)
 		if !errsender.HasMessage() {
 			t.Fatal("should have messages")

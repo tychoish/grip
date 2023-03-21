@@ -103,7 +103,6 @@ func MakeStatusMessage(context string, state State, URL, description string) mes
 }
 
 func (c *githubStatusMessage) Loggable() bool { return c.raw.Valid() }
-
 func (*githubStatusMessage) Structured() bool { return false }
 func (c *githubStatusMessage) String() string {
 	if len(c.str) != 0 {

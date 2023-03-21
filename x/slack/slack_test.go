@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bluele/slack"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -188,7 +189,9 @@ func TestGetParamsWithAttachementOptsDisabledLevelImpact(t *testing.T) {
 	}
 
 	for _, l := range []level.Priority{level.Emergency, level.Alert, level.Critical} {
-		msg, params = opts.produceMessage(message.NewString(l, "foo"))
+		lm := message.MakeString("foo")
+		lm.SetPriority(l)
+		msg, params = opts.produceMessage(lm)
 		if params.Attachments[0].Color != "danger" {
 			t.Fatalf("expected 'params.Attachments[0].Color' to be 'danger' but was %s", params.Attachments[0].Color)
 		}
@@ -198,7 +201,9 @@ func TestGetParamsWithAttachementOptsDisabledLevelImpact(t *testing.T) {
 	}
 
 	for _, l := range []level.Priority{level.Warning, level.Notice} {
-		msg, params = opts.produceMessage(message.NewString(l, "foo"))
+		lm := message.MakeString("foo")
+		lm.SetPriority(l)
+		msg, params = opts.produceMessage(lm)
 		if params.Attachments[0].Color != "warning" {
 			t.Fatalf("expected 'params.Attachments[0].Color' to be 'warning' but was %s", params.Attachments[0].Color)
 		}
@@ -208,7 +213,9 @@ func TestGetParamsWithAttachementOptsDisabledLevelImpact(t *testing.T) {
 	}
 
 	for _, l := range []level.Priority{level.Debug, level.Info, level.Trace} {
-		msg, params = opts.produceMessage(message.NewString(l, "foo"))
+		lm := message.MakeString("foo")
+		lm.SetPriority(l)
+		msg, params = opts.produceMessage(lm)
 		if params.Attachments[0].Color != "good" {
 			t.Fatalf("expected 'params.Attachments[0].Color' to be 'good' but was %s", params.Attachments[0].Color)
 		}
@@ -227,7 +234,12 @@ func TestProduceMessageWithBasicMetaDataEnabled(t *testing.T) {
 		t.Fatal("expected to be true")
 	}
 
-	msg, params := opts.produceMessage(message.NewString(level.Alert, "foo"))
+	var msg string
+	var params *slack.ChatPostMessageOpt
+	var lm message.Composer
+	lm = message.MakeString("foo")
+	lm.SetPriority(level.Alert)
+	msg, params = opts.produceMessage(lm)
 	if params.Attachments[0].Color != "danger" {
 		t.Fatalf("expected 'params.Attachments[0].Color' to be 'danger' but was %s", params.Attachments[0].Color)
 	}
@@ -242,7 +254,9 @@ func TestProduceMessageWithBasicMetaDataEnabled(t *testing.T) {
 	}
 
 	opts.Hostname = "!"
-	msg, params = opts.produceMessage(message.NewString(level.Alert, "foo"))
+	lm = message.MakeString("foo")
+	lm.SetPriority(level.Alert)
+	msg, params = opts.produceMessage(lm)
 	if msg != "foo" {
 		t.Fatalf("expected 'msg' to be 'foo' but was %s", msg)
 	}
@@ -254,7 +268,9 @@ func TestProduceMessageWithBasicMetaDataEnabled(t *testing.T) {
 	}
 
 	opts.Hostname = "foo"
-	msg, params = opts.produceMessage(message.NewString(level.Alert, "foo"))
+	lm = message.MakeString("foo")
+	lm.SetPriority(level.Alert)
+	msg, params = opts.produceMessage(lm)
 	if msg != "foo" {
 		t.Fatalf("expected 'msg' to be 'foo' but was %s", msg)
 	}
@@ -266,7 +282,9 @@ func TestProduceMessageWithBasicMetaDataEnabled(t *testing.T) {
 	}
 
 	opts.Name = "foo"
-	msg, params = opts.produceMessage(message.NewString(level.Alert, "foo"))
+	lm = message.MakeString("foo")
+	lm.SetPriority(level.Alert)
+	msg, params = opts.produceMessage(lm)
 	if msg != "foo" {
 		t.Fatalf("expected 'msg' to be 'foo' but was %s", msg)
 	}
@@ -292,7 +310,13 @@ func TestFieldsMessageTypeIntegration(t *testing.T) {
 		"foo":     true,
 	}
 
-	msg, params := opts.produceMessage(message.NewString(level.Alert, "foo"))
+	var msg string
+	var params *slack.ChatPostMessageOpt
+	var lm message.Composer
+
+	lm = message.MakeString("foo")
+	lm.SetPriority(level.Alert)
+	msg, params = opts.produceMessage(lm)
 	if msg != "foo" {
 		t.Fatalf("expected 'msg' to be 'foo' but was %s", msg)
 	}
@@ -304,7 +328,7 @@ func TestFieldsMessageTypeIntegration(t *testing.T) {
 	}
 
 	// if the fields are nil, then we end up ignoring things, except the message
-	msg, params = opts.produceMessage(message.NewAnnotated(level.Alert, "foo", message.Fields{}))
+	msg, params = opts.produceMessage(message.MakeFields(message.Fields{"message": "foo"}))
 	if msg != "" {
 		t.Fatalf("expected 'msg' to be '' but was %s", msg)
 	}
@@ -313,7 +337,7 @@ func TestFieldsMessageTypeIntegration(t *testing.T) {
 	}
 
 	// when msg and the message match we ignore
-	msg, params = opts.produceMessage(message.NewAnnotated(level.Alert, "foo", message.Fields{"msg": "foo"}))
+	msg, params = opts.produceMessage(message.MakeFields(message.Fields{"message": "foo", "msg": "foo"}))
 	if msg != "" {
 		t.Fatalf("expected 'msg' to be '' but was %s", msg)
 	}
@@ -321,7 +345,7 @@ func TestFieldsMessageTypeIntegration(t *testing.T) {
 		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 1 but was %d", len(params.Attachments[0].Fields))
 	}
 
-	msg, params = opts.produceMessage(message.NewAnnotated(level.Alert, "foo", message.Fields{"foo": "bar"}))
+	msg, params = opts.produceMessage(message.MakeFields(message.Fields{"message": "foo", "foo": "bar"}))
 	if msg != "" {
 		t.Fatalf("expected 'msg' to be '' but was %s", msg)
 	}
@@ -329,7 +353,7 @@ func TestFieldsMessageTypeIntegration(t *testing.T) {
 		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 2 but was %d", len(params.Attachments[0].Fields))
 	}
 
-	msg, params = opts.produceMessage(message.NewAnnotated(level.Alert, "foo", message.Fields{"other": "baz"}))
+	msg, params = opts.produceMessage(message.MakeFields(message.Fields{"message": "foo", "other": "baz"}))
 	if msg != "" {
 		t.Fatalf("expected 'msg' to be '' but was %s", msg)
 	}
@@ -337,7 +361,7 @@ func TestFieldsMessageTypeIntegration(t *testing.T) {
 		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 2 but was %d", len(params.Attachments[0].Fields))
 	}
 
-	msg, params = opts.produceMessage(message.NewAnnotated(level.Alert, "foo", message.Fields{"untracked": "false", "other": "bar"}))
+	msg, params = opts.produceMessage(message.MakeFields(message.Fields{"message": "foo", "untracked": "false", "other": "bar"}))
 	if msg != "" {
 		t.Fatalf("expected 'msg' to be '' but was %s", msg)
 	}
@@ -345,7 +369,7 @@ func TestFieldsMessageTypeIntegration(t *testing.T) {
 		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 2 but was %d", len(params.Attachments[0].Fields))
 	}
 
-	msg, params = opts.produceMessage(message.NewAnnotated(level.Alert, "foo", message.Fields{"foo": "false", "other": "bass"}))
+	msg, params = opts.produceMessage(message.MakeFields(message.Fields{"message": "foo", "foo": "false", "other": "bass"}))
 	if msg != "" {
 		t.Fatalf("expected 'msg' to be '' but was %s", msg)
 	}
@@ -423,19 +447,23 @@ func TestSendMethod(t *testing.T) {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", 0)
 	}
 
-	m := message.NewString(level.Debug, "hello")
+	var m message.Composer
+	m = message.MakeString("hello")
+	m.SetPriority(level.Debug)
 	sender.Send(m)
 	if 0 != mock.numSent {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", 0)
 	}
 
-	m = message.NewString(level.Alert, "")
+	m = message.MakeString("")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if 0 != mock.numSent {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", 0)
 	}
 
-	m = message.NewString(level.Alert, "world")
+	m = message.MakeString("world")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if 1 != mock.numSent {
 		t.Fatalf("expected '1' to be 'mock.numSent' but was %d", 1)
@@ -474,8 +502,9 @@ func TestSendMethodWithError(t *testing.T) {
 	if mock.failSendingMessage {
 		t.Fatal("expected false")
 	}
-
-	m := message.NewString(level.Alert, "world")
+	var m message.Composer
+	m = message.MakeString("world")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if 1 != mock.numSent {
 		t.Fatalf("expected '1' to be 'mock.numSent' but was %d", mock.numSent)
@@ -534,15 +563,22 @@ func TestSendMethodDoesIncorrectlyAllowTooLowMessages(t *testing.T) {
 	if 0 != mock.numSent {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
-	sender.Send(message.NewString(level.Info, "hello"))
+	var m message.Composer
+	m = message.MakeString("hello")
+	m.SetPriority(level.Info)
+	sender.Send(m)
 	if 0 != mock.numSent {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
-	sender.Send(message.NewString(level.Alert, "hello"))
+	m = message.MakeString("hello")
+	m.SetPriority(level.Alert)
+	sender.Send(m)
 	if 1 != mock.numSent {
 		t.Fatalf("expected '1' to be 'mock.numSent' but was %d", mock.numSent)
 	}
-	sender.Send(message.NewString(level.Alert, "hello"))
+	m = message.MakeString("hello")
+	m.SetPriority(level.Alert)
+	sender.Send(m)
 	if 2 != mock.numSent {
 		t.Fatalf("expected '2' to be 'mock.numSent' but was %d", mock.numSent)
 	}
@@ -569,7 +605,8 @@ func TestSettingBotIdentity(t *testing.T) {
 		t.Fatal("expected false")
 	}
 
-	m := message.NewString(level.Alert, "world")
+	m := message.MakeString("world")
+	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if mock.numSent != 1 {
 		t.Fatalf("expected 'mock.numSent' to be '1' but was %d", mock.numSent)

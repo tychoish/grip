@@ -102,7 +102,7 @@ type slackMessage struct {
 // NewMessage creates a composer for messages to slack
 func NewMessage(p level.Priority, target string, msg string, attachments []Attachment) message.Composer {
 	s := MakeMessage(target, msg, attachments)
-	_ = s.SetPriority(p)
+	s.SetPriority(p)
 
 	return s
 }
