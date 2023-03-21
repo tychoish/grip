@@ -7,30 +7,12 @@ package message
 
 import (
 	"errors"
-	"fmt"
-
-	"github.com/tychoish/grip/level"
 )
 
 type errorMessage struct {
 	err        error
 	ErrorValue string `bson:"error" json:"error" yaml:"error"`
-	Extended   string `bson:"extended,omitempty" json:"extended,omitempty" yaml:"extended,omitempty"`
 	Base       `bson:"metadata" json:"metadata" yaml:"metadata"`
-}
-
-// NewError takes an error object and returns a Composer
-// instance that only renders a loggable message when the error is
-// non-nil.
-//
-// These composers also implement the error interface and the
-// pkg/errors.Causer and errors.Unwrapper interface and so can be
-// passed as errors and used with existing error-wrapping mechanisms.
-func NewError(p level.Priority, err error) Composer {
-	m := &errorMessage{err: err}
-
-	_ = m.SetPriority(p)
-	return m
 }
 
 // MakeError returns an error composer, like NewErrorMessage, but
@@ -41,10 +23,11 @@ func MakeError(err error) Composer {
 }
 
 func (e *errorMessage) String() string {
-	if e.err == nil {
-		return ""
+	if e.ErrorValue != "" {
+		return e.ErrorValue
+	} else if e.err != nil {
+		e.ErrorValue = e.err.Error()
 	}
-	e.ErrorValue = e.err.Error()
 	return e.ErrorValue
 }
 
@@ -54,11 +37,6 @@ func (e *errorMessage) Unwrap() error  { return e.err }
 func (e *errorMessage) Raw() any {
 	e.Collect()
 	_ = e.String()
-
-	extended := fmt.Sprintf("%+v", e.err)
-	if extended != e.ErrorValue {
-		e.Extended = extended
-	}
 
 	return e
 }

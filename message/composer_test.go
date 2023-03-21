@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/assert/check"
 	"github.com/tychoish/grip/level"
 )
 
@@ -17,63 +18,24 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 	cases := map[Composer]string{
 		MakeString(testMsg):                                            testMsg,
 		MakeSimpleString(testMsg):                                      testMsg,
-		NewString(level.Error, testMsg):                                testMsg,
-		NewSimpleString(level.Error, testMsg):                          testMsg,
 		MakeBytes([]byte(testMsg)):                                     testMsg,
 		MakeSimpleBytes([]byte(testMsg)):                               testMsg,
-		NewBytes(level.Error, []byte(testMsg)):                         testMsg,
-		NewSimpleBytes(level.Error, []byte(testMsg)):                   testMsg,
 		MakeError(errors.New(testMsg)):                                 testMsg,
-		NewError(level.Error, errors.New(testMsg)):                     testMsg,
-		NewErrorWrap(errors.New(testMsg), ""):                          testMsg,
-		NewErrorWrapMessage(level.Error, errors.New(testMsg), ""):      testMsg,
 		MakeFormat(string(testMsg[0])+"%s", testMsg[1:]):               testMsg,
-		NewFormat(level.Error, string(testMsg[0])+"%s", testMsg[1:]):   testMsg,
-		WrapError(errors.New(testMsg), ""):                             testMsg,
-		WrapErrorf(errors.New(testMsg), ""):                            testMsg,
+		WrapError(errors.New("hello"), "world"):                        "world: hello",
+		WrapErrorf(errors.New("hello"), "world"):                       "world: hello",
 		MakeLines(testMsg, ""):                                         testMsg,
-		NewLines(level.Error, testMsg, ""):                             testMsg,
 		MakeLines(testMsg):                                             testMsg,
-		NewLines(level.Error, testMsg):                                 testMsg,
 		BuildGroupComposer(MakeString(testMsg)):                        testMsg,
 		MakeGroupComposer([]Composer{MakeString(testMsg)}):             testMsg,
-		NewGroupComposer(level.Error, []Composer{MakeString(testMsg)}): testMsg,
-		// MakeJiraMessage(&JiraIssue{Summary: testMsg, Type: "Something"}):                       testMsg,
-		// NewJiraMessage("", testMsg, JiraField{Key: "type", Value: "Something"}):                testMsg,
-		NewAnnotatedSimple(level.Error, testMsg, Fields{}):                              fmt.Sprintf("[message='%s']", testMsg),
-		MakeAnnotatedSimple(testMsg, Fields{}):                                          fmt.Sprintf("[message='%s']", testMsg),
-		NewAnnotated(level.Error, testMsg, Fields{}):                                    fmt.Sprintf("[message='%s']", testMsg),
-		NewFields(level.Error, Fields{"test": testMsg}):                                 fmt.Sprintf("[test='%s']", testMsg),
-		MakeAnnotated(testMsg, Fields{}):                                                fmt.Sprintf("[message='%s']", testMsg),
-		MakeFields(Fields{"test": testMsg}):                                             fmt.Sprintf("[test='%s']", testMsg),
-		NewErrorWrappedComposer(errors.New("hello"), MakeString("world")):               "world: hello",
-		When(true, testMsg):                                                             testMsg,
-		Whenf(true, testMsg):                                                            testMsg,
-		Whenln(true, testMsg):                                                           testMsg,
-		Whenln(true, testMsg):                                                           testMsg,
-		MakeProducer(func() Composer { return MakeString(testMsg) }):                    testMsg,
-		NewProducer(level.Error, func() Composer { return MakeString(testMsg) }):        testMsg,
-		MakeErrorProducer(func() error { return errors.New(testMsg) }):                  testMsg,
-		NewErrorProducer(level.Error, func() error { return errors.New(testMsg) }):      testMsg,
-		NewFieldsProducer(level.Error, func() Fields { return Fields{"pro": "ducer"} }): "[pro='ducer']",
-		NewConvertedFieldsProducer(level.Error, func() map[string]any { return map[string]any{"pro": "ducer"} }): "[pro='ducer']",
-		// NewEmailMessage(level.Error, Email{
-		//	Recipients: []string{"someone@example.com"},
-		//	Subject:    "Test msg",
-		//	Body:       testMsg,
-		// }): fmt.Sprintf("To: someone@example.com; Body: %s", testMsg),
-		// NewGithubStatusMessage(level.Error, "tests", GithubStateError, "https://example.com", testMsg): fmt.Sprintf("tests error: %s (https://example.com)", testMsg),
-		// NewGithubStatusMessageWithRepo(level.Error, GithubStatus{
-		//	Owner:       "tychoish",
-		//	Repo:        "grip",
-		//	Ref:         "master",
-		//	Context:     "tests",
-		//	State:       GithubStateError,
-		//	URL:         "https://example.com",
-		//	Description: testMsg,
-		// }): fmt.Sprintf("tychoish/grip@master tests error: %s (https://example.com)", testMsg),
-		// NewJIRACommentMessage(level.Error, "ABC-123", testMsg): testMsg,
-		// NewSlackMessage(level.Error, "@someone", testMsg, nil): fmt.Sprintf("@someone: %s", testMsg),
+		MakeSimpleFields(Fields{"message": testMsg}):                   fmt.Sprintf("[message='%s']", testMsg),
+		MakeFields(Fields{"test": testMsg}):                            fmt.Sprintf("[test='%s']", testMsg),
+		When(true, testMsg):                                            testMsg,
+		Whenf(true, testMsg):                                           testMsg,
+		Whenln(true, testMsg):                                          testMsg,
+		Whenln(true, testMsg):                                          testMsg,
+		MakeProducer(func() Composer { return MakeString(testMsg) }):   testMsg,
+		MakeErrorProducer(func() error { return errors.New(testMsg) }): testMsg,
 	}
 
 	for msg, output := range cases {
@@ -85,7 +47,7 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 			t.Errorf("message %T should implement composer", msg)
 		}
 		if !msg.Loggable() {
-			t.Error("value should be true")
+			t.Errorf("value should be true [%T]", msg)
 		}
 		if msg.Raw() == nil {
 			t.Error("value should not be nill")
@@ -101,10 +63,10 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		} else {
 			// run the string test to make sure it doesn't change:
 			if msg.String() != output {
-				t.Errorf("%T", msg)
+				t.Errorf("%T [%s ==> %s]", msg, msg, output)
 			}
 			if msg.String() != output {
-				t.Errorf("%T", msg)
+				t.Errorf("%T [%s ==> %s]", msg, msg, output)
 			}
 		}
 
@@ -112,8 +74,11 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 			if level.Error != msg.Priority() {
 				t.Error("elements should be equal")
 			}
-			if err := msg.SetPriority(msg.Priority()); err != nil {
-				t.Error(err)
+			previous := msg.Priority()
+			msg.SetPriority(msg.Priority())
+
+			if previous != msg.Priority() {
+				t.Error(previous, ">", msg.Priority())
 			}
 		}
 
@@ -140,38 +105,37 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 	cases := []Composer{
 		&stringMessage{},
 		MakeString(""),
-		NewString(level.Error, ""),
 		&bytesMessage{},
 		MakeBytes([]byte{}),
-		NewBytes(level.Error, []byte{}),
 		&lineMessenger{},
 		MakeLines(),
-		NewLines(level.Error),
 		&formatMessenger{},
 		MakeSimpleKV(),
 		MakeSimpleBytes(nil),
 		MakeSimpleKVs(KVs{}),
 		MakeFormat(""),
-		NewFormat(level.Error, ""),
-		MakeStack(1, ""),
+		MakeFieldsProducer(nil),
 		BuildGroupComposer(),
 		&GroupComposer{},
+		MakeError(nil),
 		When(false, ""),
-		Whenf(false, "", ""),
 		Whenln(false, "", ""),
-		MakeProducer(nil),
 		MakeProducer(func() Composer { return nil }),
-		MakeFieldsProducer(nil),
 		MakeFieldsProducer(func() Fields { return nil }),
 		MakeFieldsProducer(func() Fields { return Fields{} }),
-		MakeErrorProducer(nil),
 		MakeErrorProducer(func() error { return nil }),
 	}
 
 	for idx, msg := range cases {
-		if msg.Loggable() {
-			t.Errorf("message %T at %d should not be loggable", msg, idx)
-		}
+		t.Run(fmt.Sprintf("%T<%d>", idx, msg), func(t *testing.T) {
+			if msg.Loggable() {
+				t.Errorf("message %T at %d should not be loggable", msg, idx)
+			}
+			if msg.String() != "" {
+				t.Errorf("string value %T: [%s]", msg, msg.String())
+			}
+		})
+
 	}
 }
 
@@ -228,14 +192,18 @@ func TestComposerConverter(t *testing.T) {
 		[]Composer{MakeString(testMsg)},
 	}
 
-	for _, msg := range cases {
-		comp := ConvertWithPriority(level.Error, msg)
-		if !comp.Loggable() {
-			t.Error("value should be true")
-		}
-		if testMsg != comp.String() {
-			t.Errorf("%T", msg)
-		}
+	for idx, msg := range cases {
+		t.Run(fmt.Sprint(idx), func(t *testing.T) {
+			comp := ConvertWithPriority(level.Error, msg)
+			if !comp.Loggable() {
+				t.Error("value should be true")
+			}
+			if testMsg != comp.String() {
+				t.Log("expected:", testMsg)
+				t.Log("actual", comp)
+				t.Errorf("%T >> %T", msg, comp)
+			}
+		})
 	}
 
 	cases = []any{
@@ -349,7 +317,8 @@ func TestSlice(t *testing.T) {
 			if ex.String() != c.output.String() {
 				t.Log("output", ex.String())
 				t.Log("expected", c.output.String())
-				t.Fatalf("unexpected output: %T", ex)
+				t.Errorf("unexpected output: %+v vs %+v",
+					ex, c.output)
 			}
 		})
 
@@ -358,7 +327,7 @@ func TestSlice(t *testing.T) {
 
 func fixTimestamps(t *testing.T, msgs ...Composer) {
 	ts := time.Now().Round(time.Millisecond)
-	for idx, msg := range msgs {
+	for _, msg := range msgs {
 		switch m := msg.(type) {
 		case *fieldMessage:
 			m.Base.Time = ts
@@ -367,8 +336,110 @@ func fixTimestamps(t *testing.T, msgs ...Composer) {
 		case *kvMsg:
 			m.skipMetadata = true
 			m.Base.Time = ts
-		default:
-			t.Errorf("id=%d %T", idx, m)
+		case *GroupComposer:
+			fixTimestamps(t, m.Messages()...)
 		}
+	}
+}
+
+type ConverterCases struct {
+	Name         string
+	Input        any
+	Expected     Composer
+	IsStructured bool
+	Unloggable   bool
+}
+
+func TestConverter(t *testing.T) {
+	cases := []ConverterCases{
+		{
+			Name:         "ComposerProducer",
+			Input:        func() Composer { return MakeString("hello world") },
+			Expected:     MakeString("hello world"),
+			IsStructured: true,
+		},
+		{
+			Name:     "SliceSingle",
+			Input:    []any{"hello world"},
+			Expected: MakeString("hello world"),
+		},
+		{
+			Name:     "SliceSingle",
+			Input:    []any{MakeLines("hello world")},
+			Expected: MakeString("hello world"),
+		},
+		{
+			Name:         "EmptySlice",
+			Input:        []any{},
+			Expected:     MakeLines(),
+			IsStructured: true,
+			Unloggable:   true,
+		},
+		{
+			Name:         "NestedEmptySlice",
+			Input:        []any{[]Composer{}},
+			Expected:     MakeLines(),
+			IsStructured: false,
+			Unloggable:   true,
+		},
+		{
+			Name:         "SliceComposerProducer",
+			Input:        []ComposerProducer{func() Composer { return MakeString("hello world") }},
+			Expected:     MakeString("hello world"),
+			IsStructured: true,
+		},
+		{
+			Name:         "EmptySliceComposerProducer",
+			Input:        []ComposerProducer{},
+			Expected:     MakeString(""),
+			IsStructured: true,
+			Unloggable:   true,
+		},
+		{
+			Name:         "GroupSlice",
+			Input:        []Composer{MakeString("kip"), MakeString("merlin")},
+			Expected:     MakeLines("kip\nmerlin"),
+			IsStructured: false,
+		},
+		{
+			Name:         "KVsFromSlice",
+			Input:        KVs{{"hello", 2001}, {"world", 42}},
+			Expected:     MakeKV(KV{"hello", 2001}, KV{"world", 42}),
+			IsStructured: true,
+		},
+		{
+			Name:         "KVFromSlice",
+			Input:        []KV{{"hello", 2001}, {"world", 42}},
+			Expected:     MakeKV(KV{"hello", 2001}, KV{"world", 42}),
+			IsStructured: true,
+		},
+		{
+			Name:  "GroupFields",
+			Input: []Fields{{"hello": 2001}, {"world": 42}},
+			Expected: BuildGroupComposer(
+				MakeFields(Fields{"hello": 2001}),
+				MakeFields(Fields{"world": 42}),
+			),
+			IsStructured: true,
+		},
+		{
+			Name:  "BuilderFields",
+			Input: Fields{"hello": 2001, "world": 42},
+			Expected: NewBuilder(func(Composer) {}).
+				Fields(Fields{"hello": 2001, "world": 42}).
+				Message(),
+			IsStructured: true,
+		},
+	}
+	for _, tt := range cases {
+		t.Run(tt.Name, func(t *testing.T) {
+			got := Convert(tt.Input)
+			check.Equal(t, got.Loggable(), tt.Expected.Loggable())
+			check.Equal(t, got.String(), tt.Expected.String())
+			check.True(t, got.Structured() == tt.IsStructured)
+			check.True(t, got.Loggable() == !tt.Unloggable)
+			t.Logf("got<%T>:%q", got, got)
+			t.Logf("had:%q", tt.Expected)
+		})
 	}
 }

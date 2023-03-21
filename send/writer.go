@@ -85,11 +85,15 @@ func (s *WriterSender) doSend() error {
 		copy(lncp, line)
 
 		if err == nil {
-			s.Send(message.NewBytes(s.priority, bytes.TrimRightFunc(lncp, unicode.IsSpace)))
+			m := message.MakeBytes(bytes.TrimRightFunc(lncp, unicode.IsSpace))
+			m.SetPriority(s.priority)
+			s.Send(m)
 			continue
 		}
 
-		s.Send(message.NewBytes(s.priority, bytes.TrimRightFunc(lncp, unicode.IsSpace)))
+		m := message.MakeBytes(bytes.TrimRightFunc(lncp, unicode.IsSpace))
+		m.SetPriority(s.priority)
+		s.Send(m)
 		return err
 	}
 }
@@ -104,7 +108,9 @@ func (s *WriterSender) Close() error {
 		return err
 	}
 
-	s.Send(message.NewBytes(s.priority, bytes.TrimRightFunc(s.buffer.Bytes(), unicode.IsSpace)))
+	m := message.MakeBytes(bytes.TrimRightFunc(s.buffer.Bytes(), unicode.IsSpace))
+	m.SetPriority(s.priority)
+	s.Send(m)
 	s.buffer.Reset()
 	s.writer.Reset(s.buffer)
 	return nil

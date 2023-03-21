@@ -21,7 +21,7 @@ func TestInterceptor(t *testing.T) {
 	if base.Len() != 0 {
 		t.Error("elements should be equal")
 	}
-	icept.Send(message.NewSimpleString(level.Info, "hello"))
+	icept.Send(NewSimpleString(level.Info, "hello"))
 	if base.Len() != 1 {
 		t.Error("elements should be equal")
 	}
@@ -29,7 +29,7 @@ func TestInterceptor(t *testing.T) {
 		t.Error("elements should be equal")
 	}
 
-	icept.Send(message.NewSimpleString(level.Trace, "hello"))
+	icept.Send(NewSimpleString(level.Trace, "hello"))
 	if base.Len() != 2 {
 		t.Error("elements should be equal")
 	}

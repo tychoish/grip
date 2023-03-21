@@ -3,24 +3,12 @@ package message
 import (
 	"fmt"
 	"strings"
-
-	"github.com/tychoish/grip/level"
 )
 
 type lineMessenger struct {
 	lines   []any
 	Base    `bson:"metadata" json:"metadata" yaml:"metadata"`
 	Message string `bson:"message" json:"message" yaml:"message"`
-}
-
-// NewLines is a basic constructor for a type that, given a
-// bunch of arguments, calls fmt.Sprintln() on the arguments passed to
-// the constructor during the String() operation. Use in combination
-// with Compose[*] logging methods.
-func NewLines(p level.Priority, args ...any) Composer {
-	m := MakeLines(args...)
-	_ = m.SetPriority(p)
-	return m
 }
 
 // MakeLines returns a message Composer roughly equivalent to
@@ -50,10 +38,6 @@ func newLinesFromStrings(args []string) Composer {
 }
 
 func (l *lineMessenger) Loggable() bool {
-	if len(l.lines) == 0 {
-		return false
-	}
-
 	for idx := range l.lines {
 		if l.lines[idx] != "" {
 			return true

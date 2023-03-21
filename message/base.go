@@ -52,14 +52,12 @@ func (b *Base) Structured() bool { return len(b.Context) >= 1 }
 
 // SetPriority allows you to configure the priority of the
 // message. Returns an error if the priority is not valid.
-func (b *Base) SetPriority(l level.Priority) error {
-	if !l.IsValid() {
-		return fmt.Errorf("%s (%d) is not a valid priority", l, l)
+func (b *Base) SetPriority(l level.Priority) {
+	if l.IsValid() {
+		b.Level = l
 	}
 
-	b.Level = l
-
-	return nil
+	return
 }
 
 // Annotate makes it possible for callers and senders to add

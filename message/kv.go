@@ -3,10 +3,7 @@ package message
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
-
-	"github.com/tychoish/grip/level"
 )
 
 // KV represents an arbitrary key value pair for use in structured
@@ -50,6 +47,7 @@ type kvMsg struct {
 	fields       KVs
 	skipMetadata bool
 	cachedOutput string
+	hasMetadata  bool
 	Base
 }
 
@@ -67,38 +65,23 @@ func MakeSimpleKVs(kvs KVs) Composer { return &kvMsg{fields: kvs, skipMetadata: 
 // populate the "base" structure (with time, hostname and pid information).
 func MakeSimpleKV(kvs ...KV) Composer { return MakeSimpleKVs(kvs) }
 
-// NewKV constructs a new Composer using KV pairs wit the specified level.
-func NewKV(p level.Priority, kvs ...KV) Composer { return NewKVs(p, kvs) }
-
-// NewKVs constructs a new Composer using KV pairs wit the specified level.
-func NewKVs(p level.Priority, kvs KVs) Composer {
-	m := &kvMsg{fields: kvs, skipMetadata: true}
-	_ = m.SetPriority(p)
-	return m
-}
-
-// NewSimpleKV constructs a composer using KV pairs that does *not*
-// populate the "base" structure (with time, hostname and pid
-// information) with the specified level.
-func NewSimpleKV(p level.Priority, kvs ...KV) Composer { return NewSimpleKVs(p, kvs) }
-
-// NewSimpleKVs constructs a composer using KV pairs that does *not*
-// populate the "base" structure (with time, hostname and pid
-// information) with the specified level.
-func NewSimpleKVs(p level.Priority, kvs KVs) Composer {
-	m := &kvMsg{fields: kvs, skipMetadata: true}
-	_ = m.SetPriority(p)
-	return m
-}
-
 func (m *kvMsg) Annotate(key string, value any) error {
+	m.cachedOutput = ""
 	m.fields = append(m.fields, KV{Key: key, Value: value})
 	return nil
 }
 
 func (m *kvMsg) Loggable() bool   { return len(m.fields) > 0 }
 func (m *kvMsg) Structured() bool { return true }
-func (m *kvMsg) Raw() any         { return m.fields }
+func (m *kvMsg) Raw() any {
+	if !m.skipMetadata && !m.hasMetadata {
+		m.Collect()
+		m.fields = append(m.fields, KV{Key: "metadata", Value: &m.Base})
+		m.hasMetadata = true
+	}
+
+	return m.fields
+}
 func (m *kvMsg) String() string {
 	if !m.Loggable() {
 		return ""
@@ -106,22 +89,20 @@ func (m *kvMsg) String() string {
 	if m.cachedOutput != "" {
 		return m.cachedOutput
 	}
-	if !m.skipMetadata {
-		m.Collect()
-		m.fields = append(m.fields, KV{Key: "metadata", Value: &m.Base})
-	}
 
 	out := make([]string, len(m.fields))
 	for idx, kv := range m.fields {
-		if str, ok := kv.Value.(fmt.Stringer); ok {
-			out[idx] = fmt.Sprintf("%s='%s'", kv.Key, str.String())
-
-		} else {
+		switch val := kv.Value.(type) {
+		case string, fmt.Stringer:
+			out[idx] = fmt.Sprintf("%s='%s'", kv.Key, val)
+		default:
 			out[idx] = fmt.Sprintf("%s='%v'", kv.Key, kv.Value)
+		}
+		if kv.Key == "metadata" {
+			m.hasMetadata = true
 		}
 	}
 
-	sort.Strings(out)
 	m.cachedOutput = strings.Join(out, " ")
 
 	return m.cachedOutput

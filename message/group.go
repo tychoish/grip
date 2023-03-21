@@ -1,10 +1,10 @@
 package message
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/level"
 )
 
@@ -18,25 +18,19 @@ import (
 type GroupComposer struct {
 	mutex    sync.RWMutex
 	messages []Composer
+	cache    string
 }
 
 // BuildGroupComposer provides a variadic interface for creating a
 // GroupComposer.
 func BuildGroupComposer(msgs ...Composer) *GroupComposer {
-	return &GroupComposer{messages: msgs}
+	return MakeGroupComposer(msgs)
 }
 
 // MakeGroupComposer returns a GroupComposer object from a slice of
 // Composers.
-func MakeGroupComposer(msgs []Composer) Composer {
+func MakeGroupComposer(msgs []Composer) *GroupComposer {
 	return &GroupComposer{messages: msgs}
-}
-
-// NewGroupComposer constructs a group composer from a collection of composers.
-func NewGroupComposer(p level.Priority, msgs []Composer) Composer {
-	cmp := MakeGroupComposer(msgs)
-	_ = cmp.SetPriority(p)
-	return cmp
 }
 
 // String satisfies the fmt.Stringer interface, and returns a string
@@ -44,22 +38,18 @@ func NewGroupComposer(p level.Priority, msgs []Composer) Composer {
 func (g *GroupComposer) String() string {
 	g.mutex.RLock()
 	defer g.mutex.RUnlock()
-
-	if len(g.messages) == 1 && g.messages[0].Loggable() {
-		return g.messages[0].String()
+	if g.cache != "" {
+		return g.cache
 	}
 
-	out := []string{}
+	out := make([]string, 0, len(g.messages))
 	for _, m := range g.messages {
-		if m == nil {
-			continue
-		}
-		if m.Loggable() {
+		if m != nil && m.Loggable() {
 			out = append(out, m.String())
 		}
 	}
-
-	return strings.Join(out, "\n")
+	g.cache = strings.Join(out, "\n")
+	return g.cache
 }
 
 // Raw returns a slice of interfaces containing the raw form of all
@@ -68,16 +58,9 @@ func (g *GroupComposer) Raw() any {
 	g.mutex.RLock()
 	defer g.mutex.RUnlock()
 
-	if len(g.messages) == 1 && g.messages[0].Loggable() {
-		return g.messages[0].Raw()
-	}
-
-	out := []any{}
+	out := make([]any, 0, len(g.messages))
 	for _, m := range g.messages {
-		if m == nil {
-			continue
-		}
-		if m.Loggable() {
+		if m != nil && m.Loggable() {
 			out = append(out, m.Raw())
 		}
 	}
@@ -92,10 +75,7 @@ func (g *GroupComposer) Loggable() bool {
 	defer g.mutex.RUnlock()
 
 	for _, m := range g.messages {
-		if m == nil {
-			continue
-		}
-		if m.Loggable() {
+		if m != nil && m.Loggable() {
 			return true
 		}
 	}
@@ -108,10 +88,7 @@ func (g *GroupComposer) Structured() bool {
 	defer g.mutex.RUnlock()
 
 	for _, m := range g.messages {
-		if m == nil {
-			continue
-		}
-		if m.Structured() {
+		if m != nil && m.Structured() {
 			return true
 		}
 	}
@@ -127,12 +104,11 @@ func (g *GroupComposer) Priority() level.Priority {
 	defer g.mutex.RUnlock()
 
 	for _, m := range g.messages {
-		if m == nil {
-			continue
-		}
-		pri := m.Priority()
-		if pri > highest {
-			highest = pri
+		if m != nil {
+			pri := m.Priority()
+			if pri > highest {
+				highest = pri
+			}
 		}
 	}
 
@@ -140,28 +116,22 @@ func (g *GroupComposer) Priority() level.Priority {
 }
 
 // SetPriority sets the priority of all constituent Composers *only*
-// if the existing level is unset, and does not propagate an error,
-// but will *not* unset the level of the compser and will return an error
-// in this case.
-func (g *GroupComposer) SetPriority(l level.Priority) error {
-	if l == level.Invalid || !l.IsValid() {
-		return fmt.Errorf("cannot set priority to an invalid setting")
-	}
+// if the existing level is unset (or otherwise invalid), and will
+// *not* unset the level of a constituent composer.
+func (g *GroupComposer) SetPriority(l level.Priority) {
+	if l.IsValid() {
+		g.mutex.RLock()
+		defer g.mutex.RUnlock()
 
-	g.mutex.RLock()
-	defer g.mutex.RUnlock()
-
-	for _, m := range g.messages {
-		if m == nil {
-			continue
+		for _, m := range g.messages {
+			if m != nil && !m.Priority().IsValid() {
+				m.SetPriority(l)
+			}
 		}
 
-		if m.Priority() == level.Invalid {
-			_ = m.SetPriority(l)
-		}
 	}
 
-	return nil
+	return
 }
 
 // Messages returns a the underlying collection of messages.
@@ -172,27 +142,20 @@ func (g *GroupComposer) Messages() []Composer {
 	return g.messages
 }
 
-// Add supports adding messages to an existing group composer.
-func (g *GroupComposer) Add(msg Composer) {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
-	g.messages = append(g.messages, msg)
-}
-
 // Extend makes it possible to add a group of messages to an existing
 // group composer.
 func (g *GroupComposer) Extend(msg []Composer) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
-
+	g.cache = ""
 	g.messages = append(g.messages, msg...)
 }
 
+// Add supports adding messages to an existing group composer.
+func (g *GroupComposer) Add(msg Composer) { g.Append(msg) }
+
 // Append provides a variadic alternative to the Extend method.
-func (g *GroupComposer) Append(msgs ...Composer) {
-	g.Extend(msgs)
-}
+func (g *GroupComposer) Append(msgs ...Composer) { g.Extend(msgs) }
 
 // Annotate calls the Annotate method of every non-nil component
 // Composer.
@@ -200,13 +163,12 @@ func (g *GroupComposer) Annotate(k string, v any) error {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
+	ec := &erc.Collector{}
 	for _, m := range g.messages {
-		if m == nil {
-			continue
+		if m != nil {
+			ec.Add(m.Annotate(k, v))
 		}
-
-		_ = m.Annotate(k, v)
 	}
 
-	return nil
+	return ec.Resolve()
 }

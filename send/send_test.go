@@ -270,7 +270,7 @@ func TestBasicNoopSendTest(t *testing.T) {
 	rand := rand.New(rand.NewSource(time.Now().Unix()))
 	for _, sender := range functionalMockSenders(t, senderFixture(t)) {
 		for i := -10; i <= 110; i += 5 {
-			m := message.NewString(level.Priority(i), "hello world! "+randomString(10, rand))
+			m := NewString(level.Priority(i), "hello world! "+randomString(10, rand))
 			sender.Send(m)
 		}
 	}

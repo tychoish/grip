@@ -33,6 +33,7 @@ package message
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/tychoish/grip/level"
 )
@@ -45,15 +46,6 @@ import (
 // other producer types to implement logging as functions rather than
 // as implementations the Composer interface itself.
 type KVProducer func() KVs
-
-// NewKVProducer produces a new KVProducer-based log message with the
-// specified priority.
-func NewKVProducer(p level.Priority, kp KVProducer) Composer {
-	if kp == nil {
-		return NewProducer(p, nil)
-	}
-	return NewProducer(p, func() Composer { return NewKVs(p, kp()) })
-}
 
 // NewKVProducer constructs a new KVProducer-based log message.
 func MakeKVProducer(kp KVProducer) Composer {
@@ -74,21 +66,6 @@ func MakeKVProducer(kp KVProducer) Composer {
 //
 // If the Fields object is nil or empty then no message is logged.
 type FieldsProducer func() Fields
-
-// NewFieldsProducer constructs a lazy FieldsProducer wrapping
-// message at the specified level.
-//
-// FieldsProducer functions are only called, before calling the
-// Loggable, String, Raw, or Annotate methods. Changing the priority
-// does not call the function. In practice, if the priority of the
-// message is below the logging threshold, then the function will
-// never be called.
-func NewFieldsProducer(p level.Priority, fp FieldsProducer) Composer {
-	if fp == nil {
-		return NewProducer(p, nil)
-	}
-	return NewProducer(p, func() Composer { return NewFields(p, fp()) })
-}
 
 // MakeFieldsProducer constructs a lazy FieldsProducer wrapping
 // message at the specified level.
@@ -114,15 +91,6 @@ func MakeConvertedFieldsProducer(mp func() map[string]any) Composer {
 	return MakeProducer(func() Composer { return MakeFields(mp()) })
 }
 
-// NewConvertedFieldsProducer converts a generic map to a fields
-// producer at the specified priority, as the message types are equivalent,
-func NewConvertedFieldsProducer(p level.Priority, mp func() map[string]any) Composer {
-	if mp == nil {
-		return NewProducer(p, nil)
-	}
-	return NewProducer(p, func() Composer { return NewFields(p, func() Fields { return mp() }()) })
-}
-
 ////////////////////////////////////////////////////////////////////////
 
 // ComposerProducer constructs a lazy composer, and makes it easy to
@@ -141,18 +109,7 @@ type composerProducerMessage struct {
 	cp     ComposerProducer
 	cached Composer
 	level  level.Priority
-}
-
-// NewComposerMessage constructs a message, with the given priority,
-// that will call the ComposerProducer function lazily during logging.
-//
-// ComposerProducer functions are only called, before calling the
-// Loggable, String, Raw, or Annotate methods. Changing the priority
-// does not call the function. In practice, if the priority of the
-// message is below the logging threshold, then the function will
-// never be called.
-func NewProducer(p level.Priority, cp ComposerProducer) Composer {
-	return &composerProducerMessage{level: p, cp: cp}
+	exec   sync.Once
 }
 
 // MakeComposerMessage constructs a message that will call the
@@ -166,14 +123,18 @@ func NewProducer(p level.Priority, cp ComposerProducer) Composer {
 func MakeProducer(cp ComposerProducer) Composer { return &composerProducerMessage{cp: cp} }
 
 func (cp *composerProducerMessage) resolve() {
-	if cp.cached == nil {
-		cp.cached = cp.cp()
-		if cp.cached == nil {
-			cp.cached = NewSimpleFields(cp.level, Fields{})
-		} else {
-			_ = cp.cached.SetPriority(cp.level)
+	cp.exec.Do(func() {
+		if cp.cp == nil {
+			cp.cp = func() Composer { return MakeKV() }
 		}
-	}
+
+		cp.cached = cp.cp()
+
+		if cp.cached == nil {
+			cp.cached = MakeFields(Fields{})
+		}
+		cp.cached.SetPriority(cp.level)
+	})
 }
 
 func (cp *composerProducerMessage) Annotate(k string, v any) error {
@@ -181,17 +142,13 @@ func (cp *composerProducerMessage) Annotate(k string, v any) error {
 	return cp.cached.Annotate(k, v)
 }
 
-func (cp *composerProducerMessage) SetPriority(p level.Priority) error {
-	if !p.IsValid() {
-		return errors.New("invalid level")
+func (cp *composerProducerMessage) SetPriority(p level.Priority) {
+	if p.IsValid() {
+		cp.level = p
+		if cp.cached != nil {
+			cp.cached.SetPriority(cp.level)
+		}
 	}
-
-	cp.level = p
-	if cp.cached != nil {
-		return cp.cached.SetPriority(cp.level)
-	}
-
-	return nil
 }
 
 func (cp *composerProducerMessage) Loggable() bool {
@@ -236,19 +193,6 @@ type errorProducerMessage struct {
 	level  level.Priority
 }
 
-// NewErrorProducer returns a mesage that wrapps an error
-// producing function, at the specified level. If the function returns
-// then there is never a message logged.
-//
-// ErrorProducer functions are only called, before calling the
-// Loggable, String, Raw, or Annotate methods. Changing the priority
-// does not call the function. In practice, if the priority of the
-// message is below the logging threshold, then the function will
-// never be called.
-func NewErrorProducer(p level.Priority, ep ErrorProducer) Composer {
-	return &errorProducerMessage{level: p, ep: ep}
-}
-
 // MakeErrorProducer returns a mesage that wrapps an error
 // producing function. If the function returns then there is never a
 // message logged.
@@ -263,9 +207,13 @@ func MakeErrorProducer(ep ErrorProducer) Composer {
 }
 
 func (ep *errorProducerMessage) resolve() {
+	if ep.ep == nil {
+		ep.ep = func() error { return nil }
+	}
+
 	if ep.cached == nil {
 		ep.cached = &errorMessage{err: ep.ep()}
-		_ = ep.cached.SetPriority(ep.level)
+		ep.cached.SetPriority(ep.level)
 	}
 }
 
@@ -274,17 +222,13 @@ func (ep *errorProducerMessage) Annotate(k string, v any) error {
 	return ep.cached.Annotate(k, v)
 }
 
-func (ep *errorProducerMessage) SetPriority(p level.Priority) error {
-	if !p.IsValid() {
-		return errors.New("invalid level")
+func (ep *errorProducerMessage) SetPriority(p level.Priority) {
+	if p.IsValid() {
+		ep.level = p
+		if ep.cached != nil {
+			ep.cached.SetPriority(ep.level)
+		}
 	}
-
-	ep.level = p
-	if ep.cached != nil {
-		return ep.cached.SetPriority(ep.level)
-	}
-
-	return nil
 }
 
 func (ep *errorProducerMessage) Loggable() bool {

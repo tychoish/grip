@@ -26,9 +26,7 @@ type Builder struct {
 
 // NewBuilder constructs the chainable builder type, and initializes
 // the error tracking and establishes a connection to the sender.
-func NewBuilder(send func(Composer)) *Builder {
-	return &Builder{send: send}
-}
+func NewBuilder(send func(Composer)) *Builder { return &Builder{send: send} }
 
 // Send finalizes the chain and delivers the message. Send resolves
 // the built message using the Message method.
@@ -74,7 +72,7 @@ func (b *Builder) Message() Composer {
 		b.composer = Unwrap(b.composer)
 
 		if b.catcher.HasErrors() {
-			return NewErrorWrappedComposer(b.catcher.Resolve(), b.composer)
+			return WrapError(b.catcher.Resolve(), b.composer)
 		}
 
 		return b.composer
@@ -93,7 +91,7 @@ func (b *Builder) Level(l level.Priority) *Builder {
 		b.catcher.Add(errors.New("must add message before setting priority"))
 		return b
 	}
-	b.catcher.Add(b.composer.SetPriority(l))
+	b.composer.SetPriority(l)
 	return b
 }
 
@@ -123,8 +121,8 @@ func (b *Builder) ErrorProducer(f ErrorProducer) *Builder       { return b.set(M
 func (b *Builder) KVProducer(f KVProducer) *Builder             { return b.set(MakeKVProducer(f)) }
 func (b *Builder) Composer(c Composer) *Builder                 { return b.set(c) }
 func (b *Builder) Any(msg any) *Builder                         { return b.set(Convert(msg)) }
-func (b *Builder) StringMap(f map[string]string) *Builder       { return b.Fields(fromStrMap(f)) }
-func (b *Builder) AnyMap(f map[string]any) *Builder             { return b.Fields(Fields(f)) }
+func (b *Builder) StringMap(f map[string]string) *Builder       { return b.Fields(FieldsFromMap(f)) }
+func (b *Builder) AnyMap(f map[string]any) *Builder             { return b.Fields(f) }
 func (b *Builder) KV(kvs ...KV) *Builder                        { return b.KVs(kvs) }
 func (b *Builder) SetGroup(sendAsGroup bool) *Builder           { b.sendAsGroup = sendAsGroup; return b }
 func (b *Builder) Group() *Builder                              { b.sendAsGroup = true; return b }

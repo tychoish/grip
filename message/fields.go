@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-
-	"github.com/tychoish/grip/level"
 )
 
 // FieldsMsgName is the name of the default "message" field in the
@@ -13,7 +11,6 @@ import (
 const FieldsMsgName = "message"
 
 type fieldMessage struct {
-	message      string
 	fields       Fields
 	cachedOutput string
 	skipMetadata bool
@@ -27,13 +24,6 @@ type fieldMessage struct {
 //	message.Fields{"key0", <value>, "key1", <value>}
 type Fields map[string]any
 
-// NewFields constructs a full configured fields Composer.
-func NewFields(p level.Priority, f Fields) Composer {
-	m := MakeFields(f)
-	_ = m.SetPriority(p)
-	return m
-}
-
 // MakeFields creates a composer interface from *just* a Fields instance.
 func MakeFields(f Fields) Composer {
 	m := &fieldMessage{fields: f}
@@ -41,55 +31,10 @@ func MakeFields(f Fields) Composer {
 	return m
 }
 
-// NewSimpleFields returns a structured Composer that does not
-// attach basic logging metadata and allows callers to configure the
-// messages' log level.
-func NewSimpleFields(p level.Priority, f Fields) Composer {
-	m := MakeSimpleFields(f)
-	_ = m.SetPriority(p)
-	return m
-}
-
 // MakeSimpleFields returns a structured Composer that does
 // not attach basic logging metadata.
 func MakeSimpleFields(f Fields) Composer {
 	m := &fieldMessage{fields: f, skipMetadata: true}
-	m.setup()
-	return m
-}
-
-// NewAnnotated creates a fully configured Composer instance that
-// will attach some additional structured data. This constructor
-// allows you to include a string message as well as Fields
-// object.
-func NewAnnotated(p level.Priority, message string, f Fields) Composer {
-	m := MakeAnnotated(message, f)
-	_ = m.SetPriority(p)
-	return m
-}
-
-// MakeAnnotated constructs a fields Composer from a message string and
-// Fields object, without specifying the priority of the message.
-func MakeAnnotated(message string, f Fields) Composer {
-	m := &fieldMessage{message: message, fields: f}
-	m.setup()
-	return m
-}
-
-// NewSimpleFieldsMessage returns a structured Composer that does not attach
-// basic logging metadata, but allows callers to specify the message
-// (the "message" field) as well as the message's log-level.
-func NewAnnotatedSimple(p level.Priority, msg string, f Fields) Composer {
-	m := MakeAnnotatedSimple(msg, f)
-	_ = m.SetPriority(p)
-	return m
-}
-
-// MakeAnnotatedSimple returns a structured Composer that does not attach
-// basic logging metadata, but allows callers to specify the message
-// (the "message" field) as a string.
-func MakeAnnotatedSimple(msg string, f Fields) Composer {
-	m := &fieldMessage{message: msg, fields: f, skipMetadata: true}
 	m.setup()
 	return m
 }
@@ -104,15 +49,12 @@ func MakeAnnotatedSimple(msg string, f Fields) Composer {
 func GetDefaultFieldsMessage(msg Composer, val string) string {
 	switch fields := msg.(type) {
 	case *fieldMessage:
-		if fields.message != "" {
-			return fields.message
-		}
 		if fields.fields == nil {
 			return val
 		}
 
 		if str, ok := fields.fields[FieldsMsgName]; ok {
-			return fmt.Sprintf("%v", str)
+			return fmt.Sprintf("%s", str)
 		}
 
 		return val
@@ -121,7 +63,7 @@ func GetDefaultFieldsMessage(msg Composer, val string) string {
 	}
 }
 
-func fromStrMap(in map[string]string) Fields {
+func FieldsFromMap[V any](in map[string]V) Fields {
 	out := make(Fields, len(in))
 	for k, v := range in {
 		out[k] = v
@@ -140,10 +82,6 @@ func (m *fieldMessage) setup() {
 		m.fields = Fields{}
 	}
 
-	if _, ok := m.fields[FieldsMsgName]; !ok && m.message != "" {
-		m.fields[FieldsMsgName] = m.message
-	}
-
 	if m.skipMetadata {
 		return
 	}
@@ -160,17 +98,20 @@ func (m *fieldMessage) setup() {
 func (*fieldMessage) Structured() bool { return true }
 
 func (m *fieldMessage) Loggable() bool {
-	if m.message == "" && len(m.fields) == 0 {
-		return false
+	if len(m.fields) > 1 || (len(m.fields) == 1 && !m.fields.hasMetadatField()) {
+		// it's not loggable if there's more than one field or
+		// if there is only one field that isn't the metadata field added by m.setup().
+		return true
 	}
+	return false
+}
 
-	if len(m.fields) == 1 {
-		if _, ok := m.fields["metadata"]; ok {
-			return false
-		}
-	}
+func (f Fields) hasMetadatField() bool { _, ok := f["metadata"]; return ok }
 
-	return true
+var skippedFields = map[string]struct{}{
+	FieldsMsgName: {},
+	"time":        {},
+	"metadata":    {},
 }
 
 func (m *fieldMessage) String() string {
@@ -182,29 +123,28 @@ func (m *fieldMessage) String() string {
 		return m.cachedOutput
 	}
 
-	out := make([]string, 0, len(m.fields)+1)
-	if m.message != "" {
-		out = append(out, fmt.Sprintf("%s='%s'", FieldsMsgName, m.message))
+	out := make([]string, 0, len(m.fields))
+	if _, ok := m.fields[FieldsMsgName]; ok {
+		out = append(out, "")
 	}
 
 	for k, v := range m.fields {
-		if k == FieldsMsgName && v == m.message {
-			continue
-		}
-		if k == "time" {
-			continue
-		}
-		if k == "metadata" {
+		if _, ok := skippedFields[k]; ok {
 			continue
 		}
 
-		if str, ok := v.(fmt.Stringer); ok {
-			out = append(out, fmt.Sprintf("%s='%s'", k, str.String()))
-		} else {
+		switch val := v.(type) {
+		case fmt.Stringer, string:
+			out = append(out, fmt.Sprintf("%s='%s'", k, val))
+		default:
 			out = append(out, fmt.Sprintf("%s='%v'", k, v))
 		}
 	}
+
 	sort.Strings(out)
+	if _, ok := m.fields[FieldsMsgName]; ok {
+		out[0] = fmt.Sprintf("%s='%v'", FieldsMsgName, m.fields[FieldsMsgName])
+	}
 	m.cachedOutput = strings.Join(out, " ")
 
 	return m.cachedOutput
@@ -214,7 +154,7 @@ func (m *fieldMessage) Raw() any { return m.fields }
 
 func (m *fieldMessage) Annotate(key string, value any) error {
 	if _, ok := m.fields[key]; ok {
-		return fmt.Errorf("key '%s' already exists", key)
+		return fmt.Errorf("key %q already exists", key)
 	}
 
 	m.fields[key] = value

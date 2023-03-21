@@ -94,6 +94,9 @@ func TestBuilder(t *testing.T) {
 		t.Run("SingleStringSlice", func(t *testing.T) {
 			NewBuilder(mockSenderMessage(t, "hello world 543")).Strings([]string{"hello", "world", "543"}).Send()
 		})
+		t.Run("FromMap", func(t *testing.T) {
+			NewBuilder(mockSenderMessage(t, "hello='world'")).StringMap(map[string]string{"hello": "world"}).Send()
+		})
 	})
 
 }

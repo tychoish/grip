@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/tychoish/grip/level"
-	"github.com/tychoish/grip/message"
 )
 
 func TestMultiSenderRespectsLevel(t *testing.T) {
@@ -23,7 +22,7 @@ func TestMultiSenderRespectsLevel(t *testing.T) {
 	if 0 != mock.Len() {
 		t.Error("elements should be equal")
 	}
-	multi.Send(message.NewString(level.Info, "hello"))
+	multi.Send(NewString(level.Info, "hello"))
 	if 1 != mock.Len() {
 		t.Error("elements should be equal")
 	}
@@ -35,7 +34,7 @@ func TestMultiSenderRespectsLevel(t *testing.T) {
 		t.Error("should be false")
 	}
 
-	multi.Send(message.NewString(level.Alert, "hello"))
+	multi.Send(NewString(level.Alert, "hello"))
 	if 1 != mock.Len() {
 		t.Error("elements should be equal")
 	}
@@ -47,7 +46,7 @@ func TestMultiSenderRespectsLevel(t *testing.T) {
 		t.Error("should be true")
 	}
 
-	multi.Send(message.NewString(level.Alert, "hello"))
+	multi.Send(NewString(level.Alert, "hello"))
 	if 1 != mock.Len() {
 		t.Error("elements should be equal")
 	}

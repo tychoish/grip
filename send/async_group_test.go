@@ -10,6 +10,17 @@ import (
 	"github.com/tychoish/grip/message"
 )
 
+func NewString(l level.Priority, in string) message.Composer {
+	m := message.MakeString(in)
+	m.SetPriority(l)
+	return m
+}
+func NewSimpleString(l level.Priority, in string) message.Composer {
+	m := message.MakeSimpleString(in)
+	m.SetPriority(l)
+	return m
+}
+
 func TestAsyncGroupSender(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -51,7 +62,7 @@ func TestAsyncGroupSender(t *testing.T) {
 		t.Error("elements shold be equal")
 	}
 
-	s.Send(message.NewString(level.Debug, "hello"))
+	s.Send(NewString(level.Debug, "hello"))
 	newLevel = LevelInfo{Default: level.Debug, Threshold: level.Alert}
 	if err := impl.SetLevel(newLevel); err != nil {
 		t.Error(err)

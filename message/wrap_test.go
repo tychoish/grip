@@ -51,13 +51,10 @@ func TestWrap(t *testing.T) {
 	})
 	t.Run("LevelPreservingSimple", func(t *testing.T) {
 		comp := MakeString("hello")
-		if err := comp.SetPriority(level.Alert); err != nil {
-			t.Fatal(err)
-		}
+		comp.SetPriority(level.Alert)
+
 		comp = Wrap(comp, MakeString("world"))
-		if err := comp.SetPriority(level.Info); err != nil {
-			t.Fatal(err)
-		}
+		comp.SetPriority(level.Info)
 
 		comp = Unwrap(comp)
 		if sizeOfGroup(t, comp) != 2 {

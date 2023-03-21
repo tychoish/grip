@@ -88,6 +88,7 @@ func makeWhen(cond bool, m any) message.Composer         { return message.When(c
 func composerf(tmpl string, args []any) message.Composer { return message.MakeFormat(tmpl, args...) }
 func composerln(args []any) message.Composer             { return message.MakeLines(args...) }
 
+func (g Logger) send(l level.Priority, m message.Composer)   { m.SetPriority(l); g.impl.Send(m) }
 func (g Logger) Sender() send.Sender                         { return g.impl }
 func (g Logger) Build() *message.Builder                     { return message.NewBuilder(g.impl.Send) }
 func (g Logger) Log(l level.Priority, m any)                 { g.send(l, message.Convert(m)) }
@@ -184,29 +185,11 @@ func TraceWhen(conditional bool, m any)                 { std.TraceWhen(conditio
 //
 // method implementation
 
-func (g Logger) safeSetPriority(l level.Priority, m message.Composer) bool {
-	if err := m.SetPriority(l); err != nil {
-		g.impl.ErrorHandler()(err, m)
-		return true
-	}
-
-	return false
-}
-
-func (g Logger) send(l level.Priority, m message.Composer) {
-	if g.safeSetPriority(l, m) {
-		return
-	}
-	g.impl.Send(m)
-}
-
 // For sending logging messages, in most cases, use the
 // Journaler.sender.Send() method, but we have a couple of methods to
 // use for the Panic/Fatal helpers.
 func (g Logger) sendPanic(l level.Priority, m message.Composer) {
-	if g.safeSetPriority(l, m) {
-		return
-	}
+	m.SetPriority(l)
 
 	// the Send method in the Sender interface will perform this
 	// check but to add fatal methods we need to do this here.
@@ -217,9 +200,7 @@ func (g Logger) sendPanic(l level.Priority, m message.Composer) {
 }
 
 func (g Logger) sendFatal(l level.Priority, m message.Composer) {
-	if g.safeSetPriority(l, m) {
-		return
-	}
+	m.SetPriority(l)
 
 	// the Send method in the Sender interface will perform this
 	// check but to add fatal methods we need to do this here.

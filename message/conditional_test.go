@@ -12,9 +12,7 @@ func TestConditionalMessage(t *testing.T) {
 		t.Error("value should be true")
 	}
 
-	if err := comp.SetPriority(level.Error); err != nil {
-		t.Error(err)
-	}
+	comp.SetPriority(level.Error)
 	if comp.Priority() != level.Error {
 		t.Error(comp.Priority())
 	}

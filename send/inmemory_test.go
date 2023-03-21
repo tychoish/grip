@@ -79,7 +79,7 @@ func setupFixture(t *testing.T) *InMemorySuite {
 
 	s.msgs = make([]message.Composer, 2*maxCap)
 	for i := range s.msgs {
-		s.msgs[i] = message.NewString(info.Default, fmt.Sprint(i))
+		s.msgs[i] = NewString(info.Default, fmt.Sprint(i))
 	}
 
 	return s
@@ -99,7 +99,7 @@ func TestInvalidCapacityErrors(t *testing.T) {
 func TestSendIgnoresMessagesWithPrioritiesBelowThreshold(t *testing.T) {
 	s := setupFixture(t)
 
-	msg := message.NewString(level.Trace, "foo")
+	msg := NewString(level.Trace, "foo")
 	s.sender.Send(msg)
 	if 0 != len(s.sender.buffer) {
 		t.Error("values should be equal")

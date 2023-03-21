@@ -34,10 +34,10 @@ func Whenln(cond bool, args ...any) Composer {
 // more strongly-typed conditional logging message.
 func WhenMsg(cond bool, m string) Composer { return &condComposer{cond: cond, msg: MakeString(m)} }
 
-func (c *condComposer) String() string                     { return c.msg.String() }
-func (c *condComposer) Raw() any                           { return c.msg.Raw() }
-func (c *condComposer) Priority() level.Priority           { return c.msg.Priority() }
-func (c *condComposer) SetPriority(p level.Priority) error { return c.msg.SetPriority(p) }
-func (c *condComposer) Annotate(k string, v any) error     { return c.msg.Annotate(k, v) }
-func (c *condComposer) Structured() bool                   { return c.msg.Structured() }
-func (c *condComposer) Loggable() bool                     { return c.cond && c.msg.Loggable() }
+func (c *condComposer) String() string                 { return c.msg.String() }
+func (c *condComposer) Raw() any                       { return c.msg.Raw() }
+func (c *condComposer) Priority() level.Priority       { return c.msg.Priority() }
+func (c *condComposer) SetPriority(p level.Priority)   { c.msg.SetPriority(p) }
+func (c *condComposer) Annotate(k string, v any) error { return c.msg.Annotate(k, v) }
+func (c *condComposer) Structured() bool               { return c.msg.Structured() }
+func (c *condComposer) Loggable() bool                 { return c.cond && c.msg.Loggable() }

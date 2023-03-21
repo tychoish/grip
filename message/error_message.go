@@ -3,100 +3,51 @@ package message
 import (
 	"errors"
 	"fmt"
-
-	"github.com/tychoish/grip/level"
+	"sync"
 )
 
 type errorComposerWrap struct {
 	err    error
 	cached string
 	Composer
-}
-
-// NewErrorWrappedComposer provvides a way to construct a log message
-// that annotates an error.
-func NewErrorWrappedComposer(err error, m Composer) Composer {
-	return &errorComposerWrap{
-		err:      err,
-		Composer: m,
-	}
-}
-
-// NewErrorWrapMessage produces a fully configured message.Composer
-// that combines the functionality of an Error composer that renders a
-// loggable error message for non-nil errors with a normal formatted
-// message (e.g. fmt.Sprintf). These messages only log if the error is
-// non-nil.
-func NewErrorWrapMessage(p level.Priority, err error, base string, args ...any) Composer {
-	return NewErrorWrappedComposer(err, NewFormat(p, base, args...))
-}
-
-// NewErrorWrap produces a message.Composer that combines the
-// functionality of an Error composer that renders a loggable error
-// message for non-nil errors with a normal formatted message
-// (e.g. fmt.Sprintf). These messages only log if the error is
-// non-nil.
-func NewErrorWrap(err error, base string, args ...any) Composer {
-	return NewErrorWrappedComposer(err, MakeFormat(base, args...))
+	populate sync.Once
 }
 
 // WrapError wraps an error and creates a composer converting the
 // argument into a composer in the same manner as the front end logging methods.
 func WrapError(err error, m any) Composer {
-	return NewErrorWrappedComposer(err, ConvertWithPriority(level.Priority(0), m))
+	return &errorComposerWrap{
+		err:      err,
+		Composer: Convert(m),
+	}
 }
 
 // WrapErrorf wraps an error and creates a composer using a
 // Sprintf-style formated composer.
 func WrapErrorf(err error, msg string, args ...any) Composer {
-	return NewErrorWrappedComposer(err, MakeFormat(msg, args...))
+	return WrapError(err, MakeFormat(msg, args...))
 }
 
 func (m *errorComposerWrap) String() string {
 	if m.cached == "" {
-		context := m.Composer.String()
-		if context != "" {
-			m.cached = fmt.Sprintf("%s: %v", context, m.err.Error())
-		} else {
-			m.cached = m.err.Error()
-		}
+		m.cached = fmt.Sprintf("%s: %v", m.Composer, m.err)
 	}
 
 	return m.cached
 }
 
 func (m *errorComposerWrap) Error() string     { return m.String() }
-func (m *errorComposerWrap) Cause() error      { return m.err }
+func (m *errorComposerWrap) Unwrap() Composer  { return m.Composer }
 func (m *errorComposerWrap) Is(err error) bool { return errors.Is(m.err, err) }
 func (m *errorComposerWrap) As(err any) bool   { return errors.As(m.err, err) }
-func (m *errorComposerWrap) Unwrap() Composer  { return m.Composer }
-func (m *errorComposerWrap) Loggable() bool {
-	return m.err != nil
-}
+func (m *errorComposerWrap) Loggable() bool    { return m.err != nil && m.Composer.Loggable() }
 
 func (m *errorComposerWrap) Raw() any {
-	errStr := m.err.Error()
-	out := Fields{
-		"error": errStr,
-	}
+	m.populate.Do(func() {
+		_ = m.Composer.Annotate("error", m.err)
+	})
 
-	if m.Composer.Loggable() {
-		// special handling for fields - merge keys in with output keys
-		switch t := m.Composer.(type) {
-		case *fieldMessage:
-			t.fields["error"] = errStr
-			out = t.fields
-		default:
-			out["context"] = m.Composer.Raw()
-		}
-	}
-
-	ext := fmt.Sprintf("%+v", m.err)
-	if ext != errStr {
-		out["extended"] = ext
-	}
-
-	return out
+	return m.Composer.Raw()
 }
 
 func (m *errorComposerWrap) Annotate(k string, v any) error {

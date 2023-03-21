@@ -42,26 +42,24 @@ type Composer interface {
 
 	// Priority returns the priority of the message.
 	Priority() level.Priority
-	SetPriority(level.Priority) error
+
+	// SetPriority sets the messaages' log level. The high level
+	// logging interfaces set this before sending the
+	// message. If you send a message to a sender directly without
+	// setting the level, or set the level to an invalid level,
+	// the message is not loggable.
+	SetPriority(level.Priority)
 }
 
 // ConvertWithPriority can coerce unknown objects into Composer
 // instances, as possible. This method will override the priority of
 // composers set to it.
 func ConvertWithPriority(p level.Priority, message any) Composer {
-	if cmp, ok := message.(Composer); ok {
-		if pri := cmp.Priority(); pri != level.Invalid {
-			p = pri
-		}
-	}
-
 	out := Convert(message)
-	_ = out.SetPriority(p)
+	out.SetPriority(p)
 
 	return out
 }
-
-type anySlice[S ~[]E, E any] interface{}
 
 // Convert produces a composer interface for arbitrary input.
 func Convert[T any](input T) Composer {
@@ -72,10 +70,24 @@ func Convert[T any](input T) Composer {
 		return MakeGroupComposer(message)
 	case string:
 		return MakeString(message)
-	case []byte:
-		return MakeBytes(message)
+	case []string:
+		return newLinesFromStrings(message)
+	case []any:
+		return buildFromSlice(message)
 	case error:
 		return MakeError(message)
+	case Fields:
+		return MakeFields(message)
+	case KVs:
+		return MakeKVs(message)
+	case []KV:
+		return MakeKVs(message)
+	case nil:
+		return MakeKV()
+	case map[string]any:
+		return MakeFields(Fields(message))
+	case []byte:
+		return MakeBytes(message)
 	case FieldsProducer:
 		return MakeFieldsProducer(message)
 	case func() Fields:
@@ -90,18 +102,6 @@ func Convert[T any](input T) Composer {
 		return MakeErrorProducer(message)
 	case func() error:
 		return MakeErrorProducer(message)
-	case []string:
-		return newLinesFromStrings(message)
-	case []any:
-		return buildFromSlice(message)
-	case Fields:
-		return MakeFields(message)
-	case KVs:
-		return MakeKVs(message)
-	case map[string]any:
-		return MakeFields(Fields(message))
-	case nil:
-		return MakeKV()
 	case [][]string:
 		return convertSlice(message)
 	case [][]byte:
@@ -134,30 +134,43 @@ func Convert[T any](input T) Composer {
 }
 
 func convertSlice[T any](in []T) Composer {
-	out := make([]Composer, len(in))
-	for idx := range in {
-		out[idx] = Convert(in[idx])
+	switch len(in) {
+	case 0:
+		return MakeKV()
+	case 1:
+		return Convert(in[0])
+	default:
+		out := make([]Composer, len(in))
+		for idx := range in {
+			out[idx] = Convert(in[idx])
+		}
+		return MakeGroupComposer(out)
 	}
-	return MakeGroupComposer(out)
 }
 
 func buildFromSlice(vals []any) Composer {
-	if len(vals)%2 != 0 {
-		return MakeLines(vals...)
-	}
 	if len(vals) == 0 {
 		return MakeKV()
 	}
 
+	// check to see that the even numbered items are strings, if
+	// they're something else, convert them as a slice to a group
+	// of something.
 	for i := 0; i < len(vals); i += 2 {
-		switch val := vals[i].(type) {
+		switch vals[i].(type) {
 		case string:
 			continue
-		case fmt.Stringer:
-			vals[i] = val.String()
+		case Composer, ComposerProducer, ErrorProducer, Fields, KVs, []KV:
+			return convertSlice(vals)
+		case []Composer, []ComposerProducer, []ErrorProducer, []Fields:
+			return convertSlice(vals)
 		default:
 			return MakeLines(vals...)
 		}
+	}
+
+	if len(vals)%2 != 0 {
+		return MakeLines(vals...)
 	}
 
 	fields := make(KVs, 0, len(vals)/2)

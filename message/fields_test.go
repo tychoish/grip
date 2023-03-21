@@ -37,22 +37,6 @@ func TestDefaultFieldsMessage(t *testing.T) {
 		t.Fatal("bad default for empty value")
 	}
 
-	if out := GetDefaultFieldsMessage(MakeAnnotated("hello", Fields{"message": ""}), "what"); out != "hello" {
-		t.Fatal("bad default for annotated value")
-	}
-
-	if out := GetDefaultFieldsMessage(MakeAnnotated("", Fields{"message": "hello world"}), "what"); out != "hello world" {
-		t.Fatal("bad default for annotated value")
-	}
-
-	if out := GetDefaultFieldsMessage(MakeAnnotated("", Fields{"message": ""}), "what"); out != "" {
-		t.Fatal("bad default for annotated value")
-	}
-
-	if out := GetDefaultFieldsMessage(MakeAnnotated("", Fields{}), "what"); out != "what" {
-		t.Fatal("bad default for annotated value")
-	}
-
 	if out := GetDefaultFieldsMessage(&fieldMessage{}, "what"); out != "what" {
 		t.Fatal("bad default for annotated value")
 	}

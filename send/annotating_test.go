@@ -15,8 +15,10 @@ func TestAnnotatingSender(t *testing.T) {
 	}
 
 	annotate := MakeAnnotating(insend, map[string]any{"a": "b"})
+	m := message.MakeSimpleFields(message.Fields{"b": "a"})
+	m.SetPriority(level.Info)
+	annotate.Send(m)
 
-	annotate.Send(message.NewSimpleFields(level.Notice, message.Fields{"b": "a"}))
 	msg, ok := insend.GetMessageSafe()
 	if !ok {
 		t.Fatal("should get message")

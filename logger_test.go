@@ -92,7 +92,8 @@ func TestLogger(t *testing.T) {
 		grip.sendPanic(level.Debug, message.MakeLines("foo"))
 	})
 	t.Run("PriorityIsSet", func(t *testing.T) {
-		m := message.NewLines(level.Info, "hello")
+		m := message.MakeLines("hello")
+		m.SetPriority(level.Info)
 		logger := NewLogger(testSender(t))
 		check.Equal(t, m.Priority(), level.Info)
 		logger.send(95, m)
@@ -115,8 +116,10 @@ func TestLogger(t *testing.T) {
 		}
 		grip := NewLogger(sink)
 
-		msg := message.NewLines(level.Info, "foo")
-		msgTwo := message.NewLines(level.Notice, "bar")
+		msg := message.MakeLines("foo")
+		msg.SetPriority(level.Info)
+		msgTwo := message.MakeLines("bar")
+		msgTwo.SetPriority(level.Notice)
 
 		// when the conditional argument is true, it should work
 		grip.Log(msg.Priority(), message.When(true, msg))
