@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/rs/zerolog v1.27.0
-	github.com/tychoish/grip v0.1.4-0.20230321143621-05c974012a82
+	github.com/tychoish/grip v0.2.0
 )
 
 require (

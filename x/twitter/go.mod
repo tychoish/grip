@@ -6,7 +6,7 @@ require (
 	github.com/dghubble/go-twitter v0.0.0-20220626024101-68c0170dc641
 	github.com/dghubble/oauth1 v0.7.1
 	github.com/tychoish/fun v0.8.3
-	github.com/tychoish/grip v0.1.4-0.20230321143621-05c974012a82
+	github.com/tychoish/grip v0.2.0
 )
 
 require (
