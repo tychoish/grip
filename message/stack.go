@@ -26,8 +26,6 @@ import (
 	"go/build"
 	"runtime"
 	"strings"
-
-	"github.com/tychoish/grip/level"
 )
 
 const maxLevels = 1024
@@ -67,7 +65,7 @@ func (s StackTrace) String() string { return s.Frames.String() }
 func WrapStack(skip int, msg any) Composer {
 	return &stackMessage{
 		trace:    captureStack(skip),
-		Composer: ConvertWithPriority(level.Priority(0), msg),
+		Composer: Convert(msg),
 	}
 }
 

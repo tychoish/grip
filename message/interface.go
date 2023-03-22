@@ -51,16 +51,6 @@ type Composer interface {
 	SetPriority(level.Priority)
 }
 
-// ConvertWithPriority can coerce unknown objects into Composer
-// instances, as possible. This method will override the priority of
-// composers set to it.
-func ConvertWithPriority(p level.Priority, message any) Composer {
-	out := Convert(message)
-	out.SetPriority(p)
-
-	return out
-}
-
 // Convert produces a composer interface for arbitrary input.
 func Convert[T any](input T) Composer {
 	switch message := any(input).(type) {

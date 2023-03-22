@@ -209,8 +209,8 @@ func TestLogger(t *testing.T) {
 
 		const msg = "hello world!"
 		multiMessage := []message.Composer{
-			message.ConvertWithPriority(0, nil),
-			message.ConvertWithPriority(0, msg),
+			message.Convert[message.Composer](nil),
+			message.Convert(msg),
 		}
 
 		for idx, logger := range cases {

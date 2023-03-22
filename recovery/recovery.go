@@ -20,7 +20,6 @@ import (
 
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip"
-	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
@@ -90,7 +89,7 @@ func HandlePanicWithError(p any, err error, opDetails ...string) error {
 // with the stack trace and panic information.
 func AnnotateMessageWithStackTraceAndContinue(m any) {
 	if p := recover(); p != nil {
-		logAndContinue(p, grip.NewLogger(grip.Sender()), message.ConvertWithPriority(level.Critical, m))
+		logAndContinue(p, grip.NewLogger(grip.Sender()), message.Convert(m))
 	}
 }
 
@@ -99,7 +98,7 @@ func AnnotateMessageWithStackTraceAndContinue(m any) {
 // grip.Journaler interface to receive the log message.
 func SendStackTraceAndContinue(logger grip.Logger, m any) {
 	if p := recover(); p != nil {
-		logAndContinue(p, logger, message.ConvertWithPriority(level.Critical, m))
+		logAndContinue(p, logger, message.Convert(m))
 	}
 }
 
@@ -111,7 +110,7 @@ func SendStackTraceAndContinue(logger grip.Logger, m any) {
 // with the stack trace and panic information.
 func AnnotateMessageWithStackTraceAndExit(m any) {
 	if p := recover(); p != nil {
-		logAndExit(p, grip.NewLogger(grip.Sender()), message.ConvertWithPriority(level.Critical, m))
+		logAndExit(p, grip.NewLogger(grip.Sender()), message.Convert(m))
 	}
 }
 
@@ -120,7 +119,7 @@ func AnnotateMessageWithStackTraceAndExit(m any) {
 // grip.Journaler interface.
 func SendStackTraceMessageAndExit(logger grip.Logger, m any) {
 	if p := recover(); p != nil {
-		logAndExit(p, logger, message.ConvertWithPriority(level.Critical, m))
+		logAndExit(p, logger, message.Convert(m))
 	}
 }
 
@@ -140,7 +139,7 @@ func AnnotateMessageWithPanicError(p any, err error, m any) error {
 		perr := panicError(p)
 		catcher.Add(perr)
 
-		handleWithError(perr, err, grip.NewLogger(grip.Sender()), message.ConvertWithPriority(level.Critical, m))
+		handleWithError(perr, err, grip.NewLogger(grip.Sender()), message.Convert(m))
 	}
 
 	return catcher.Resolve()
@@ -157,7 +156,7 @@ func SendMessageWithPanicError(p any, err error, logger grip.Logger, m any) erro
 		perr := panicError(p)
 		catcher.Add(perr)
 
-		handleWithError(perr, err, logger, message.ConvertWithPriority(level.Critical, m))
+		handleWithError(perr, err, logger, message.Convert(m))
 	}
 
 	return catcher.Resolve()

@@ -194,7 +194,8 @@ func TestComposerConverter(t *testing.T) {
 
 	for idx, msg := range cases {
 		t.Run(fmt.Sprint(idx), func(t *testing.T) {
-			comp := ConvertWithPriority(level.Error, msg)
+			comp := Convert(msg)
+			comp.SetPriority(level.Error)
 			if !comp.Loggable() {
 				t.Error("value should be true")
 			}
@@ -218,7 +219,8 @@ func TestComposerConverter(t *testing.T) {
 
 	for idx, msg := range cases {
 		t.Run(fmt.Sprint(idx), func(t *testing.T) {
-			comp := ConvertWithPriority(level.Error, msg)
+			comp := Convert(msg)
+			comp.SetPriority(level.Error)
 			if comp.Loggable() {
 				t.Errorf("should be false: %T", comp)
 			}
@@ -237,7 +239,8 @@ func TestComposerConverter(t *testing.T) {
 	}
 
 	for out, in := range outputCases {
-		comp := ConvertWithPriority(level.Error, in)
+		comp := Convert(in)
+		comp.SetPriority(level.Error)
 		if !comp.Loggable() {
 			t.Error("value should be true")
 		}

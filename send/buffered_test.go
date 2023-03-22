@@ -11,6 +11,12 @@ import (
 	"github.com/tychoish/grip/message"
 )
 
+func convertWithPriority(p level.Priority, m any) message.Composer {
+	out := message.Convert(m)
+	out.SetPriority(p)
+	return out
+}
+
 func TestBufferedSend(t *testing.T) {
 	t.Parallel()
 
@@ -25,7 +31,7 @@ func TestBufferedSend(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
 		defer bs.cancel()
 
-		bs.Send(message.ConvertWithPriority(level.Trace, fmt.Sprintf("should not send")))
+		bs.Send(convertWithPriority(level.Trace, fmt.Sprintf("should not send")))
 		if len(bs.buffer) != 0 {
 			t.Fatal("buffer should be empty")
 		}
@@ -43,7 +49,7 @@ func TestBufferedSend(t *testing.T) {
 			if len(bs.buffer) != i%10 {
 				t.Fatalf("buffer should have messages: %d", len(bs.buffer))
 			}
-			bs.Send(message.ConvertWithPriority(level.Debug, fmt.Sprintf("message %d", i+1)))
+			bs.Send(convertWithPriority(level.Debug, fmt.Sprintf("message %d", i+1)))
 		}
 		if l := len(bs.buffer); l != 2 {
 			t.Errorf("length should be %d but was %d", 2, l)
@@ -66,7 +72,7 @@ func TestBufferedSend(t *testing.T) {
 		bs := newBufferedSender(s, 5*time.Second, 10)
 		defer bs.cancel()
 
-		bs.Send(message.ConvertWithPriority(level.Debug, "should flush"))
+		bs.Send(convertWithPriority(level.Debug, "should flush"))
 		time.Sleep(6 * time.Second)
 		bs.mu.Lock()
 		if time.Since(bs.lastFlush) > 2*time.Second {
@@ -86,7 +92,7 @@ func TestBufferedSend(t *testing.T) {
 		bs.closed = true
 		defer bs.cancel()
 
-		bs.Send(message.ConvertWithPriority(level.Debug, "should not send"))
+		bs.Send(convertWithPriority(level.Debug, "should not send"))
 		if len(bs.buffer) != 0 {
 			t.Fatal("buffer should be empty")
 		}
@@ -111,7 +117,7 @@ func TestFlush(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
 		defer bs.cancel()
 
-		bs.Send(message.ConvertWithPriority(level.Debug, "message"))
+		bs.Send(convertWithPriority(level.Debug, "message"))
 		if l := len(bs.buffer); l != 1 {
 			t.Errorf("length should be %d but was %d", 1, l)
 		}
@@ -136,7 +142,7 @@ func TestFlush(t *testing.T) {
 	})
 	t.Run("ClosedSender", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
-		bs.buffer = append(bs.buffer, message.ConvertWithPriority(level.Debug, "message"))
+		bs.buffer = append(bs.buffer, convertWithPriority(level.Debug, "message"))
 		bs.cancel()
 		bs.closed = true
 
@@ -181,9 +187,9 @@ func TestBufferedClose(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
 		bs.buffer = append(
 			bs.buffer,
-			message.ConvertWithPriority(level.Debug, "message1"),
-			message.ConvertWithPriority(level.Debug, "message2"),
-			message.ConvertWithPriority(level.Debug, "message3"),
+			convertWithPriority(level.Debug, "message1"),
+			convertWithPriority(level.Debug, "message2"),
+			convertWithPriority(level.Debug, "message3"),
 		)
 
 		if err := bs.Close(); err != nil {

@@ -8,7 +8,8 @@ import (
 
 func TestFieldsLevelMutability(t *testing.T) {
 	m := Fields{"message": "hello world"}
-	c := ConvertWithPriority(level.Error, m)
+	c := Convert(m)
+	c.SetPriority(level.Error)
 
 	r := c.Raw().(Fields)
 	if level.Error != c.Priority() {
@@ -18,7 +19,9 @@ func TestFieldsLevelMutability(t *testing.T) {
 		t.Error("elements shold be equal")
 	}
 
-	c = ConvertWithPriority(level.Info, m)
+	c = Convert(m)
+	c.SetPriority(level.Info)
+
 	r = c.Raw().(Fields)
 	if level.Info != c.Priority() {
 		t.Error("elements shold be equal")
