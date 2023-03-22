@@ -79,19 +79,19 @@ func Convert[T any](input T) Composer {
 	case []byte:
 		return MakeBytes(message)
 	case FieldsProducer:
-		return MakeFieldsProducer(message)
+		return MakeProducer(message)
 	case func() Fields:
-		return MakeFieldsProducer(message)
+		return MakeProducer(message)
 	case ComposerProducer:
 		return MakeProducer(message)
 	case func() Composer:
 		return MakeProducer(message)
 	case func() map[string]any:
-		return MakeConvertedFieldsProducer(message)
+		return MakeProducer(message)
 	case ErrorProducer:
-		return MakeErrorProducer(message)
+		return MakeProducer(message)
 	case func() error:
-		return MakeErrorProducer(message)
+		return MakeProducer(message)
 	case [][]string:
 		return convertSlice(message)
 	case [][]byte:

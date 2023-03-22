@@ -16,26 +16,26 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 	const testMsg = "hello"
 	// map objects to output
 	cases := map[Composer]string{
-		MakeString(testMsg):                                            testMsg,
-		MakeSimpleString(testMsg):                                      testMsg,
-		MakeBytes([]byte(testMsg)):                                     testMsg,
-		MakeSimpleBytes([]byte(testMsg)):                               testMsg,
-		MakeError(errors.New(testMsg)):                                 testMsg,
-		MakeFormat(string(testMsg[0])+"%s", testMsg[1:]):               testMsg,
-		WrapError(errors.New("hello"), "world"):                        "world: hello",
-		WrapErrorf(errors.New("hello"), "world"):                       "world: hello",
-		MakeLines(testMsg, ""):                                         testMsg,
-		MakeLines(testMsg):                                             testMsg,
-		BuildGroupComposer(MakeString(testMsg)):                        testMsg,
-		MakeGroupComposer([]Composer{MakeString(testMsg)}):             testMsg,
-		MakeSimpleFields(Fields{"message": testMsg}):                   fmt.Sprintf("[message='%s']", testMsg),
-		MakeFields(Fields{"test": testMsg}):                            fmt.Sprintf("[test='%s']", testMsg),
-		When(true, testMsg):                                            testMsg,
-		Whenf(true, testMsg):                                           testMsg,
-		Whenln(true, testMsg):                                          testMsg,
-		Whenln(true, testMsg):                                          testMsg,
-		MakeProducer(func() Composer { return MakeString(testMsg) }):   testMsg,
-		MakeErrorProducer(func() error { return errors.New(testMsg) }): testMsg,
+		MakeString(testMsg):                                          testMsg,
+		MakeSimpleString(testMsg):                                    testMsg,
+		MakeBytes([]byte(testMsg)):                                   testMsg,
+		MakeSimpleBytes([]byte(testMsg)):                             testMsg,
+		MakeError(errors.New(testMsg)):                               testMsg,
+		MakeFormat(string(testMsg[0])+"%s", testMsg[1:]):             testMsg,
+		WrapError(errors.New("hello"), "world"):                      "world: hello",
+		WrapErrorf(errors.New("hello"), "world"):                     "world: hello",
+		MakeLines(testMsg, ""):                                       testMsg,
+		MakeLines(testMsg):                                           testMsg,
+		BuildGroupComposer(MakeString(testMsg)):                      testMsg,
+		MakeGroupComposer([]Composer{MakeString(testMsg)}):           testMsg,
+		MakeSimpleFields(Fields{"message": testMsg}):                 fmt.Sprintf("[message='%s']", testMsg),
+		MakeFields(Fields{"test": testMsg}):                          fmt.Sprintf("[test='%s']", testMsg),
+		When(true, testMsg):                                          testMsg,
+		Whenf(true, testMsg):                                         testMsg,
+		Whenln(true, testMsg):                                        testMsg,
+		Whenln(true, testMsg):                                        testMsg,
+		MakeProducer(func() Composer { return MakeString(testMsg) }): testMsg,
+		MakeProducer(func() error { return errors.New(testMsg) }):    testMsg,
 	}
 
 	for msg, output := range cases {
@@ -114,16 +114,15 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 		MakeSimpleBytes(nil),
 		MakeSimpleKVs(KVs{}),
 		MakeFormat(""),
-		MakeFieldsProducer(nil),
 		BuildGroupComposer(),
 		&GroupComposer{},
 		MakeError(nil),
 		When(false, ""),
 		Whenln(false, "", ""),
 		MakeProducer(func() Composer { return nil }),
-		MakeFieldsProducer(func() Fields { return nil }),
-		MakeFieldsProducer(func() Fields { return Fields{} }),
-		MakeErrorProducer(func() error { return nil }),
+		MakeProducer(func() Fields { return nil }),
+		MakeProducer(func() Fields { return Fields{} }),
+		MakeProducer(func() error { return nil }),
 	}
 
 	for idx, msg := range cases {
@@ -254,13 +253,12 @@ func TestComposerConverter(t *testing.T) {
 
 func TestErrors(t *testing.T) {
 	for name, cmp := range map[string]Composer{
-		"Wrapped":         WrapError(errors.New("err"), "wrap"),
-		"Plain":           MakeError(errors.New("err")),
-		"Producer":        MakeErrorProducer(func() error { return errors.New("message") }),
-		"WrapperProducer": WrapErrorFunc(func() error { return errors.New("message") }, Fields{"op": "wrap"}),
+		"Wrapped": WrapError(errors.New("err"), "wrap"),
+		"Plain":   MakeError(errors.New("err")),
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Run("Interfaces", func(t *testing.T) {
+				check.True(t, cmp.Loggable())
 				if _, ok := cmp.(error); !ok {
 					t.Errorf("%T should implement error, but doesn't", cmp)
 				}
@@ -356,15 +354,70 @@ type ConverterCases struct {
 func TestConverter(t *testing.T) {
 	cases := []ConverterCases{
 		{
-			Name:         "ComposerProducer",
+			Name:         "ComposerProducerFunction",
 			Input:        func() Composer { return MakeString("hello world") },
 			Expected:     MakeString("hello world"),
+			IsStructured: false,
+		},
+		{
+			Name:         "ComposerNilFunction",
+			Input:        ComposerProducer(nil),
+			Expected:     MakeKV(),
+			IsStructured: true,
+			Unloggable:   true,
+		},
+		{
+			Name:         "NilComposerProducer",
+			Input:        &composerProducerMessage{},
+			Expected:     MakeKV(),
+			IsStructured: true,
+			Unloggable:   true,
+		},
+		{
+			Name:         "ErrorProducerFunction",
+			Input:        func() error { return errors.New("hello world") },
+			Expected:     MakeError(errors.New("hello world")),
+			IsStructured: false,
+		},
+		{
+			Name:         "ComposerProducer",
+			Input:        ComposerProducer(func() Composer { return MakeString("hello world") }),
+			Expected:     MakeString("hello world"),
+			IsStructured: false,
+		},
+		{
+			Name:         "ErrorProducer",
+			Input:        ErrorProducer(func() error { return errors.New("hello world") }),
+			Expected:     MakeError(errors.New("hello world")),
+			IsStructured: false,
+		},
+		{
+			Name:         "FieldsProducerFunction",
+			Input:        func() Fields { return Fields{"hello": "world"} },
+			Expected:     MakeFields(Fields{"hello": "world"}),
+			IsStructured: true,
+		},
+		{
+			Name:         "AnyMapFunction",
+			Input:        func() map[string]any { return map[string]any{"hello": "world"} },
+			Expected:     MakeFields(Fields{"hello": "world"}),
+			IsStructured: true,
+		},
+		{
+			Name:         "FieldsProducer",
+			Input:        FieldsProducer(func() Fields { return Fields{"hello": "world"} }),
+			Expected:     MakeFields(Fields{"hello": "world"}),
 			IsStructured: true,
 		},
 		{
 			Name:     "SliceSingle",
 			Input:    []any{"hello world"},
 			Expected: MakeString("hello world"),
+		},
+		{
+			Name:     "Bytes",
+			Input:    []byte("hello world"),
+			Expected: MakeBytes([]byte("hello world")),
 		},
 		{
 			Name:     "SliceSingle",
@@ -389,7 +442,7 @@ func TestConverter(t *testing.T) {
 			Name:         "SliceComposerProducer",
 			Input:        []ComposerProducer{func() Composer { return MakeString("hello world") }},
 			Expected:     MakeString("hello world"),
-			IsStructured: true,
+			IsStructured: false,
 		},
 		{
 			Name:         "EmptySliceComposerProducer",
@@ -426,23 +479,30 @@ func TestConverter(t *testing.T) {
 			IsStructured: true,
 		},
 		{
-			Name:  "BuilderFields",
-			Input: Fields{"hello": 2001, "world": 42},
-			Expected: NewBuilder(func(Composer) {}).
-				Fields(Fields{"hello": 2001, "world": 42}).
-				Message(),
+			Name:         "BuilderFields",
+			Input:        Fields{"hello": 2001, "world": 42},
+			Expected:     NewBuilder(func(Composer) {}).Fields(Fields{"hello": 2001, "world": 42}).Message(),
 			IsStructured: true,
 		},
 	}
 	for _, tt := range cases {
 		t.Run(tt.Name, func(t *testing.T) {
-			got := Convert(tt.Input)
-			check.Equal(t, got.Loggable(), tt.Expected.Loggable())
-			check.Equal(t, got.String(), tt.Expected.String())
-			check.True(t, got.Structured() == tt.IsStructured)
-			check.True(t, got.Loggable() == !tt.Unloggable)
-			t.Logf("got<%T>:%q", got, got)
-			t.Logf("had:%q", tt.Expected)
+			for convMethod, got := range map[string]Composer{
+				"Converter":       Convert(tt.Input),
+				"Builder":         NewBuilder(nil).Any(tt.Input).Message(),
+				"BuilderComposer": NewBuilder(nil).Composer(Convert(tt.Input)).Message(),
+				"BuilderProducer": NewBuilder(nil).CovertProducer(func() any { return tt.Input }).Message(),
+				"AddToBuilder":    AddProducerToBuilder(NewBuilder(nil), func() Composer { return Convert(tt.Input) }).Message(),
+			} {
+				t.Run(convMethod, func(t *testing.T) {
+					check.Equal(t, got.Loggable(), tt.Expected.Loggable())
+					check.Equal(t, got.String(), tt.Expected.String())
+					check.True(t, got.Structured() == tt.IsStructured)
+					check.True(t, got.Loggable() == !tt.Unloggable)
+					t.Logf("got<%T>:%q", got, got)
+					t.Logf("had:%q", tt.Expected)
+				})
+			}
 		})
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -88,7 +89,7 @@ func (s *multiSender) add(sender Sender) {
 	sender.SetName(s.Base.Name())
 	// ignore the error here; if the Base value on the multiSender
 	// is not set, then senders should just have their own level values.
-	_ = sender.SetLevel(s.Base.Level())
+	fun.Ignore(sender.SetLevel, s.Base.Level())
 	s.senders = append(s.senders, sender)
 	return
 }

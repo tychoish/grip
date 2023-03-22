@@ -35,8 +35,7 @@ type asyncGroupSender struct {
 // this sender closes all underlying Senders.
 func MakeAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Sender {
 	s := &asyncGroupSender{
-		baseCtx:        ctx,
-		shutdownSignal: make(chan struct{}),
+		baseCtx: ctx,
 		// unlimited number of senders, bufferSize is
 		// constrained buy the buffer size in the broker.
 		senders: fun.Must(pubsub.NewDeque[Sender](pubsub.DequeOptions{Unlimited: true})),
@@ -50,28 +49,29 @@ func MakeAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Send
 		fun.InvariantMust(s.senders.PushBack(senders[idx]), "populate senders")
 	}
 
+	shutdown := make(chan struct{})
+	s.shutdownSignal = shutdown
 	s.ctx, s.cancel = context.WithCancel(ctx)
 
-	shutdown := make(chan struct{})
 	for i := 0; i < len(senders); i++ {
 		s.startSenderWorker(senders[i])
 	}
-
 	wg := &s.wg
 	s.closer.Set(func() (err error) {
 		s.doClose.Do(func() {
 			catcher := &erc.Collector{}
 			defer func() { err = catcher.Resolve() }()
-			s.cancel()
+			defer s.cancel()
 			catcher.Add(s.senders.Close())
 
 			closeAll := fun.ObserveAll(ctx, s.senders.Iterator(), func(sender Sender) {
 				catcher.Add(sender.Close())
 			})
 			closeAll.Add(ctx, wg)
-
+			catcher.Add(s.senders.Close())
 			close(shutdown)
 			wg.Wait(ctx)
+			s.cancel()
 		})
 
 		// let the defer in the closer set the err

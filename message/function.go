@@ -32,7 +32,6 @@
 package message
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/tychoish/grip/level"
@@ -47,14 +46,6 @@ import (
 // as implementations the Composer interface itself.
 type KVProducer func() KVs
 
-// NewKVProducer constructs a new KVProducer-based log message.
-func MakeKVProducer(kp KVProducer) Composer {
-	if kp == nil {
-		return MakeProducer(nil)
-	}
-	return MakeProducer(func() Composer { return MakeKVs(kp()) })
-}
-
 // FieldsProducer is a function that returns a structured message body
 // as a way of writing simple Composer implementations in the form
 // anonymous functions, as in:
@@ -66,32 +57,6 @@ func MakeKVProducer(kp KVProducer) Composer {
 //
 // If the Fields object is nil or empty then no message is logged.
 type FieldsProducer func() Fields
-
-// MakeFieldsProducer constructs a lazy FieldsProducer wrapping
-// message at the specified level.
-//
-// FieldsProducer functions are only called before calling the
-// Loggable, String, Raw, or Annotate methods. Changing the priority
-// does not call the function. In practice, if the priority of the
-// message is below the logging threshold, then the function will
-// never be called.
-func MakeFieldsProducer(fp FieldsProducer) Composer {
-	if fp == nil {
-		return MakeProducer(nil)
-	}
-	return MakeProducer(func() Composer { return MakeFields(fp()) })
-}
-
-// MakeConvertedFieldsProducer converts a generic map to a fields
-// producer, as the message types are equivalent.
-func MakeConvertedFieldsProducer(mp func() map[string]any) Composer {
-	if mp == nil {
-		return MakeProducer(nil)
-	}
-	return MakeProducer(func() Composer { return MakeFields(mp()) })
-}
-
-////////////////////////////////////////////////////////////////////////
 
 // ComposerProducer constructs a lazy composer, and makes it easy to
 // implement new Composers as functions returning an existing composer
@@ -105,22 +70,48 @@ func MakeConvertedFieldsProducer(mp func() map[string]any) Composer {
 // If the Fields object is nil or empty then no message is ever logged.
 type ComposerProducer func() Composer
 
+// ErrorProducer is a function that returns an error, and is used for
+// constructing message that lazily wraps the resulting function which
+// is called when the message is dispatched.
+//
+// If you pass one of these functions to a logging method, the
+// ConvertToComposer operation will construct a lazy Composer based on
+// this function, as in:
+//
+//	grip.Error(func() error { return errors.New("error message") })
+//
+// It may be useful also to pass a "closer" function in this form, as
+// in:
+//
+//	grip.Error(file.Close)
+//
+// As a special case the WrapErrorFunc method has the same semantics
+// as other ErrorProducer methods, but makes it possible to annotate
+// an error.
+type ErrorProducer func() error
+
+// MakeProduer constructs a lazy Producer message composer.
+//
+// Producer functions are only called before calling the Loggable,
+// String, Raw, or Annotate methods. Changing the priority does not
+// call the function. In practice, if the priority of the message is
+// below the logging threshold, then the function will never be
+// called.
+func MakeProducer[T any, F ~func() T](fp F) Composer {
+	if fp == nil {
+		return MakeKV()
+	}
+	return &composerProducerMessage{cp: func() Composer { return Convert(fp()) }}
+}
+
+////////////////////////////////////////////////////////////////////////
+
 type composerProducerMessage struct {
 	cp     ComposerProducer
 	cached Composer
 	level  level.Priority
 	exec   sync.Once
 }
-
-// MakeComposerMessage constructs a message that will call the
-// ComposerProducer function lazily during logging.
-//
-// ComposerProducer functions are only called, before calling the
-// Loggable, String, Raw, or Annotate methods. Changing the priority
-// does not call the function. In practice, if the priority of the
-// message is below the logging threshold, then the function will
-// never be called.
-func MakeProducer(cp ComposerProducer) Composer { return &composerProducerMessage{cp: cp} }
 
 func (cp *composerProducerMessage) resolve() {
 	cp.exec.Do(func() {
@@ -129,10 +120,6 @@ func (cp *composerProducerMessage) resolve() {
 		}
 
 		cp.cached = cp.cp()
-
-		if cp.cached == nil {
-			cp.cached = MakeFields(Fields{})
-		}
 		cp.cached.SetPriority(cp.level)
 	})
 }
@@ -160,117 +147,7 @@ func (cp *composerProducerMessage) Loggable() bool {
 	return cp.cached.Loggable()
 }
 
-func (*composerProducerMessage) Structured() bool            { return true }
 func (cp *composerProducerMessage) Priority() level.Priority { return cp.level }
+func (cp *composerProducerMessage) Structured() bool         { cp.resolve(); return cp.cached.Structured() }
 func (cp *composerProducerMessage) String() string           { cp.resolve(); return cp.cached.String() }
 func (cp *composerProducerMessage) Raw() any                 { cp.resolve(); return cp.cached.Raw() }
-
-////////////////////////////////////////////////////////////////////////
-
-// ErrorProducer is a function that returns an error, and is used for
-// constructing message that lazily wraps the resulting function which
-// is called when the message is dispatched.
-//
-// If you pass one of these functions to a logging method, the
-// ConvertToComposer operation will construct a lazy Composer based on
-// this function, as in:
-//
-//	grip.Error(func() error { return errors.New("error message") })
-//
-// It may be useful also to pass a "closer" function in this form, as
-// in:
-//
-//	grip.Error(file.Close)
-//
-// As a special case the WrapErrorFunc method has the same semantics
-// as other ErrorProducer methods, but makes it possible to annotate
-// an error.
-type ErrorProducer func() error
-
-type errorProducerMessage struct {
-	ep     ErrorProducer
-	cached *errorMessage
-	level  level.Priority
-}
-
-// MakeErrorProducer returns a mesage that wrapps an error
-// producing function. If the function returns then there is never a
-// message logged.
-//
-// ErrorProducer functions are only called, before calling the
-// Loggable, String, Raw, or Annotate methods. Changing the priority
-// does not call the function. In practice, if the priority of the
-// message is below the logging threshold, then the function will
-// never be called.
-func MakeErrorProducer(ep ErrorProducer) Composer {
-	return &errorProducerMessage{ep: ep}
-}
-
-func (ep *errorProducerMessage) resolve() {
-	if ep.ep == nil {
-		ep.ep = func() error { return nil }
-	}
-
-	if ep.cached == nil {
-		ep.cached = &errorMessage{err: ep.ep()}
-		ep.cached.SetPriority(ep.level)
-	}
-}
-
-func (ep *errorProducerMessage) Annotate(k string, v any) error {
-	ep.resolve()
-	return ep.cached.Annotate(k, v)
-}
-
-func (ep *errorProducerMessage) SetPriority(p level.Priority) {
-	if p.IsValid() {
-		ep.level = p
-		if ep.cached != nil {
-			ep.cached.SetPriority(ep.level)
-		}
-	}
-}
-
-func (ep *errorProducerMessage) Loggable() bool {
-	if ep.ep == nil {
-		return false
-	}
-
-	ep.resolve()
-	return ep.cached.Loggable()
-}
-
-func (ep *errorProducerMessage) Structured() bool {
-	if ep.ep == nil {
-		return false
-	}
-
-	ep.resolve()
-	return ep.cached.Structured()
-}
-
-func (ep *errorProducerMessage) Priority() level.Priority { return ep.level }
-func (ep *errorProducerMessage) String() string           { ep.resolve(); return ep.cached.String() }
-func (ep *errorProducerMessage) Raw() any                 { ep.resolve(); return ep.cached.Raw() }
-func (ep *errorProducerMessage) Error() string            { return ep.String() }
-func (ep *errorProducerMessage) Is(err error) bool        { ep.resolve(); return errors.Is(ep.cached, err) }
-func (ep *errorProducerMessage) As(err any) bool          { ep.resolve(); return errors.As(ep.cached, err) }
-func (ep *errorProducerMessage) Unwrap() error            { ep.resolve(); return ep.cached }
-
-// WrapErrorFunc produces a lazily-composed wrapped error message. The
-// function is only called is
-//
-// The resulting method itself implements the "error" interface
-// (supporing unwrapping,) as well as the composer type, so you can
-// return the result of this function as an error to avoid needing to
-// manage multiple error annotations.
-func WrapErrorFunc(ep ErrorProducer, m any) Composer {
-	return errorComposerShim{MakeProducer(func() Composer { return WrapError(ep(), m) })}
-}
-
-type errorComposerShim struct {
-	Composer
-}
-
-func (ecs errorComposerShim) Error() string    { return ecs.Composer.String() }
-func (ecs errorComposerShim) Unwrap() Composer { return ecs.Composer }

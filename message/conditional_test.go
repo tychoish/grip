@@ -18,7 +18,7 @@ func TestConditionalMessage(t *testing.T) {
 	}
 
 	if comp.Structured() {
-		t.Error(comp.(*condComposer).msg)
+		t.Error(comp.(*conditional).msg)
 	}
 
 	comp = When(false, "foo")
@@ -27,7 +27,7 @@ func TestConditionalMessage(t *testing.T) {
 	}
 	comp = When(true, "")
 	if comp.Loggable() {
-		t.Errorf("%T: %s", comp.(*condComposer).msg, comp.(*condComposer).msg)
+		t.Errorf("%T: %s", comp.(*conditional).msg, comp.(*conditional).msg)
 	}
 
 	comp = Whenln(true, "foo", "bar")
@@ -40,7 +40,7 @@ func TestConditionalMessage(t *testing.T) {
 	}
 	comp = Whenln(true, "", "")
 	if comp.Loggable() {
-		t.Errorf("%T: %s", comp.(*condComposer).msg, comp.(*condComposer).msg)
+		t.Errorf("%T: %s", comp.(*conditional).msg, comp.(*conditional).msg)
 	}
 
 	comp = Whenf(true, "f%soo", "bar")
@@ -53,7 +53,7 @@ func TestConditionalMessage(t *testing.T) {
 	}
 	comp = Whenf(true, "", "foo")
 	if comp.Loggable() {
-		t.Errorf("%T: %s", comp.(*condComposer).msg, comp.(*condComposer).msg)
+		t.Errorf("%T: %s", comp.(*conditional).msg, comp.(*conditional).msg)
 	}
 
 	comp = WhenMsg(true, "foo")

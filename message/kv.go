@@ -78,6 +78,7 @@ func (m *kvMsg) Raw() any {
 		m.Collect()
 		m.fields = append(m.fields, KV{Key: "metadata", Value: &m.Base})
 		m.hasMetadata = true
+		m.cachedOutput = ""
 	}
 
 	return m.fields

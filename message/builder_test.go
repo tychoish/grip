@@ -31,8 +31,10 @@ func mockSenderMessage(t *testing.T, expected string) func(Composer) {
 		check.Equal(t, expected, value.Get())
 	})
 	return func(c Composer) {
+		t.Helper()
 		count.Add(1)
 		value.Set(c.String())
+		t.Logf("%d> %T", count.Load(), c)
 	}
 }
 
@@ -97,6 +99,15 @@ func TestBuilder(t *testing.T) {
 		t.Run("FromMap", func(t *testing.T) {
 			NewBuilder(mockSenderMessage(t, "hello='world'")).StringMap(map[string]string{"hello": "world"}).Send()
 		})
+	})
+	t.Run("Conditional", func(t *testing.T) {
+		t.Run("True", func(t *testing.T) {
+			NewBuilder(mockSenderMessage(t, "hi kip")).String("hi kip").When(true).Send()
+		})
+		t.Run("False", func(t *testing.T) {
+			NewBuilder(mockSender(t, 1)).String("hello").When(false).Group().Send()
+		})
+
 	})
 
 }

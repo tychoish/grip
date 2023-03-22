@@ -46,7 +46,6 @@ func (b *Builder) Send() {
 			b.send(msg)
 			return
 		}
-
 		for _, m := range msg.Messages() {
 			b.send(m)
 		}
@@ -69,7 +68,7 @@ func (b *Builder) Send() {
 // converted to a group.
 func (b *Builder) Message() Composer {
 	if b.composer != nil {
-		b.composer = Unwrap(b.composer)
+		b.composer = Unwind(b.composer)
 
 		if b.catcher.HasErrors() {
 			return WrapError(b.catcher.Resolve(), b.composer)
@@ -100,33 +99,30 @@ func (b *Builder) Level(l level.Priority) *Builder {
 // non-loggable. This may combine well with message types that are
 // expensive to calculate, or the Fields/Composer/Error producer
 // methods.
-func (b *Builder) When(cond bool) *Builder {
-	if b.composer == nil {
-		b.catcher.Add(errors.New("must call 'when' after creating a message"))
-		return b
-	}
-
-	return b.set(When(cond, b.composer))
-}
-
+func (b *Builder) When(cond bool) *Builder                      { b.composer = When(cond, b.composer); return b }
+func (b *Builder) Composer(c Composer) *Builder                 { return b.set(c) }
+func (b *Builder) Any(msg any) *Builder                         { return b.set(Convert(msg)) }
 func (b *Builder) F(tmpl string, a ...any) *Builder             { return b.set(MakeFormat(tmpl, a...)) }
 func (b *Builder) Ln(args ...any) *Builder                      { return b.set(MakeLines(args...)) }
 func (b *Builder) Error(err error) *Builder                     { return b.set(MakeError(err)) }
 func (b *Builder) String(str string) *Builder                   { return b.set(MakeString(str)) }
 func (b *Builder) Strings(ss []string) *Builder                 { return b.set(newLinesFromStrings(ss)) }
 func (b *Builder) Bytes(in []byte) *Builder                     { return b.set(MakeBytes(in)) }
-func (b *Builder) FieldsProducer(f FieldsProducer) *Builder     { return b.set(MakeFieldsProducer(f)) }
+func (b *Builder) FieldsProducer(f func() Fields) *Builder      { return b.set(MakeProducer(f)) }
 func (b *Builder) ComposerProducer(f ComposerProducer) *Builder { return b.set(MakeProducer(f)) }
-func (b *Builder) ErrorProducer(f ErrorProducer) *Builder       { return b.set(MakeErrorProducer(f)) }
-func (b *Builder) KVProducer(f KVProducer) *Builder             { return b.set(MakeKVProducer(f)) }
-func (b *Builder) Composer(c Composer) *Builder                 { return b.set(c) }
-func (b *Builder) Any(msg any) *Builder                         { return b.set(Convert(msg)) }
+func (b *Builder) ErrorProducer(f ErrorProducer) *Builder       { return b.set(MakeProducer(f)) }
+func (b *Builder) KVProducer(f KVProducer) *Builder             { return b.set(MakeProducer(f)) }
+func (b *Builder) CovertProducer(f func() any) *Builder         { return AddProducerToBuilder(b, f) }
 func (b *Builder) StringMap(f map[string]string) *Builder       { return b.Fields(FieldsFromMap(f)) }
 func (b *Builder) AnyMap(f map[string]any) *Builder             { return b.Fields(f) }
 func (b *Builder) KV(kvs ...KV) *Builder                        { return b.KVs(kvs) }
 func (b *Builder) SetGroup(sendAsGroup bool) *Builder           { b.sendAsGroup = sendAsGroup; return b }
 func (b *Builder) Group() *Builder                              { b.sendAsGroup = true; return b }
 func (b *Builder) Ungroup() *Builder                            { b.sendAsGroup = false; return b }
+
+func AddProducerToBuilder[T any, F ~func() T](b *Builder, fn F) *Builder {
+	return b.Composer(MakeProducer(fn))
+}
 
 // Fields, creates a new fields message if no message has been
 // defined, and otherwise annotates the existing message with the
