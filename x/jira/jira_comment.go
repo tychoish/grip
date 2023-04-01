@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -14,29 +13,19 @@ import (
 type jiraCommentJournal struct {
 	issueID string
 	opts    *Options
-	*send.Base
+	send.Base
 }
 
 // MakeCommentSender is the same as NewJiraCommentLogger but uses a warning
 // level of Trace
 func MakeCommentSender(ctx context.Context, id string, opts *Options) (send.Sender, error) {
-	return NewCommentSender(ctx, id, opts, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
-}
-
-// NewCommentSender constructs a Sender that creates issues to jira, given
-// options defined in a JiraOptions struct. id parameter is the ID of the issue.
-// ctx is used as the request context in the OAuth HTTP client
-func NewCommentSender(ctx context.Context, id string, opts *Options, l send.LevelInfo) (send.Sender, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, err
 	}
-
 	j := &jiraCommentJournal{
 		opts:    opts,
 		issueID: id,
-		Base:    send.NewBase(id),
 	}
-
 	if err := j.opts.client.CreateClient(opts.HTTPClient, opts.BaseURL); err != nil {
 		return nil, err
 	}
@@ -54,10 +43,6 @@ func NewCommentSender(ctx context.Context, id string, opts *Options, l send.Leve
 		return nil, fmt.Errorf("jira authentication error: %v", err)
 	}
 
-	if err := j.SetLevel(l); err != nil {
-		return nil, err
-	}
-
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
 
 	j.SetName(id)
@@ -69,7 +54,7 @@ func NewCommentSender(ctx context.Context, id string, opts *Options, l send.Leve
 
 // Send post issues via jiraCommentJournal with information in the message.Composer
 func (j *jiraCommentJournal) Send(m message.Composer) {
-	if j.Level().ShouldLog(m) {
+	if send.ShouldLog(j, m) {
 		issue := j.issueID
 		if c, ok := m.Raw().(*Comment); ok {
 			issue = c.IssueID

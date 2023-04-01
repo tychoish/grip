@@ -15,33 +15,14 @@ import (
 
 type syslogger struct {
 	logger *syslog.Writer
-	*send.Base
-}
-
-// NewSyslogSender creates a new Sender object that writes all
-// loggable messages to a syslog instance on the specified
-// network. Uses the Go standard library syslog implementation that is
-// only available on Unix systems. Use this constructor to return a
-// connection to a remote Syslog interface, but will fall back first
-// to the local syslog interface before writing messages to standard
-// output.
-func NewSyslogSender(name, network, raddr string, l send.LevelInfo) (send.Sender, error) {
-	s := MakeSyslogSender(network, raddr)
-
-	if err := s.SetLevel(l); err != nil {
-		return nil, err
-	}
-
-	s.SetName(name)
-
-	return s, nil
+	send.Base
 }
 
 // MakeSyslogSender constructs a minimal and unconfigured logger that
 // posts to systemd's journal.
 // Pass to Journaler.SetSender or call SetName before using.
 func MakeSyslogSender(network, raddr string) send.Sender {
-	s := &syslogger{Base: send.NewBase("")}
+	s := &syslogger{}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
 	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
@@ -86,7 +67,7 @@ func (s *syslogger) Send(m message.Composer) {
 		}
 	}()
 
-	if s.Level().ShouldLog(m) {
+	if send.ShouldLog(s, m) {
 		if err := s.sendToSysLog(m.Priority(), m.String()); err != nil {
 			s.ErrorHandler()(err, m)
 		}

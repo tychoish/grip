@@ -6,7 +6,6 @@ import (
 
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
-	"github.com/tychoish/grip/send"
 )
 
 func setupFixture() *Options {
@@ -24,7 +23,7 @@ func setupFixture() *Options {
 func TestCommentMockSenderWithNewConstructor(t *testing.T) {
 	opts := setupFixture()
 
-	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "1234", opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +36,7 @@ func TestCommentConstructorMustCreate(t *testing.T) {
 	opts := setupFixture()
 
 	opts.client = &jiraClientMock{failCreate: true}
-	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "1234", opts)
 	if sender != nil {
 		t.Fatal("sender should not have been nil")
 	}
@@ -50,7 +49,7 @@ func TestCommentConstructorMustPassAuthTest(t *testing.T) {
 	opts := setupFixture()
 
 	opts.client = &jiraClientMock{failAuth: true}
-	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "1234", opts)
 	if sender != nil {
 		t.Fatal("sender should not have been nil")
 	}
@@ -60,7 +59,7 @@ func TestCommentConstructorMustPassAuthTest(t *testing.T) {
 }
 
 func TestCommentConstructorErrorsWithInvalidConfigs(t *testing.T) {
-	sender, err := NewCommentSender(context.Background(), "1234", nil, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "1234", nil)
 	if sender != nil {
 		t.Fatal("sender should not have been nil")
 	}
@@ -68,7 +67,7 @@ func TestCommentConstructorErrorsWithInvalidConfigs(t *testing.T) {
 		t.Fatal("error should not have been nil")
 	}
 
-	sender, err = NewIssueSender(context.Background(), &Options{}, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err = MakeIssueSender(context.Background(), &Options{})
 	if sender != nil {
 		t.Fatal("sender should not have been nil")
 	}
@@ -81,10 +80,11 @@ func TestCommentSendMethod(t *testing.T) {
 	opts := setupFixture()
 
 	numShouldHaveSent := 0
-	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "1234", opts)
 	if err != nil {
 		t.Fatal(err)
 	}
+	sender.SetPriority(level.Info)
 	if sender == nil {
 		t.Fatal("sender should not have been nil")
 	}
@@ -94,14 +94,14 @@ func TestCommentSendMethod(t *testing.T) {
 		t.Error("shoud not have been false")
 	}
 	if mock.numSent != 0 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+		t.Errorf("%v should be equal to %v", mock.numSent, 0)
 	}
 
 	m := message.MakeString("sending debug level comment")
 	m.SetPriority(level.Debug)
 	sender.Send(m)
 	if mock.numSent != numShouldHaveSent {
-		t.Errorf("%q should be equal to %q", mock.numSent, numShouldHaveSent)
+		t.Errorf("%v should be equal to %v", mock.numSent, numShouldHaveSent)
 	}
 
 	m = message.MakeString("sending alert level comment")
@@ -109,7 +109,7 @@ func TestCommentSendMethod(t *testing.T) {
 	sender.Send(m)
 	numShouldHaveSent++
 	if mock.numSent != numShouldHaveSent {
-		t.Errorf("%q should be equal to %q", mock.numSent, numShouldHaveSent)
+		t.Errorf("%v should be equal to %v", mock.numSent, numShouldHaveSent)
 	}
 
 	m = message.MakeString("sending emergency level comment")
@@ -117,14 +117,14 @@ func TestCommentSendMethod(t *testing.T) {
 	sender.Send(m)
 	numShouldHaveSent++
 	if mock.numSent != numShouldHaveSent {
-		t.Errorf("%q should be equal to %q", mock.numSent, numShouldHaveSent)
+		t.Errorf("%v should be equal to %v", mock.numSent, numShouldHaveSent)
 	}
 }
 
 func TestCommentSendMethodWithError(t *testing.T) {
 	opts := setupFixture()
 
-	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "1234", opts)
 	if sender == nil {
 		t.Fatal("sender should not have been nil")
 	}
@@ -137,7 +137,7 @@ func TestCommentSendMethodWithError(t *testing.T) {
 		t.Error("shoud not have been false")
 	}
 	if mock.numSent != 0 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+		t.Errorf("%v should be equal to %v", mock.numSent, 0)
 	}
 	if mock.failSend {
 		t.Errorf("should have failed")
@@ -147,13 +147,13 @@ func TestCommentSendMethodWithError(t *testing.T) {
 	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if mock.numSent != 1 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 1)
+		t.Errorf("%v should be equal to %v", mock.numSent, 1)
 	}
 
 	mock.failSend = true
 	sender.Send(m)
 	if mock.numSent != 1 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 1)
+		t.Errorf("%v should be equal to %v", mock.numSent, 1)
 	}
 }
 
@@ -177,7 +177,7 @@ func TestCommentSendWithJiraIssueComposer(t *testing.T) {
 
 	c := NewComment(level.Notice, "ABC-123", "Hi")
 
-	sender, err := NewCommentSender(context.Background(), "XYZ-123", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "XYZ-123", opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,10 +192,10 @@ func TestCommentSendWithJiraIssueComposer(t *testing.T) {
 		t.Error("shoud not have been false")
 	}
 	if 1 != mock.numSent {
-		t.Errorf("%q should be equal to %q", 1, mock.numSent)
+		t.Errorf("%v should be equal to %v", 1, mock.numSent)
 	}
 	if "ABC-123" != mock.lastIssue {
-		t.Errorf("%q should be equal to %q", "ABC-123", mock.lastIssue)
+		t.Errorf("%v should be equal to %v", "ABC-123", mock.lastIssue)
 	}
 }
 

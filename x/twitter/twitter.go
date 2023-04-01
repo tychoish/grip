@@ -8,14 +8,13 @@ import (
 
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
-	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
 
 type twitterLogger struct {
 	twitter twitterClient
-	*send.Base
+	send.Base
 }
 
 // Options describes the credentials required to connect to the
@@ -40,23 +39,9 @@ func (opts *Options) resolve(ctx context.Context) *twitter.Client {
 // rate limit outgoing messages, which should be the responsibility of
 // the caller.
 func MakeSender(ctx context.Context, opts *Options) (send.Sender, error) {
-	return NewSender(ctx, opts, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
-}
-
-// NewSender constructs a sender implementation that posts
-// messages to a twitter account, with configurable level
-// information. The implementation does not rate limit outgoing
-// messages, which should be the responsibility of the caller.
-func NewSender(ctx context.Context, opts *Options, l send.LevelInfo) (send.Sender, error) {
 	s := &twitterLogger{
 		twitter: newTwitterClient(ctx, opts),
-		Base:    send.NewBase(opts.Name),
 	}
-
-	if err := s.SetLevel(l); err != nil {
-		return nil, fmt.Errorf("invalid level specification: %w", err)
-	}
-
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
 	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 	s.SetResetHook(func() {
@@ -73,7 +58,7 @@ func NewSender(ctx context.Context, opts *Options, l send.LevelInfo) (send.Sende
 }
 
 func (s *twitterLogger) Send(m message.Composer) {
-	if s.Level().ShouldLog(m) {
+	if send.ShouldLog(s, m) {
 		if err := s.twitter.Send(m.String()); err != nil {
 			s.ErrorHandler()(err, m)
 		}

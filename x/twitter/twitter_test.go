@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -24,10 +23,10 @@ func (tm *twitterClientMock) reset()               { tm.VerifyError = nil; tm.Se
 
 func newMockedTwitterSender(client *twitterClientMock) *twitterLogger {
 	s := &twitterLogger{
-		Base:    send.NewBase("mock-twitter"),
 		twitter: client,
 	}
-	fun.InvariantMust(s.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Info}))
+	s.SetName("mock-twitter")
+	s.SetPriority(level.Info)
 	return s
 }
 
@@ -50,15 +49,6 @@ func TestTwitter(t *testing.T) {
 		})
 		t.Run("EmptyCredentialsError", func(t *testing.T) {
 			s, err := MakeSender(ctx, &Options{})
-			if err == nil {
-				t.Error("expected error condition")
-			}
-			if s != nil {
-				t.Fatal("constructor should not make an object in an error condition")
-			}
-		})
-		t.Run("SetInvalidLevel", func(t *testing.T) {
-			s, err := NewSender(ctx, &Options{}, send.LevelInfo{Default: 0, Threshold: 0})
 			if err == nil {
 				t.Error("expected error condition")
 			}
@@ -89,10 +79,8 @@ func TestTwitter(t *testing.T) {
 		t.Run("WithError", func(t *testing.T) {
 			errsender := send.MakeInternalLogger()
 			errsender.SetName("errr")
-			err := errsender.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Info})
-			if err != nil {
-				t.Fatal(err)
-			}
+			errsender.SetPriority(level.Info)
+
 			s := newMockedTwitterSender(mock)
 			s.SetErrorHandler(send.ErrorHandlerFromSender(errsender))
 			mock.SendError = errors.New("sendERROR")
@@ -112,16 +100,12 @@ func TestTwitter(t *testing.T) {
 	t.Run("WithError", func(t *testing.T) {
 		errsender := send.NewInternalLogger(2)
 		errsender.SetName("errr")
-		err := errsender.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Info})
-		if err != nil {
-			t.Fatal(err)
-		}
+		errsender.SetPriority(level.Info)
 
 		s := &twitterLogger{
 			twitter: &twitterClientImpl{twitter: (&Options{}).resolve(ctx)},
-			Base:    send.NewBase("fake"),
 		}
-		_ = s.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Info})
+		s.SetName("fake")
 		s.SetErrorHandler(send.ErrorHandlerFromSender(errsender))
 
 		msg := message.MakeString("hi")

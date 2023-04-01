@@ -8,7 +8,6 @@ import (
 
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
-	"github.com/tychoish/grip/send"
 )
 
 func setupFixture(t *testing.T) *SMTPOptions {
@@ -333,7 +332,7 @@ func TestSendMailRecordsMessage(t *testing.T) {
 
 func TestNewConstructor(t *testing.T) {
 	opts := setupFixture(t)
-	sender, err := NewSender(nil, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeSender(nil)
 	if err == nil {
 		t.Fatal("error shold not be nil")
 	}
@@ -341,15 +340,7 @@ func TestNewConstructor(t *testing.T) {
 		t.Fatal("'sender' is expected to be nil")
 	}
 
-	sender, err = NewSender(opts, send.LevelInfo{Default: level.Invalid, Threshold: level.Info})
-	if err == nil {
-		t.Fatal("error shold not be nil")
-	}
-	if sender != nil {
-		t.Fatal("'sender' is expected to be nil")
-	}
-
-	sender, err = NewSender(opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err = MakeSender(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -360,13 +351,14 @@ func TestNewConstructor(t *testing.T) {
 
 func TestSendMethod(t *testing.T) {
 	opts := setupFixture(t)
-	sender, err := NewSender(opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeSender(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if sender == nil {
 		t.Fatal("'sender' is not expected to be nil")
 	}
+	sender.SetPriority(level.Info)
 
 	mock, ok := opts.client.(*smtpClientMock)
 	if !ok {
@@ -381,7 +373,7 @@ func TestSendMethod(t *testing.T) {
 	m.SetPriority(level.Debug)
 	sender.Send(m)
 	if 0 != mock.numMsgs {
-		t.Fatal("values should be equal")
+		t.Fatal("values should be equal", mock.numMsgs)
 	}
 
 	m = message.MakeString("")
@@ -401,7 +393,7 @@ func TestSendMethod(t *testing.T) {
 
 func TestSendMethodWithError(t *testing.T) {
 	opts := setupFixture(t)
-	sender, err := NewSender(opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeSender(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -436,7 +428,7 @@ func TestSendMethodWithError(t *testing.T) {
 
 func TestSendMethodWithEmailComposerOverridesSMTPOptions(t *testing.T) {
 	opts := setupFixture(t)
-	sender, err := NewSender(opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeSender(opts)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,7 +6,6 @@ import (
 
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
-	"github.com/tychoish/grip/send"
 )
 
 func TestEnvironmentVariableReader(t *testing.T) {
@@ -43,7 +42,7 @@ func TestEnvironmentVariableReader(t *testing.T) {
 
 func TestNewConstructor(t *testing.T) {
 	info := ConnectionInfo{client: &xmppClientMock{}}
-	sender, err := NewSender("name", "target", info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender, err := NewSender("target", info)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +54,7 @@ func TestNewConstructor(t *testing.T) {
 func TestNewConstructorFailsWhenClientCreateFails(t *testing.T) {
 	info := ConnectionInfo{client: &xmppClientMock{failCreate: true}}
 
-	sender, err := NewSender("name", "target", info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender, err := NewSender("target", info)
 	if err == nil {
 		t.Fatal("expected error but got nil")
 	}
@@ -66,7 +65,7 @@ func TestNewConstructorFailsWhenClientCreateFails(t *testing.T) {
 
 func TestCloseMethod(t *testing.T) {
 	info := ConnectionInfo{client: &xmppClientMock{}}
-	sender, err := NewSender("name", "target", info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender, err := NewSender("target", info)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,19 +96,11 @@ func TestAutoConstructorErrorsWithoutValidEnvVar(t *testing.T) {
 	if sender != nil {
 		t.Fatal("expected nil, but got value")
 	}
-
-	sender, err = NewDefaultSender("target", "name", send.LevelInfo{Default: level.Debug, Threshold: level.Info})
-	if err == nil {
-		t.Fatal("expected error but got nil")
-	}
-	if sender != nil {
-		t.Fatal("expected nil, but got value")
-	}
 }
 
 func TestSendMethod(t *testing.T) {
 	info := ConnectionInfo{client: &xmppClientMock{}}
-	sender, err := NewSender("name", "target", info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender, err := NewSender("target", info)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,6 +119,7 @@ func TestSendMethod(t *testing.T) {
 
 	m = message.MakeString("hello")
 	m.SetPriority(level.Debug)
+	sender.SetPriority(level.Info)
 	sender.Send(m)
 	if 0 != mock.numSent {
 		t.Error("incorrect value for mock.numSent:", 0)
@@ -150,7 +142,7 @@ func TestSendMethod(t *testing.T) {
 
 func TestSendMethodWithError(t *testing.T) {
 	info := ConnectionInfo{client: &xmppClientMock{}}
-	sender, err := NewSender("name", "target", info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender, err := NewSender("target", info)
 	if err != nil {
 		t.Fatal(err)
 	}

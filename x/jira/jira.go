@@ -6,7 +6,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -14,7 +14,6 @@ import (
 
 	jira "github.com/andygrunwald/go-jira"
 	"github.com/dghubble/oauth1"
-	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -24,7 +23,7 @@ const jiraIssueKey = "jira-key"
 
 type jiraJournal struct {
 	opts *Options
-	*send.Base
+	send.Base
 }
 
 // Options include configurations for the JIRA client
@@ -53,20 +52,12 @@ type Oauth1 struct {
 // MakeIssueSender is the same as NewJiraLogger but uses a warning
 // level of Trace
 func MakeIssueSender(ctx context.Context, opts *Options) (send.Sender, error) {
-	return NewIssueSender(ctx, opts, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
-}
-
-// NewIssueSender constructs a Sender that creates issues to jira, given
-// options defined in a JiraOptions struct. ctx is used as the request context
-// in the OAuth HTTP client
-func NewIssueSender(ctx context.Context, opts *Options, l send.LevelInfo) (send.Sender, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, err
 	}
 
 	j := &jiraJournal{
 		opts: opts,
-		Base: send.NewBase(opts.Name),
 	}
 
 	if err := j.opts.client.CreateClient(opts.HTTPClient, opts.BaseURL); err != nil {
@@ -86,10 +77,6 @@ func NewIssueSender(ctx context.Context, opts *Options, l send.LevelInfo) (send.
 		return nil, fmt.Errorf("jira authentication error: %v", err)
 	}
 
-	if err := j.SetLevel(l); err != nil {
-		return nil, err
-	}
-
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
 
 	j.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
@@ -101,7 +88,7 @@ func NewIssueSender(ctx context.Context, opts *Options, l send.LevelInfo) (send.
 
 // Send post issues via jiraJournal with information in the message.Composer
 func (j *jiraJournal) Send(m message.Composer) {
-	if j.Level().ShouldLog(m) {
+	if send.ShouldLog(j, m) {
 		issueFields := getFields(m)
 		if len(issueFields.Summary) > 254 {
 			issueFields.Summary = issueFields.Summary[:254]
@@ -304,7 +291,7 @@ func (c *jiraClientImpl) PostIssue(issueFields *jira.IssueFields) (string, error
 	if err != nil {
 		if resp != nil {
 			defer resp.Body.Close()
-			data, _ := ioutil.ReadAll(resp.Body)
+			data, _ := io.ReadAll(resp.Body)
 			return "", fmt.Errorf("encountered error logging to jira: %s [%s]",
 				err.Error(), string(data))
 		}

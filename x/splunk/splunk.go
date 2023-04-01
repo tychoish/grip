@@ -8,7 +8,6 @@ import (
 	"time"
 
 	hec "github.com/fuyufjh/splunk-hec-go"
-	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -23,7 +22,7 @@ type splunkLogger struct {
 	info     ConnectionInfo
 	client   splunkClient
 	hostname string
-	*send.Base
+	send.Base
 }
 
 // ConnectionInfo stores all information needed to connect
@@ -65,14 +64,21 @@ func (info ConnectionInfo) validateFromEnv() error {
 }
 
 func (s *splunkLogger) Send(m message.Composer) {
-	lvl := s.Level()
+	if send.ShouldLog(s, m) {
 
-	if lvl.ShouldLog(m) {
-		g, ok := m.(*message.GroupComposer)
-		if ok {
+		switch msgs := message.Unwind(m); len(msgs) {
+		case 0:
+			return
+		case 1:
+			e := hec.NewEvent(m.Raw())
+			e.SetHost(s.hostname)
+			if err := s.client.WriteEvent(e); err != nil {
+				s.ErrorHandler()(err, m)
+			}
+		default:
 			batch := []*hec.Event{}
-			for _, c := range g.Messages() {
-				if lvl.ShouldLog(c) {
+			for _, c := range message.Unwind(m) {
+				if send.ShouldLog(s, c) {
 					e := hec.NewEvent(c.Raw())
 					e.SetHost(s.hostname)
 					batch = append(batch, e)
@@ -83,20 +89,14 @@ func (s *splunkLogger) Send(m message.Composer) {
 			}
 			return
 		}
-
-		e := hec.NewEvent(m.Raw())
-		e.SetHost(s.hostname)
-		if err := s.client.WriteEvent(e); err != nil {
-			s.ErrorHandler()(err, m)
-		}
 	}
 }
 
-// NewSender constructs a new Sender implementation that sends
+// MakeSender constructs a new Sender implementation that sends
 // messages to a Splunk event collector using the credentials specified
 // in the SplunkConnectionInfo struct.
-func NewSender(name string, info ConnectionInfo, l send.LevelInfo) (send.Sender, error) {
-	client := (&http.Client{
+func MakeSender(info ConnectionInfo) (send.Sender, error) {
+	client := &http.Client{
 		Transport: &http.Transport{
 			Proxy:               http.ProxyFromEnvironment,
 			DisableKeepAlives:   true,
@@ -106,41 +106,17 @@ func NewSender(name string, info ConnectionInfo, l send.LevelInfo) (send.Sender,
 			},
 		},
 		Timeout: 5 * time.Second,
-	})
-
-	s, err := buildSplunkLogger(name, client, info, l)
-	if err != nil {
-		return nil, err
 	}
-
-	if err := s.client.Create(client, info); err != nil {
-		return nil, err
-	}
-
-	return s, nil
+	return MakeSenderWithClient(info, client)
 }
 
-// NewWithClient makes it possible to pass an existing
+// MakeSenderWithClient makes it possible to pass an existing
 // http.Client to the splunk instance, but is otherwise identical to
-// NewSplunkLogger.
-func NewWithClient(name string, info ConnectionInfo, l send.LevelInfo, client *http.Client) (send.Sender, error) {
-	s, err := buildSplunkLogger(name, client, info, l)
-	if err != nil {
-		return nil, err
-	}
-
+// MakeSender.
+func MakeSenderWithClient(info ConnectionInfo, client *http.Client) (send.Sender, error) {
+	s := &splunkLogger{info: info, client: &splunkClientImpl{}}
 	if err := s.client.Create(client, info); err != nil {
 		return nil, err
-	}
-
-	return s, nil
-}
-
-func buildSplunkLogger(name string, client *http.Client, info ConnectionInfo, l send.LevelInfo) (*splunkLogger, error) {
-	s := &splunkLogger{
-		info:   info,
-		client: &splunkClientImpl{},
-		Base:   send.NewBase(name),
 	}
 
 	hostname, err := os.Hostname()
@@ -149,36 +125,7 @@ func buildSplunkLogger(name string, client *http.Client, info ConnectionInfo, l 
 	}
 	s.hostname = hostname
 
-	if err := s.SetLevel(l); err != nil {
-		return nil, err
-	}
 	return s, nil
-}
-
-// MakeSender constructs a new Sender implementation that reads
-// the hostname, username, and password from environment variables:
-//
-//	GRIP_SPLUNK_SERVER_URL
-//	GRIP_SPLUNK_CLIENT_TOKEN
-//	GRIP_SPLUNK_CLIENT_CHANNEL
-func MakeSender(name string) (send.Sender, error) {
-	info := GetConnectionInfo()
-	if err := info.validateFromEnv(); err != nil {
-		return nil, err
-	}
-
-	return NewSender(name, info, send.LevelInfo{Default: level.Trace, Threshold: level.Trace})
-}
-
-// MakeWithClient is identical to MakeSplunkLogger but
-// allows you to pass in a http.Client.
-func MakeWithClient(name string, client *http.Client) (send.Sender, error) {
-	info := GetConnectionInfo()
-	if err := info.validateFromEnv(); err != nil {
-		return nil, err
-	}
-
-	return NewWithClient(name, info, send.LevelInfo{Default: level.Trace, Threshold: level.Trace}, client)
 }
 
 ////////////////////////////////////////////////////////////////////////

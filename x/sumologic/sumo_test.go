@@ -28,10 +28,7 @@ func setupFixture(t *testing.T) *SumoSuite {
 	s.sender.endpoint = s.endpoint
 	s.sender.client = s.client
 	s.sender.SetFormatter(send.MakeJSONFormatter())
-
-	if err := s.sender.SetLevel(send.LevelInfo{Default: level.Debug, Threshold: level.Info}); err != nil {
-		t.Fatal(err)
-	}
+	s.sender.SetPriority(level.Info)
 	return s
 }
 

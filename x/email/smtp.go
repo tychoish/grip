@@ -20,24 +20,7 @@ import (
 
 type smtpLogger struct {
 	opts *SMTPOptions
-	*send.Base
-}
-
-// NewSender constructs a Sender implementation that delivers mail
-// for every loggable message. The configuration of the outgoing SMTP
-// server, and the formatting of the log message is handled by the
-// SMTPOptions structure, which you must use to configure this sender.
-func NewSender(opts *SMTPOptions, l send.LevelInfo) (send.Sender, error) {
-	s, err := MakeSender(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = s.SetLevel(l); err != nil {
-		return nil, err
-	}
-
-	return s, nil
+	send.Base
 }
 
 // MakeSender constructs an unconfigured (e.g. without level information)
@@ -50,22 +33,19 @@ func MakeSender(opts *SMTPOptions) (send.Sender, error) {
 		return nil, err
 	}
 
-	s := &smtpLogger{
-		Base: send.NewBase(opts.Name),
-		opts: opts,
-	}
+	s := &smtpLogger{opts: opts}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
 
+	s.SetName(opts.Name)
 	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name())) })
-	s.SetName(opts.Name)
 
 	return s, nil
 }
 
 func (s *smtpLogger) Send(m message.Composer) {
-	if s.Level().ShouldLog(m) {
+	if send.ShouldLog(s, m) {
 		if err := s.opts.sendMail(m); err != nil {
 			s.ErrorHandler()(err, m)
 		}

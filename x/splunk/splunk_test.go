@@ -7,7 +7,6 @@ import (
 
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
-	"github.com/tychoish/grip/send"
 )
 
 type SplunkSuite struct {
@@ -21,15 +20,12 @@ func setupFixture(t *testing.T) *SplunkSuite {
 	s.sender = splunkLogger{
 		info:   ConnectionInfo{},
 		client: &splunkClientMock{},
-		Base:   send.NewBase("name"),
 	}
 
 	if err := s.sender.client.Create(http.DefaultClient, s.info); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.sender.SetLevel(send.LevelInfo{Default: level.Debug, Threshold: level.Info}); err != nil {
-		t.Fatal(err)
-	}
+	s.sender.SetPriority(level.Info)
 	return s
 }
 
@@ -59,7 +55,7 @@ func TestEnvironmentVariableReader(t *testing.T) {
 
 func TestNewConstructor(t *testing.T) {
 	s := setupFixture(t)
-	sender, err := NewSender("name", s.info, send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender, err := MakeSender(s.info)
 	if err := err; err != nil {
 		t.Fatal(err)
 	}
@@ -72,19 +68,12 @@ func TestAutoConstructor(t *testing.T) {
 	serverVal := "serverURL"
 	tokenVal := "token"
 
-	defer os.Setenv(splunkServerURL, os.Getenv(splunkServerURL))
-	defer os.Setenv(splunkClientToken, os.Getenv(splunkClientToken))
+	t.Setenv(splunkServerURL, serverVal)
+	t.Setenv(splunkClientToken, tokenVal)
 
-	if err := os.Setenv(splunkServerURL, serverVal); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Setenv(splunkClientToken, tokenVal); err != nil {
-		t.Fatal(err)
-	}
-
-	sender, err := MakeSender("name")
-	if err := err; err != nil {
-		t.Fatal(err)
+	sender, err := MakeSender(GetConnectionInfo())
+	if err != nil {
+		t.Error(err)
 	}
 	if sender == nil {
 		t.Error("should not have been nil")
@@ -105,27 +94,16 @@ func TestAutoConstructorFailsWhenEnvVarFails(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sender, err := MakeSender("name")
-	if err == nil {
-		t.Fatal("error should not have been nil")
-	}
-	if sender != nil {
-		t.Fatal("sender should have been nil")
-	}
-
-	serverVal = "serverVal"
-
-	if err = os.Setenv(splunkServerURL, serverVal); err != nil {
+	if err := os.Setenv(splunkServerURL, serverVal); err != nil {
 		t.Fatal(err)
 	}
-	sender, err = MakeSender("name")
-	if err == nil {
+	sender, err := MakeSender(GetConnectionInfo())
+	if err != nil {
 		t.Fatal("error should not have been nil")
 	}
-	if sender != nil {
-		t.Fatal("sender should have been nil")
+	if sender == nil {
+		t.Fatal("sender should not have been nil")
 	}
-
 }
 
 func TestSendMethod(t *testing.T) {

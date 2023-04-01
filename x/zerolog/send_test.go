@@ -4,8 +4,6 @@ import (
 	"testing"
 
 	"github.com/rs/zerolog"
-	"github.com/tychoish/grip/level"
-	"github.com/tychoish/grip/send"
 )
 
 func TestZeroSender(t *testing.T) {
@@ -16,10 +14,7 @@ func TestZeroSender(t *testing.T) {
 			}
 
 		}()
-		s, err := NewSender("hello", send.LevelInfo{Threshold: level.Debug, Default: level.Info}, zerolog.Nop())
-		if err != nil {
-			t.Fatal(err)
-		}
+		s := MakeSender(zerolog.Nop())
 		if s == nil {
 			t.Fatal("s should not be nil")
 		}

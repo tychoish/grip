@@ -8,12 +8,11 @@ import (
 
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
-	"github.com/tychoish/grip/send"
 )
 
 func TestMockSenderWithNewConstructor(t *testing.T) {
 	opts := setupFixture()
-	sender, err := NewIssueSender(context.Background(), opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeIssueSender(context.Background(), opts)
 	if sender == nil {
 		t.Fatal("sender should not have been nil")
 	}
@@ -25,7 +24,7 @@ func TestMockSenderWithNewConstructor(t *testing.T) {
 func TestConstructorMustCreate(t *testing.T) {
 	opts := setupFixture()
 	opts.client = &jiraClientMock{failCreate: true}
-	sender, err := NewIssueSender(context.Background(), opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeIssueSender(context.Background(), opts)
 
 	if sender != nil {
 		t.Fatal("expected nil, but got value", sender)
@@ -38,7 +37,7 @@ func TestConstructorMustCreate(t *testing.T) {
 func TestConstructorMustPassAuthTest(t *testing.T) {
 	opts := setupFixture()
 	opts.client = &jiraClientMock{failAuth: true}
-	sender, err := NewIssueSender(context.Background(), opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeIssueSender(context.Background(), opts)
 
 	if sender != nil {
 		t.Fatal("expected nil, but got value", sender)
@@ -49,7 +48,7 @@ func TestConstructorMustPassAuthTest(t *testing.T) {
 }
 
 func TestConstructorErrorsWithInvalidConfigs(t *testing.T) {
-	sender, err := NewIssueSender(context.Background(), nil, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeIssueSender(context.Background(), nil)
 
 	if sender != nil {
 		t.Fatal("expected nil, but got value", sender)
@@ -58,7 +57,7 @@ func TestConstructorErrorsWithInvalidConfigs(t *testing.T) {
 		t.Error("expected an error but got nil")
 	}
 
-	sender, err = NewIssueSender(context.Background(), &Options{}, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err = MakeIssueSender(context.Background(), &Options{})
 	if sender != nil {
 		t.Fatal("expected nil, but got value", sender)
 	}
@@ -76,7 +75,7 @@ func TestConstructorErrorsWithInvalidConfigs(t *testing.T) {
 		},
 	}
 
-	sender, err = NewIssueSender(context.Background(), opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err = MakeIssueSender(context.Background(), opts)
 	if err == nil {
 		t.Fatal("error must not be nil")
 	}
@@ -90,7 +89,7 @@ func TestConstructorErrorsWithInvalidConfigs(t *testing.T) {
 
 func TestSendMethod(t *testing.T) {
 	opts := setupFixture()
-	sender, err := NewIssueSender(context.Background(), opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeIssueSender(context.Background(), opts)
 	if sender == nil {
 		t.Fatal("sender should not have been nil")
 	}
@@ -98,39 +97,41 @@ func TestSendMethod(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	sender.SetPriority(level.Info)
+
 	mock, ok := opts.client.(*jiraClientMock)
 	if !ok {
 		t.Error("shoud not have been false")
 	}
 	if mock.numSent != 0 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+		t.Errorf("%v should be equal to %v", mock.numSent, 0)
 	}
 
 	m := message.MakeString("hello")
 	m.SetPriority(level.Debug)
 	sender.Send(m)
 	if mock.numSent != 0 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+		t.Errorf("%v should be equal to %v", mock.numSent, 0)
 	}
 
 	m = message.MakeString("")
 	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if mock.numSent != 0 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+		t.Errorf("%v should be equal to %v", mock.numSent, 0)
 	}
 
 	m = message.MakeString("world")
 	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if mock.numSent != 1 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 1)
+		t.Errorf("%v should be equal to %v", mock.numSent, 1)
 	}
 }
 
 func TestSendMethodWithError(t *testing.T) {
 	opts := setupFixture()
-	sender, err := NewIssueSender(context.Background(), opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeIssueSender(context.Background(), opts)
 	if sender == nil {
 		t.Fatal("sender should not have been nil")
 	}
@@ -143,7 +144,7 @@ func TestSendMethodWithError(t *testing.T) {
 		t.Error("shoud not have been false")
 	}
 	if mock.numSent != 0 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+		t.Errorf("%v should be equal to %v", mock.numSent, 0)
 	}
 	if mock.failSend {
 		t.Fatal("messsage should have failed to send")
@@ -153,13 +154,13 @@ func TestSendMethodWithError(t *testing.T) {
 	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if mock.numSent != 1 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 1)
+		t.Errorf("%v should be equal to %v", mock.numSent, 1)
 	}
 
 	mock.failSend = true
 	sender.Send(m)
 	if mock.numSent != 1 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 1)
+		t.Errorf("%v should be equal to %v", mock.numSent, 1)
 	}
 }
 
@@ -180,10 +181,10 @@ func TestGetFieldsWithJiraIssue(t *testing.T) {
 	fields := getFields(m1)
 
 	if fields.Project.Key != project {
-		t.Errorf("%q should be equal to %q", fields.Project.Key, project)
+		t.Errorf("%v should be equal to %v", fields.Project.Key, project)
 	}
 	if fields.Summary != summary {
-		t.Errorf("%q should be equal to %q", fields.Summary, summary)
+		t.Errorf("%v should be equal to %v", fields.Summary, summary)
 	}
 	if fields.Reporter != nil {
 		t.Fatal("expected nil, but got value", fields.Reporter)
@@ -192,7 +193,7 @@ func TestGetFieldsWithJiraIssue(t *testing.T) {
 		t.Fatal("expected nil, but got value", fields.Assignee)
 	}
 	if fields.Type.Name != "Task" {
-		t.Errorf("%q should be equal to %q", fields.Type.Name, "Task")
+		t.Errorf("%v should be equal to %v", fields.Type.Name, "Task")
 	}
 	if fields.Labels != nil {
 		t.Fatal("expected nil, but got value", fields.Labels)
@@ -207,13 +208,13 @@ func TestGetFieldsWithJiraIssue(t *testing.T) {
 	fields = getFields(m2)
 
 	if fields.Reporter.Name != "Annie" {
-		t.Errorf("%q should be equal to %q", fields.Reporter.Name, "Annie")
+		t.Errorf("%v should be equal to %v", fields.Reporter.Name, "Annie")
 	}
 	if fields.Assignee.Name != "Sejin" {
-		t.Errorf("%q should be equal to %q", fields.Assignee.Name, "Sejin")
+		t.Errorf("%v should be equal to %v", fields.Assignee.Name, "Sejin")
 	}
 	if fields.Type.Name != "Bug" {
-		t.Errorf("%q should be equal to %q", fields.Type.Name, "Bug")
+		t.Errorf("%v should be equal to %v", fields.Type.Name, "Bug")
 	}
 	expected := []string{"Soul", "Pop"}
 	for idx := range fields.Labels {
@@ -230,7 +231,7 @@ func TestGetFieldsWithJiraIssue(t *testing.T) {
 		typeField, unknownField)
 	fields = getFields(m3)
 	if fields.Unknowns["Artist"] != "Adele" {
-		t.Errorf("%q should be equal to %q", fields.Unknowns["Artist"], "Adele")
+		t.Errorf("%v should be equal to %v", fields.Unknowns["Artist"], "Adele")
 	}
 }
 
@@ -241,7 +242,7 @@ func TestGetFieldsWithFields(t *testing.T) {
 
 	fields := getFields(m)
 	if fields.Summary != msg {
-		t.Errorf("%q should be equal to %q", fields.Summary, msg)
+		t.Errorf("%v should be equal to %v", fields.Summary, msg)
 	}
 	if fields.Description == "" {
 		t.Error("fields.Description should be nil")
@@ -250,7 +251,7 @@ func TestGetFieldsWithFields(t *testing.T) {
 
 func TestTruncate(t *testing.T) {
 	opts := setupFixture()
-	sender, err := NewIssueSender(context.Background(), opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeIssueSender(context.Background(), opts)
 	if sender == nil {
 		t.Fatal("sender should not have been nil")
 	}
@@ -263,7 +264,7 @@ func TestTruncate(t *testing.T) {
 		t.Error("shoud not have been false")
 	}
 	if mock.numSent != 0 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+		t.Errorf("%v should be equal to %v", mock.numSent, 0)
 	}
 
 	m := message.MakeString("aaa")
@@ -310,7 +311,7 @@ func TestTruncate(t *testing.T) {
 
 func TestCustomFields(t *testing.T) {
 	opts := setupFixture()
-	sender, err := NewIssueSender(context.Background(), opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeIssueSender(context.Background(), opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -322,7 +323,7 @@ func TestCustomFields(t *testing.T) {
 		t.Error("shoud not have been false")
 	}
 	if mock.numSent != 0 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+		t.Errorf("%v should be equal to %v", mock.numSent, 0)
 	}
 
 	jiraIssue := &Issue{
@@ -347,7 +348,7 @@ func TestCustomFields(t *testing.T) {
 	}
 
 	if "test" != mock.lastFields.Summary {
-		t.Errorf("%q should be equal to %q", "test", mock.lastFields.Summary)
+		t.Errorf("%v should be equal to %v", "test", mock.lastFields.Summary)
 	}
 
 	bytes, err := json.Marshal(&mock.lastFields)
@@ -358,13 +359,13 @@ func TestCustomFields(t *testing.T) {
 		t.Error("marshaled value has unexpected length")
 	}
 	if `{"customfield_12345":["hi","bye"],"issuetype":{"name":"type"},"summary":"test"}` != string(bytes) {
-		t.Errorf("%q should be equal to %q", `{"customfield_12345":["hi","bye"],"issuetype":{"name":"type"},"summary":"test"}`, string(bytes))
+		t.Errorf("%v should be equal to %v", `{"customfield_12345":["hi","bye"],"issuetype":{"name":"type"},"summary":"test"}`, string(bytes))
 	}
 }
 
 func TestPopulateKey(t *testing.T) {
 	opts := setupFixture()
-	sender, err := NewIssueSender(context.Background(), opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeIssueSender(context.Background(), opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -377,7 +378,7 @@ func TestPopulateKey(t *testing.T) {
 		t.Error("shoud not have been false")
 	}
 	if mock.numSent != 0 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+		t.Errorf("%v should be equal to %v", mock.numSent, 0)
 	}
 
 	count := 0
@@ -390,17 +391,17 @@ func TestPopulateKey(t *testing.T) {
 	}
 
 	if 0 != count {
-		t.Errorf("%q should be equal to %q", 0, count)
+		t.Errorf("%v should be equal to %v", 0, count)
 	}
 	m := MakeIssue(jiraIssue)
 	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if 1 != count {
-		t.Errorf("%q should be equal to %q", 1, count)
+		t.Errorf("%v should be equal to %v", 1, count)
 	}
 	issue := m.Raw().(*Issue)
 	if mock.issueKey != issue.IssueKey {
-		t.Errorf("%q should be equal to %q", mock.issueKey, issue.IssueKey)
+		t.Errorf("%v should be equal to %v", mock.issueKey, issue.IssueKey)
 	}
 
 	messageFields := message.MakeFields(message.Fields{
@@ -412,13 +413,13 @@ func TestPopulateKey(t *testing.T) {
 	sender.Send(messageFields)
 	messageIssue := messageFields.Raw().(message.Fields)
 	if mock.issueKey != messageIssue[jiraIssueKey] {
-		t.Errorf("%q should be equal to %q", mock.issueKey, messageIssue[jiraIssueKey])
+		t.Errorf("%v should be equal to %v", mock.issueKey, messageIssue[jiraIssueKey])
 	}
 }
 
 func TestWhenCallbackNil(t *testing.T) {
 	opts := setupFixture()
-	sender, err := NewIssueSender(context.Background(), opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeIssueSender(context.Background(), opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -431,7 +432,7 @@ func TestWhenCallbackNil(t *testing.T) {
 		t.Error("shoud not have been false")
 	}
 	if mock.numSent != 0 {
-		t.Errorf("%q should be equal to %q", mock.numSent, 0)
+		t.Errorf("%v should be equal to %v", mock.numSent, 0)
 	}
 
 	jiraIssue := &Issue{

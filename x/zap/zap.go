@@ -12,7 +12,7 @@ import (
 
 type shim struct {
 	zap *zap.Logger
-	*send.Base
+	send.Base
 }
 
 // NewSener provides a simple shim around zap that's compatible with
@@ -21,29 +21,14 @@ type shim struct {
 // structured log paths. The shim translates grip message types into
 // appropriate Zerolog message building messages to preserve the fast
 // path.
-func NewSender(name string, l send.LevelInfo, zl *zap.Logger) (send.Sender, error) {
-	s := &shim{
-		Base: send.NewBase(name),
-		zap:  zl,
-	}
-
-	if err := s.SetLevel(l); err != nil {
-		return nil, fmt.Errorf("problem seeting level on new sender: %w", err)
-	}
-
-	return s, nil
-}
-
-// MakeSender constructs a sender object as NewSender but without the
-// error type or level configuration, consistent with other grip
-// sender constructors.
 func MakeSender(zl *zap.Logger) send.Sender {
-	s, _ := NewSender("", send.LevelInfo{Threshold: level.Trace, Default: level.Debug}, zl)
+	s := &shim{zap: zl}
+
 	return s
 }
 
 func (s *shim) Send(m message.Composer) {
-	if !s.Level().ShouldLog(m) {
+	if !send.ShouldLog(s, m) {
 		return
 	}
 	// unwind group messages

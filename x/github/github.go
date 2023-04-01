@@ -50,7 +50,7 @@ func NewIssueSender(name string, opts *GithubOptions) (send.Sender, error) {
 }
 
 func (s *githubLogger) Send(m message.Composer) {
-	if s.Level().ShouldLog(m) {
+	if send.ShouldLog(s, m) {
 		text, err := s.Formatter()(m)
 		if err != nil {
 			s.ErrorHandler()(err, m)

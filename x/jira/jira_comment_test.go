@@ -6,7 +6,6 @@ import (
 
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
-	"github.com/tychoish/grip/send"
 )
 
 func setupOptionsFixture() *Options {
@@ -23,7 +22,7 @@ func setupOptionsFixture() *Options {
 
 func TestJiraCommentMockSenderWithNewConstructor(t *testing.T) {
 	opts := setupOptionsFixture()
-	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "1234", opts)
 	if sender == nil {
 		t.Fatal("expected sender to be not nil")
 	}
@@ -35,7 +34,7 @@ func TestJiraCommentMockSenderWithNewConstructor(t *testing.T) {
 func TestJiraCommentConstructorMustCreate(t *testing.T) {
 	opts := setupOptionsFixture()
 	opts.client = &jiraClientMock{failCreate: true}
-	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "1234", opts)
 	if sender != nil {
 		t.Fatal("expected nil sender")
 	}
@@ -47,7 +46,7 @@ func TestJiraCommentConstructorMustCreate(t *testing.T) {
 func TestJiraCommentConstructorMustPassAuthTest(t *testing.T) {
 	opts := setupOptionsFixture()
 	opts.client = &jiraClientMock{failAuth: true}
-	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "1234", opts)
 	if sender != nil {
 		t.Fatal("expected nil sender")
 	}
@@ -57,7 +56,7 @@ func TestJiraCommentConstructorMustPassAuthTest(t *testing.T) {
 }
 
 func TestJiraCommentConstructorErrorsWithInvalidConfigs(t *testing.T) {
-	sender, err := NewCommentSender(context.Background(), "1234", nil, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "1234", nil)
 	if sender != nil {
 		t.Fatal("expected nil sender")
 	}
@@ -65,7 +64,7 @@ func TestJiraCommentConstructorErrorsWithInvalidConfigs(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	sender, err = NewIssueSender(context.Background(), &Options{}, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err = MakeIssueSender(context.Background(), &Options{})
 	if sender != nil {
 		t.Fatal("expected nil sender")
 	}
@@ -77,13 +76,14 @@ func TestJiraCommentConstructorErrorsWithInvalidConfigs(t *testing.T) {
 func TestJiraCommentSendMethod(t *testing.T) {
 	opts := setupOptionsFixture()
 	numShouldHaveSent := 0
-	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "1234", opts)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if sender == nil {
 		t.Fatal("expected sender to be not nil")
 	}
+	sender.SetPriority(level.Info)
 
 	mock, ok := opts.client.(*jiraClientMock)
 	if !ok {
@@ -119,7 +119,7 @@ func TestJiraCommentSendMethod(t *testing.T) {
 
 func TestJiraCommentSendMethodWithError(t *testing.T) {
 	opts := setupOptionsFixture()
-	sender, err := NewCommentSender(context.Background(), "1234", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "1234", opts)
 	if sender == nil {
 		t.Fatal("expected sender to be not nil")
 	}
@@ -168,7 +168,7 @@ func TestJiraCommentSendWithJiraIssueComposer(t *testing.T) {
 	opts := setupOptionsFixture()
 	c := NewComment(level.Notice, "ABC-123", "Hi")
 
-	sender, err := NewCommentSender(context.Background(), "XYZ-123", opts, send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeCommentSender(context.Background(), "XYZ-123", opts)
 	if err != nil {
 		t.Fatal(err)
 	}

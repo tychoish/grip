@@ -2,7 +2,6 @@ package zerolog
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/rs/zerolog"
 	"github.com/tychoish/grip/level"
@@ -12,32 +11,15 @@ import (
 
 type shim struct {
 	zl zerolog.Logger
-	*send.Base
-}
-
-// NewSener provides a simple shim around zerolog that's compatible
-// with other grip interfaces. Zerolog, like zap and other structured
-// loggers has a fast-path for JSON marshalling of structured log
-// paths. The shim translates grip message types into appropriate
-// Zerolog message building messages to preserve the fast path.
-func NewSender(name string, l send.LevelInfo, zl zerolog.Logger) (send.Sender, error) {
-	s := &shim{
-		Base: send.NewBase(name),
-		zl:   zl,
-	}
-
-	if err := s.SetLevel(l); err != nil {
-		return nil, fmt.Errorf("problem seeting level on new sender: %w", err)
-	}
-
-	return s, nil
+	send.Base
 }
 
 // MakeSender constructs a sender object as NewSender but without the
 // error type or level configuration, consistent with other grip
 // sender constructors.
 func MakeSender(zl zerolog.Logger) send.Sender {
-	s, _ := NewSender("", send.LevelInfo{Threshold: level.Trace, Default: level.Debug}, zl)
+	s := &shim{zl: zl}
+	s.SetPriority(level.Trace)
 	return s
 }
 
@@ -69,7 +51,7 @@ func convertLevel(in level.Priority) zerolog.Level {
 }
 
 func (s *shim) Send(m message.Composer) {
-	if !s.Level().ShouldLog(m) {
+	if !send.ShouldLog(s, m) {
 		return
 	}
 	// unwind group messages

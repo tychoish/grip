@@ -8,7 +8,6 @@ import (
 	"github.com/bluele/slack"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
-	"github.com/tychoish/grip/send"
 )
 
 func setupFixture() *SlackOptions {
@@ -396,9 +395,10 @@ func TestMockSenderWithMakeConstructor(t *testing.T) {
 
 func TestMockSenderWithNewConstructor(t *testing.T) {
 	opts := setupFixture()
-	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	t.Setenv(slackClientToken, "foo")
+	sender, err := MakeSender(opts)
 	if sender == nil {
-		t.Fatal("sender not expected to be nil")
+		t.Error("sender not expected to be nil")
 	}
 	if err != nil {
 		t.Fatal(err)
@@ -407,7 +407,7 @@ func TestMockSenderWithNewConstructor(t *testing.T) {
 
 func TestInvaldLevelCausesConstructionErrors(t *testing.T) {
 	opts := setupFixture()
-	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Invalid})
+	sender, err := MakeSender(opts)
 	if sender != nil {
 		t.Fatal("sender expected to be nil")
 	}
@@ -419,7 +419,7 @@ func TestInvaldLevelCausesConstructionErrors(t *testing.T) {
 func TestConstructorMustPassAuthTest(t *testing.T) {
 	opts := setupFixture()
 	opts.client = &slackClientMock{failAuthTest: true}
-	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err := MakeSender(opts)
 
 	if sender != nil {
 		t.Fatal("sender expected to be nil")
@@ -431,20 +431,22 @@ func TestConstructorMustPassAuthTest(t *testing.T) {
 
 func TestSendMethod(t *testing.T) {
 	opts := setupFixture()
-	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	t.Setenv(slackClientToken, "foo")
+	sender, err := MakeSender(opts)
 	if sender == nil {
 		t.Fatal("sender not expected to be nil")
 	}
 	if err != nil {
 		t.Fatal(err)
 	}
+	sender.SetPriority(level.Info)
 
 	mock, ok := opts.client.(*slackClientMock)
 	if !ok {
 		t.Fatal("expected to be true")
 	}
 	if 0 != mock.numSent {
-		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", 0)
+		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 
 	var m message.Composer
@@ -452,21 +454,21 @@ func TestSendMethod(t *testing.T) {
 	m.SetPriority(level.Debug)
 	sender.Send(m)
 	if 0 != mock.numSent {
-		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", 0)
+		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 
 	m = message.MakeString("")
 	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if 0 != mock.numSent {
-		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", 0)
+		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 
 	m = message.MakeString("world")
 	m.SetPriority(level.Alert)
 	sender.Send(m)
 	if 1 != mock.numSent {
-		t.Fatalf("expected '1' to be 'mock.numSent' but was %d", 1)
+		t.Fatalf("expected '1' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 	if mock.lastTarget != "#test" {
 		t.Fatalf("expected 'mock.lastTarget' to be '#test' but was %s", mock.lastTarget)
@@ -475,7 +477,7 @@ func TestSendMethod(t *testing.T) {
 	m = NewMessage(level.Alert, "#somewhere", "Hi", nil)
 	sender.Send(m)
 	if 2 != mock.numSent {
-		t.Fatalf("expected '2' to be 'mock.numSent' but was %d", 2)
+		t.Fatalf("expected '2' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 	if mock.lastTarget != "#somewhere" {
 		t.Fatalf("expected 'mock.lastTarget' to be '#somewhere' but was %s", mock.lastTarget)
@@ -484,7 +486,8 @@ func TestSendMethod(t *testing.T) {
 
 func TestSendMethodWithError(t *testing.T) {
 	opts := setupFixture()
-	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	t.Setenv(slackClientToken, "foo")
+	sender, err := MakeSender(opts)
 	if sender == nil {
 		t.Fatal("sender not expected to be nil")
 	}
@@ -541,7 +544,8 @@ func TestCreateMethodChangesClientState(t *testing.T) {
 
 func TestSendMethodDoesIncorrectlyAllowTooLowMessages(t *testing.T) {
 	opts := setupFixture()
-	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	t.Setenv(slackClientToken, "foo")
+	sender, err := MakeSender(opts)
 	if sender == nil {
 		t.Fatal("sender not expected to be nil")
 	}
@@ -557,9 +561,7 @@ func TestSendMethodDoesIncorrectlyAllowTooLowMessages(t *testing.T) {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 
-	if err := sender.SetLevel(send.LevelInfo{Default: level.Critical, Threshold: level.Alert}); err != nil {
-		t.Fatal(err)
-	}
+	sender.SetPriority(level.Alert)
 	if 0 != mock.numSent {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
@@ -586,7 +588,8 @@ func TestSendMethodDoesIncorrectlyAllowTooLowMessages(t *testing.T) {
 
 func TestSettingBotIdentity(t *testing.T) {
 	opts := setupFixture()
-	sender, err := NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	t.Setenv(slackClientToken, "foo")
+	sender, err := MakeSender(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -621,7 +624,7 @@ func TestSettingBotIdentity(t *testing.T) {
 
 	opts.Username = "Grip"
 	opts.IconURL = "https://example.com/icon.ico"
-	sender, err = NewSender(opts, "foo", send.LevelInfo{Default: level.Trace, Threshold: level.Info})
+	sender, err = MakeSender(opts)
 	if err != nil {
 		t.Fatal(err)
 	}

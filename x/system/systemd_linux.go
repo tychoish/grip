@@ -14,27 +14,10 @@ import (
 
 type systemdJournal struct {
 	options map[string]string
-	*send.Base
+	send.Base
 }
 
 // NewSystemdSender creates a Sender object that writes log messages
-// to the system's systemd journald logging facility. If there's an
-// error with the sending to the journald, messages fallback to
-// writing to standard output.
-func NewSystemdSender(name string, l send.LevelInfo) (send.Sender, error) {
-	s, err := MakeSystemdSender()
-	if err != nil {
-		return nil, err
-	}
-	if err := s.SetLevel(l); err != nil {
-		return nil, err
-	}
-
-	s.SetName(name)
-
-	return s, nil
-}
-
 // MakeSystemdSender constructs an unconfigured systemd journald
 // logger. Pass to Journaler.SetSender or call SetName before using.
 func MakeSystemdSender() (send.Sender, error) {
@@ -44,7 +27,6 @@ func MakeSystemdSender() (send.Sender, error) {
 
 	s := &systemdJournal{
 		options: make(map[string]string),
-		Base:    send.NewBase(""),
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
@@ -64,16 +46,17 @@ func (s *systemdJournal) Send(m message.Composer) {
 		}
 	}()
 
-	if level := s.Level(); level.ShouldLog(m) {
-		err := journal.Send(m.String(), convertPrioritySystemd(level, m.Priority()), s.options)
+	if send.ShouldLog(s, m) {
+		err := journal.Send(m.String(), convertPrioritySystemd(s.Priority(), m.Priority()), s.options)
 		if err != nil {
 			s.ErrorHandler()(err, m)
 		}
+
 	}
 }
 
-func convertPrioritySystemd(l send.LevelInfo, p level.Priority) journal.Priority {
-	switch p {
+func convertPrioritySystemd(defaultPrio, prio level.Priority) journal.Priority {
+	switch prio {
 	case level.Emergency:
 		return journal.PriEmerg
 	case level.Alert:
@@ -88,9 +71,9 @@ func convertPrioritySystemd(l send.LevelInfo, p level.Priority) journal.Priority
 		return journal.PriNotice
 	case level.Info:
 		return journal.PriInfo
-	case level.Debug, level.Trace:
+	case level.Debug, level.Trace, level.Invalid:
 		return journal.PriDebug
 	default:
-		return convertPrioritySystemd(l, l.Default)
+		return convertPrioritySystemd(level.Invalid, defaultPrio)
 	}
 }
