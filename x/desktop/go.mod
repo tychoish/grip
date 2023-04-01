@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/gen2brain/beeep v0.0.0-20220518085355-d7852edf42fc
-	github.com/tychoish/grip v0.2.0
+	github.com/tychoish/grip v0.2.1-0.20230322165316-8af4327dc8eb
 )
 
 require (
