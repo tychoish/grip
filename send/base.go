@@ -2,10 +2,10 @@ package send
 
 import (
 	"context"
-	"fmt"
 	"sync/atomic"
 
 	"github.com/tychoish/fun"
+	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
@@ -14,9 +14,9 @@ import (
 // implementations. All implementations of the functions
 type Base struct {
 	// data exposed via the interface and tools to track them
-	name   fun.Atomic[string]
-	level  fun.Atomic[LevelInfo]
-	closed atomic.Bool
+	name     fun.Atomic[string]
+	priority fun.Atomic[level.Priority]
+	closed   atomic.Bool
 
 	// function literals which allow customizable functionality.
 	// they are set either in the constructor (e.g. MakeBase) of
@@ -106,20 +106,12 @@ func (b *Base) ErrorHandler() ErrorHandler {
 	}
 }
 
-// SetLevel configures the level (default levels and threshold levels)
+// SetPriority configures the level (default levels and threshold levels)
 // for the Sender.
-func (b *Base) SetLevel(l LevelInfo) error {
-	if !l.Valid() {
-		return fmt.Errorf("level settings are not valid: %+v", l)
-	}
-
-	b.level.Set(l)
-
-	return nil
-}
+func (b *Base) SetPriority(p level.Priority) { b.priority.Set(p) }
 
 // Level reports the currently configured level for the Sender.
-func (b *Base) Level() LevelInfo { return b.level.Get() }
+func (b *Base) Priority() level.Priority { return b.priority.Get() }
 
 // Flush provides a default implementation of the Flush method for
 // senders that don't cache messages locally.

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -17,9 +16,7 @@ type multiSender struct {
 
 // NewMulti configures a new sender implementation that takes a
 // slice of Sender implementations that dispatches all messages to all
-// implementations. This constructor forces all member Senders to have
-// the same name and Level configuration. Use NewConfiguredMultiSender
-// to construct a similar Sender
+// implementations.
 //
 // Use the AddToMulti helper to add additioanl senders to one of these
 // multi Sender implementations after construction.
@@ -47,12 +44,7 @@ func NewMulti(name string, senders []Sender) (Sender, error) {
 //
 // The Sender takes ownership of the underlying Senders, so closing this Sender
 // closes all underlying Senders.
-func MakeMulti(senders ...Sender) Sender {
-	s := &multiSender{senders: senders}
-	_ = s.Base.SetLevel(LevelInfo{Default: level.Invalid, Threshold: level.Invalid})
-
-	return s
-}
+func MakeMulti(senders ...Sender) Sender { return &multiSender{senders: senders} }
 
 // AddToMulti is a helper function that takes two Sender instances,
 // the first of which must be a multi or async group sender. If this
@@ -89,7 +81,7 @@ func (s *multiSender) add(sender Sender) {
 	sender.SetName(s.Base.Name())
 	// ignore the error here; if the Base value on the multiSender
 	// is not set, then senders should just have their own level values.
-	fun.Ignore(sender.SetLevel, s.Base.Level())
+	sender.SetPriority(s.Base.Priority())
 	s.senders = append(s.senders, sender)
 	return
 }
@@ -103,29 +95,21 @@ func (s *multiSender) SetName(n string) {
 	}
 }
 
-func (s *multiSender) Level() LevelInfo { return s.Base.Level() }
-func (s *multiSender) SetLevel(l LevelInfo) error {
-	if err := s.Base.SetLevel(l); err != nil {
-		return err
-	}
-
+func (s *multiSender) Priority() level.Priority { return s.Base.Priority() }
+func (s *multiSender) SetPriority(p level.Priority) {
+	s.Base.SetPriority(p)
 	for _, sender := range s.senders {
-		_ = sender.SetLevel(l)
+		sender.SetPriority(p)
 	}
-
-	return nil
 }
 
 func (s *multiSender) Send(m message.Composer) {
 	// if the base level isn't valid, then we should let each
 	// sender decide for itself, rather than short circuiting here
-	bl := s.Base.Level()
-	if bl.Valid() && !bl.ShouldLog(m) {
-		return
-	}
-
-	for _, sender := range s.senders {
-		sender.Send(m)
+	if ShouldLog(s, m) {
+		for _, sender := range s.senders {
+			sender.Send(m)
+		}
 	}
 }
 

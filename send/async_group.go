@@ -8,6 +8,7 @@ import (
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/pubsub"
+	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
@@ -101,23 +102,16 @@ func (s *asyncGroupSender) startSenderWorker(newSender Sender) {
 	}(s.broker.Subscribe(s.baseCtx), newSender)
 }
 
-func (s *asyncGroupSender) SetLevel(l LevelInfo) error {
-	if err := s.Base.SetLevel(l); err != nil {
-		return err
-	}
-
-	catcher := &erc.Collector{}
+func (s *asyncGroupSender) SetPriority(p level.Priority) {
+	s.Base.SetPriority(p)
 
 	fun.Observe(s.ctx, s.senders.Iterator(), func(sender Sender) {
-		catcher.Add(sender.SetLevel(l))
+		sender.SetPriority(p)
 	})
-
-	return catcher.Resolve()
 }
 
 func (s *asyncGroupSender) Send(m message.Composer) {
-	bl := s.Base.Level()
-	if bl.Valid() && !bl.ShouldLog(m) {
+	if !ShouldLog(s, m) {
 		return
 	}
 	s.broker.Publish(s.ctx, m)

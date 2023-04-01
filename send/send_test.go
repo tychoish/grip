@@ -25,7 +25,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 		t.Fatal(err)
 	}
 
-	l := LevelInfo{level.Info, level.Notice}
+	l := level.Notice
 	senders = map[string]Sender{
 		// "slack": &slackJournal{Base: NewBase("slack")},
 		// "xmpp":  &xmppLogger{Base: NewBase("xmpp")},
@@ -41,7 +41,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 	var err error
 	var plain, plainerr, plainfile Sender
 	plain = MakePlain()
-	err = plain.SetLevel(l)
+	plain.SetPriority(l)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 
 	plainerr = MakePlainStdError()
 	plainerr.SetName("plain.err")
-	err = plainerr.SetLevel(l)
+	plainerr.SetPriority(l)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 		t.Fatal(err)
 	}
 	plainfile.SetName("plain.file")
-	err = plainfile.SetLevel(l)
+	plainfile.SetPriority(l)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,13 +71,13 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 	var asyncOne, asyncTwo Sender
 	asyncOne = MakeStdOutput()
 	asyncOne.SetName("async-one")
-	err = asyncOne.SetLevel(l)
+	asyncOne.SetPriority(l)
 	if err != nil {
 		t.Fatal(err)
 	}
 	asyncTwo = MakeStdOutput()
 	asyncTwo.SetName("async-two")
-	err = asyncTwo.SetLevel(l)
+	asyncTwo.SetPriority(l)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 
 	nativeErr := MakeStdError()
 	nativeErr.SetName("error")
-	err = nativeErr.SetLevel(l)
+	nativeErr.SetPriority(l)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 		t.Fatal(err)
 	}
 	nativeFile.SetName("native-file")
-	err = nativeFile.SetLevel(l)
+	nativeFile.SetPriority(l)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 
 	callsite := MakeCallSite(1)
 	callsite.SetName("callsite")
-	if err = callsite.SetLevel(l); err != nil {
+	if callsite.SetPriority(l); err != nil {
 		t.Fatal(err)
 	}
 	senders["callsite"] = callsite
@@ -114,14 +114,14 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = callsiteFile.SetLevel(l); err != nil {
+	if callsiteFile.SetPriority(l); err != nil {
 		t.Fatal(err)
 	}
 	senders["callsite-file"] = callsiteFile
 
 	jsons := MakeJSON()
 	jsons.SetName("json")
-	if err = jsons.SetLevel(LevelInfo{level.Info, level.Notice}); err != nil {
+	if jsons.SetPriority(level.Info); err != nil {
 		t.Fatal(err)
 	}
 	senders["json"] = jsons
@@ -130,7 +130,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = jsonf.SetLevel(l); err != nil {
+	if jsonf.SetPriority(l); err != nil {
 		t.Error(err)
 	}
 	jsonf.SetName("json")
@@ -141,7 +141,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 	for i := 0; i < 4; i++ {
 		sender = MakeStdOutput()
 		sender.SetName(fmt.Sprintf("native-%d", i))
-		if err = sender.SetLevel(l); err != nil {
+		if sender.SetPriority(l); err != nil {
 			t.Fatal(err)
 		}
 		multiSenders = append(multiSenders, sender)
@@ -151,14 +151,14 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = multi.SetLevel(l); err != nil {
+	if multi.SetPriority(l); err != nil {
 		t.Fatal(err)
 	}
 	senders["multi"] = multi
 
 	bufferedInternal := MakeStdOutput()
 	bufferedInternal.SetName("buffered")
-	err = bufferedInternal.SetLevel(l)
+	bufferedInternal.SetPriority(l)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 
 	annotatingBase := MakeStdOutput()
 	annotatingBase.SetName("async-one")
-	err = annotatingBase.SetLevel(l)
+	annotatingBase.SetPriority(l)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,71 +256,12 @@ func TestNameSetterRoundTrip(t *testing.T) {
 	}
 }
 
-func TestLevelSetterRejectsInvalidSettings(t *testing.T) {
-	t.Parallel()
-	levels := []LevelInfo{
-		{level.Invalid, level.Invalid},
-		{level.Priority(0), level.Priority(0)},
-		{level.Debug, level.Priority(0)},
-		{level.Priority(0), level.Info},
-		{level.Priority(225), level.Priority(225)},
-	}
-
-	for n, sender := range senderFixture(t) {
-		if n == "async" {
-			// the async sender doesn't meaningfully have
-			// its own level because it passes this down
-			// to its constituent senders.
-			continue
-		}
-		t.Run(n, func(t *testing.T) {
-			if err := sender.SetLevel(LevelInfo{level.Debug, level.Alert}); err != nil {
-				t.Fatal(err)
-			}
-
-			for idx, l := range levels {
-				t.Run(fmt.Sprint(idx), func(t *testing.T) {
-					if !sender.Level().Valid() {
-						t.Error("sender should not validate")
-					}
-					if l.Valid() {
-						t.Error("level is validate")
-					}
-					if err := sender.SetLevel(l); err == nil {
-						t.Error("setting invalid level should error")
-					}
-					if !sender.Level().Valid() {
-						t.Error("level should be valid")
-					}
-					if l == sender.Level() {
-						t.Error("values should NOT be equal")
-					}
-				})
-			}
-		})
-	}
-}
-
 func TestCloserShouldUsuallyNoop(t *testing.T) {
 	t.Parallel()
 	for _, sender := range senderFixture(t) {
 		if err := sender.Close(); err != nil {
 			t.Fatal(err)
 		}
-	}
-}
-
-func TestRejectBadSetLevels(t *testing.T) {
-	t.Parallel()
-	for name, sender := range senderFixture(t) {
-		t.Run(name, func(t *testing.T) {
-			if err := sender.SetLevel(LevelInfo{level.Info, level.Info}); err != nil {
-				t.Error(err)
-			}
-			if err := sender.SetLevel(LevelInfo{}); err == nil {
-				t.Error("should not be able to set invalid level")
-			}
-		})
 	}
 }
 
@@ -343,10 +284,7 @@ func TestBaseConstructor(t *testing.T) {
 
 	sink := MakeInternalLogger()
 	sink.SetName("sink")
-	err := sink.SetLevel(LevelInfo{level.Debug, level.Debug})
-	if err != nil {
-		t.Error(err)
-	}
+	sink.SetPriority(level.Debug)
 	handler := ErrorHandlerFromSender(sink)
 	if sink.Len() != 0 {
 		t.Error("elements should be equal")
@@ -361,7 +299,7 @@ func TestBaseConstructor(t *testing.T) {
 		if newed.name != made.name {
 			t.Error("elements should be equal")
 		}
-		if newed.level != made.level {
+		if newed.priority != made.priority {
 			t.Error("elements should be equal")
 		}
 

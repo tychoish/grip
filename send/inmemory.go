@@ -8,6 +8,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
@@ -31,7 +32,7 @@ type InMemorySender struct {
 }
 
 // NewInMemorySender creates an in-memory buffered sender with the given capacity.
-func NewInMemorySender(name string, info LevelInfo, capacity int) (Sender, error) {
+func NewInMemorySender(name string, p level.Priority, capacity int) (Sender, error) {
 	if capacity <= 0 {
 		return nil, errors.New("cannot have capacity <= 0")
 	}
@@ -41,12 +42,10 @@ func NewInMemorySender(name string, info LevelInfo, capacity int) (Sender, error
 		buffer:   make([]message.Composer, 0, capacity),
 		readHead: readHeadNone,
 	}
-	if err := s.Base.SetLevel(info); err != nil {
-		return nil, err
-	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
 
+	s.Base.SetPriority(p)
 	s.SetErrorHandler(ErrorHandlerFromLogger(fallback))
 	s.SetFormatter(MakeDefaultFormatter())
 	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name())) })
@@ -163,7 +162,7 @@ func (s *InMemorySender) GetRaw() []any {
 // Send adds the given message to the buffer. If the buffer is at max capacity,
 // it truncates the oldest message.
 func (s *InMemorySender) Send(msg message.Composer) {
-	if !s.Level().ShouldLog(msg) {
+	if !ShouldLog(s, msg) {
 		return
 	}
 

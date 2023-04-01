@@ -11,10 +11,7 @@ import (
 func TestAnnotatingSender(t *testing.T) {
 	insend := MakeInternalLogger()
 	insend.SetName("annotatingSender")
-	err := insend.SetLevel(LevelInfo{Threshold: level.Debug, Default: level.Debug})
-	if err != nil {
-		t.Fatal(err)
-	}
+	insend.SetPriority(level.Debug)
 
 	annotate := MakeAnnotating(insend, map[string]any{"a": "b"})
 	m := message.MakeSimpleFields(message.Fields{"b": "a"})

@@ -52,13 +52,7 @@ func (b *Base) Structured() bool { return len(b.Context) >= 1 }
 
 // SetPriority allows you to configure the priority of the
 // message. Returns an error if the priority is not valid.
-func (b *Base) SetPriority(l level.Priority) {
-	if l.IsValid() {
-		b.Level = l
-	}
-
-	return
-}
+func (b *Base) SetPriority(l level.Priority) { b.Level = l }
 
 // Annotate makes it possible for callers and senders to add
 // structured data to a message. This may be overridden for some

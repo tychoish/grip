@@ -24,7 +24,6 @@ type InternalSender struct {
 type InternalMessage struct {
 	Message message.Composer
 
-	Level    LevelInfo
 	Logged   bool
 	Priority level.Priority
 	Rendered string
@@ -86,6 +85,6 @@ func (s *InternalSender) Send(m message.Composer) {
 		Message:  m,
 		Priority: m.Priority(),
 		Rendered: m.String(),
-		Logged:   s.Level().ShouldLog(m),
+		Logged:   ShouldLog(s, m),
 	}
 }

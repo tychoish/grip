@@ -30,7 +30,7 @@ func MakeAnnotating(s Sender, annotations map[string]any) Sender {
 func (s *annotatingSender) Unwrap() Sender { return s.Sender }
 
 func (s *annotatingSender) Send(m message.Composer) {
-	if !s.Sender.Level().ShouldLog(m) {
+	if !ShouldLog(s, m) {
 		return
 	}
 

@@ -61,7 +61,7 @@ func setupDefault() {
 		sender.SetName("grip")
 	}
 
-	_ = sender.SetLevel(send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	sender.SetPriority(level.Info)
 
 	std = NewLogger(sender)
 }
@@ -193,7 +193,7 @@ func (g Logger) sendPanic(l level.Priority, m message.Composer) {
 
 	// the Send method in the Sender interface will perform this
 	// check but to add fatal methods we need to do this here.
-	if g.impl.Level().ShouldLog(m) {
+	if send.ShouldLog(g.impl, m) {
 		g.impl.Send(m)
 		panic(m.String())
 	}
@@ -204,7 +204,7 @@ func (g Logger) sendFatal(l level.Priority, m message.Composer) {
 
 	// the Send method in the Sender interface will perform this
 	// check but to add fatal methods we need to do this here.
-	if g.impl.Level().ShouldLog(m) {
+	if send.ShouldLog(g.impl, m) {
 		g.impl.Send(m)
 		os.Exit(1)
 	}

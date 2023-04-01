@@ -3,6 +3,8 @@ package level
 import (
 	"strings"
 	"testing"
+
+	"github.com/tychoish/fun/testt"
 )
 
 func assert(t *testing.T, cond bool, args ...any) {
@@ -11,29 +13,11 @@ func assert(t *testing.T, cond bool, args ...any) {
 		if len(args) > 0 {
 			t.Log(args...)
 		}
-		t.Fatal("condition was false")
+		t.Error("condition was false")
 	}
 }
 
 func TestLevel(t *testing.T) {
-	t.Run("Valid", func(t *testing.T) {
-		t.Run("TooLow", func(t *testing.T) {
-			assert(t, !Priority(0).IsValid())
-		})
-		t.Run("TooHigh", func(t *testing.T) {
-			assert(t, !Priority(101).IsValid())
-			assert(t, !Priority(255).IsValid())
-		})
-		t.Run("Edges", func(t *testing.T) {
-			assert(t, Priority(1).IsValid())
-			assert(t, Priority(100).IsValid())
-		})
-		t.Run("Range", func(t *testing.T) {
-			for i := 1; i < 101; i++ {
-				assert(t, Priority(i).IsValid())
-			}
-		})
-	})
 	t.Run("StringForm", func(t *testing.T) {
 		t.Run("Levels", func(t *testing.T) {
 			for _, val := range []Priority{Emergency, Alert, Critical, Error, Warning, Notice, Info, Debug, Trace, Invalid} {
@@ -43,10 +27,10 @@ func TestLevel(t *testing.T) {
 		})
 		t.Run("InBetween", func(t *testing.T) {
 			for i := 1; i < 101; i++ {
-				if i%10 == 0 {
+				if i%25 == 0 {
 					continue
 				}
-				assert(t, strings.HasPrefix(Priority(i).String(), "<"), i)
+				assert(t, strings.HasPrefix(Priority(i).String(), "level.Priority<"), i)
 				assert(t, strings.HasSuffix(Priority(i).String(), ">"), i)
 			}
 		})
@@ -54,7 +38,9 @@ func TestLevel(t *testing.T) {
 	})
 	t.Run("RoundTrip", func(t *testing.T) {
 		for i := 1; i < 101; i++ {
-			assert(t, Priority(i) == FromString(Priority(i).String()), i)
+			str := FromString(Priority(i).String())
+			assert(t, Priority(i) == str, i, str)
+			testt.Log(t, str, i)
 		}
 	})
 	t.Run("EdgeCases", func(t *testing.T) {

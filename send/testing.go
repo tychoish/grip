@@ -23,14 +23,12 @@ type testLogger struct {
 func MakeTesting(t *testing.T) Sender {
 	s := &testLogger{t: t}
 	s.SetName(t.Name())
-	if err := s.SetLevel(LevelInfo{Threshold: level.Debug, Default: level.Info}); err != nil {
-		t.Fatalf("problem setting up logger %s: %v", t.Name(), err)
-	}
+	s.SetPriority(level.Debug)
 	return s
 }
 
 func (s *testLogger) Send(m message.Composer) {
-	if s.Level().ShouldLog(m) {
+	if ShouldLog(s, m) {
 		out, err := s.Formatter()(m)
 		if err != nil {
 			s.t.Logf("formating message [type=%T]: %v", m, err)

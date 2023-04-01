@@ -35,12 +35,13 @@ type Sender interface {
 	// return nil.
 	Flush(context.Context) error
 
-	// SetLevel allows you to modify the level configuration. Returns an
-	// error if you specify impossible values.
-	SetLevel(LevelInfo) error
+	// SetPriority sets the threshold of the sender. Typically,
+	// loggers will not send messages that have a priority less
+	// than this level.
+	SetPriority(level.Priority)
 
-	// Level returns the level configuration document.
-	Level() LevelInfo
+	// Level returns the currently configured level for the sender.
+	Priority() level.Priority
 
 	// SetErrorHandler provides a method to inject error handling behavior
 	// to a sender. Not all sender implementations use the error handler,
@@ -62,31 +63,6 @@ type Sender interface {
 	Close() error
 }
 
-// LevelInfo provides a sender-independent structure for storing information
-// about a sender's configured log levels.
-type LevelInfo struct {
-	Default   level.Priority `json:"default" bson:"default"`
-	Threshold level.Priority `json:"threshold" bson:"threshold"`
-}
-
-// Valid checks that the priorities stored in the LevelInfo document are valid.
-func (l LevelInfo) Valid() bool { return l.Default.IsValid() && l.Threshold.IsValid() }
-
-// ShouldLog checks to see if the log message should be logged, and returns
-// false if there is no message or if the message's priority is below the
-// logging threshold.
-//
-// This calls the messages' Loggable method.
-func (l LevelInfo) ShouldLog(m message.Composer) bool {
-	// priorities are 0 = Emergency; 7 = debug
-	return l.Valid() && m.Loggable() && l.Loggable(m.Priority())
-}
-
-// Loggable returns true only when passed an argument that is equal to
-// or greater than the threshold. Messages with negative priority are
-// never loggable.
-func (l LevelInfo) Loggable(p level.Priority) bool { return p.IsValid() && p >= l.Threshold }
-
 // MakeStandard produces a standard library logging instance that
 // write to the underlying sender.
 func MakeStandard(s Sender) *log.Logger { return log.New(MakeWriter(s), "", 0) }
@@ -94,3 +70,11 @@ func MakeStandard(s Sender) *log.Logger { return log.New(MakeWriter(s), "", 0) }
 // FromStandard prodeces a sender implementation from the standard
 // library logger.
 func FromStandard(logger *log.Logger) Sender { return WrapWriter(logger.Writer()) }
+
+func ShouldLog(s Sender, m message.Composer) bool {
+	if !m.Loggable() {
+		return false
+	}
+	mp := m.Priority()
+	return mp != level.Invalid && mp >= s.Priority()
+}

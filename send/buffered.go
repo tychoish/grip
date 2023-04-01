@@ -59,10 +59,9 @@ func MakeBuffered(sender Sender, interval time.Duration, size int) Sender {
 func (s *bufferedSender) Unwrap() Sender { return s.Sender }
 
 func (s *bufferedSender) Send(msg message.Composer) {
-	if !s.Level().Loggable(msg.Priority()) {
+	if !ShouldLog(s, msg) {
 		return
 	}
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

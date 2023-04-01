@@ -17,25 +17,25 @@ func TestGroupComposer(t *testing.T) {
 
 		check.Equal(t, level.Invalid, cmp.Priority())
 		cmp.SetPriority(level.Priority(200))
-		check.Equal(t, level.Invalid, cmp.Priority())
+		check.Equal(t, level.Critical, cmp.Priority())
 		cmp.SetPriority(level.Info)
 		check.Equal(t, level.Info, cmp.Priority())
 		cmp.SetPriority(level.Priority(200))
-		check.Equal(t, level.Info, cmp.Priority())
+		check.Equal(t, level.Critical, cmp.Priority())
 		cmp.SetPriority(level.Priority(200))
-		check.Equal(t, level.Info, cmp.Priority())
+		check.Equal(t, level.Critical, cmp.Priority())
 
 		nm := MakeString("higher")
-		nm.SetPriority(level.Error)
+		nm.SetPriority(level.Alert)
 		cmp.Add(nm)
-		check.Equal(t, level.Error, cmp.Priority())
+		check.Equal(t, level.Alert, cmp.Priority())
 
 		cmp.SetPriority(level.Info)
 
 		list := cmp.Messages()
 		check.Equal(t, level.Info, list[0].Priority())
 		check.Equal(t, level.Info, list[1].Priority())
-		check.Equal(t, level.Error, list[2].Priority())
+		check.Equal(t, level.Info, list[2].Priority())
 	})
 	t.Run("GroupsCanGrow", func(t *testing.T) {
 		cmp := BuildGroupComposer()

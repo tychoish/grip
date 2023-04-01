@@ -11,9 +11,8 @@ import (
 func TestFunctionMessage(t *testing.T) {
 	t.Run("SetPriority", func(t *testing.T) {
 		p := MakeProducer(func() Composer { return MakeString("works") })
-		assert.True(t, !p.Priority().IsValid())
 		p.SetPriority(level.Error)
-		assert.True(t, p.Priority().IsValid())
+		assert.True(t, p.Priority() == level.Error)
 		assert.True(t, p.(*composerProducerMessage).cached == nil)
 		check.True(t, p.Loggable()) // calse resolve
 		assert.True(t, p.(*composerProducerMessage).cached != nil)

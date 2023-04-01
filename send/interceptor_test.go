@@ -10,10 +10,7 @@ import (
 func TestInterceptor(t *testing.T) {
 	base := MakeInternalLogger()
 	base.SetName("test")
-	err := base.SetLevel(LevelInfo{Threshold: level.Debug, Default: level.Info})
-	if err != nil {
-		t.Fatal(err)
-	}
+	base.SetPriority(level.Debug)
 
 	var count int
 	filter := func(m message.Composer) { count++ }

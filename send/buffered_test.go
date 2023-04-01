@@ -22,10 +22,7 @@ func TestBufferedSend(t *testing.T) {
 
 	s := MakeInternalLogger()
 	s.SetName("buffs")
-	err := s.SetLevel(LevelInfo{Threshold: level.Debug, Default: level.Debug})
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.SetPriority(level.Debug)
 
 	t.Run("RespectsPriority", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
@@ -108,10 +105,7 @@ func TestFlush(t *testing.T) {
 
 	s := MakeInternalLogger()
 	s.SetName("buffs")
-	err := s.SetLevel(LevelInfo{Threshold: level.Debug, Default: level.Debug})
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.SetPriority(level.Debug)
 
 	t.Run("ForceFlush", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
@@ -164,10 +158,7 @@ func TestBufferedClose(t *testing.T) {
 
 	s := MakeInternalLogger()
 	s.SetName("buffs")
-	err := s.SetLevel(LevelInfo{Threshold: level.Debug, Default: level.Debug})
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.SetPriority(level.Debug)
 
 	t.Run("EmptyBuffer", func(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
@@ -231,10 +222,7 @@ func TestIntervalFlush(t *testing.T) {
 
 	s := MakeInternalLogger()
 	s.SetName("buffs")
-	err := s.SetLevel(LevelInfo{Threshold: level.Debug, Default: level.Debug})
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.SetPriority(level.Debug)
 
 	t.Run("ReturnsWhenClosed", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())

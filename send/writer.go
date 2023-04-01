@@ -7,7 +7,6 @@ import (
 	"sync"
 	"unicode"
 
-	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
@@ -16,10 +15,9 @@ import (
 // io.WriteCloser.
 type WriterSender struct {
 	Sender
-	writer   *bufio.Writer
-	buffer   *bytes.Buffer
-	priority level.Priority
-	mu       sync.Mutex
+	writer *bufio.Writer
+	buffer *bytes.Buffer
+	mu     sync.Mutex
 }
 
 // MakeWriter wraps another sender and also provides an io.Writer.
@@ -43,10 +41,9 @@ func MakeWriter(s Sender) *WriterSender {
 	buffer := new(bytes.Buffer)
 
 	return &WriterSender{
-		Sender:   s,
-		priority: s.Level().Default,
-		writer:   bufio.NewWriter(buffer),
-		buffer:   buffer,
+		Sender: s,
+		writer: bufio.NewWriter(buffer),
+		buffer: buffer,
 	}
 }
 
@@ -70,6 +67,7 @@ func (s *WriterSender) Write(p []byte) (int, error) {
 }
 
 func (s *WriterSender) doSend() error {
+	pri := s.Sender.Priority()
 	for {
 		line, err := s.buffer.ReadBytes('\n')
 		if err == io.EOF {
@@ -82,13 +80,13 @@ func (s *WriterSender) doSend() error {
 
 		if err == nil {
 			m := message.MakeBytes(bytes.TrimRightFunc(lncp, unicode.IsSpace))
-			m.SetPriority(s.priority)
+			m.SetPriority(pri)
 			s.Send(m)
 			continue
 		}
 
 		m := message.MakeBytes(bytes.TrimRightFunc(lncp, unicode.IsSpace))
-		m.SetPriority(s.priority)
+		m.SetPriority(pri)
 		s.Send(m)
 		return err
 	}
@@ -105,7 +103,7 @@ func (s *WriterSender) Close() error {
 	}
 
 	m := message.MakeBytes(bytes.TrimRightFunc(s.buffer.Bytes(), unicode.IsSpace))
-	m.SetPriority(s.priority)
+	m.SetPriority(s.Priority())
 	s.Send(m)
 	s.buffer.Reset()
 	s.writer.Reset(s.buffer)

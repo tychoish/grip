@@ -45,7 +45,7 @@ func setupFixture(t *testing.T) *InMemorySuite {
 
 	s := &InMemorySuite{}
 
-	info := LevelInfo{Default: level.Debug, Threshold: level.Debug}
+	info := level.Debug
 	sender, err := NewInMemorySender("inmemory", info, maxCap)
 	if err != nil {
 		t.Fatal(err)
@@ -79,7 +79,7 @@ func setupFixture(t *testing.T) *InMemorySuite {
 
 	s.msgs = make([]message.Composer, 2*maxCap)
 	for i := range s.msgs {
-		s.msgs[i] = NewString(info.Default, fmt.Sprint(i))
+		s.msgs[i] = NewString(level.Info, fmt.Sprint(i))
 	}
 
 	return s
@@ -87,7 +87,7 @@ func setupFixture(t *testing.T) *InMemorySuite {
 
 func TestInvalidCapacityErrors(t *testing.T) {
 	badCap := -1
-	sender, err := NewInMemorySender("inmemory", LevelInfo{Default: level.Debug, Threshold: level.Debug}, badCap)
+	sender, err := NewInMemorySender("inmemory", level.Debug, badCap)
 	if err == nil {
 		t.Fatal(err)
 	}

@@ -15,10 +15,7 @@ func TestMultiSenderRespectsLevel(t *testing.T) {
 
 	mock := MakeInternalLogger()
 	mock.SetName("mock")
-	err := mock.SetLevel(LevelInfo{Default: level.Critical, Threshold: level.Alert})
-	if err != nil {
-		t.Error(err)
-	}
+	mock.SetPriority(level.Alert)
 	s := MakeStdError()
 	s.SetName("mock2")
 	multi := MakeMulti(s, mock)

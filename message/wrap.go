@@ -28,9 +28,13 @@ func IsWrapped(c Composer) bool { wc, ok := c.(*wrappedImpl); return ok && wc.pa
 // and produces a group composer of all the constituent messages. If
 // there are group messages in the stack, they are added (flattened)
 // in the new output group.
-func Unwind(comp Composer) Composer {
-	if fun.IsWrapped(comp) {
-		return MakeGroupComposer(fun.Unwind(comp))
+func Unwind(comp Composer) []Composer {
+	switch c := comp.(type) {
+	case *wrappedImpl:
+		return fun.Unwind(comp)
+	case *GroupComposer:
+		return c.Messages()
+	default:
+		return []Composer{c}
 	}
-	return comp
 }

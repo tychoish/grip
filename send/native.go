@@ -26,16 +26,14 @@ func MakeFile(filePath string) (Sender, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error opening logging file: %w", err)
 	}
+	s.SetPriority(level.Trace)
 
-	s.level.Set(LevelInfo{level.Trace, level.Trace})
-
-	s.reset.Set(func() {
+	s.SetResetHook(func() {
 		prefix := fmt.Sprintf("[%s] ", s.Name())
 		s.logger = log.New(f, prefix, log.LstdFlags)
 		s.SetErrorHandler(ErrorHandlerFromLogger(log.New(os.Stderr, prefix, log.LstdFlags)))
 	})
-
-	s.closer.Set(func() error {
+	s.SetCloseHook(func() error {
 		return f.Close()
 	})
 	s.doReset()
@@ -68,12 +66,12 @@ func WrapWriter(wr io.Writer) Sender {
 	}
 
 	s := &nativeLogger{}
-	_ = s.SetLevel(LevelInfo{level.Trace, level.Trace})
 
 	s.SetResetHook(func() {
 		s.logger = log.New(wr, fmt.Sprintf("[%s] ", s.Name()), log.LstdFlags)
 		s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
 	})
+	s.SetPriority(level.Trace)
 	s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
 	s.SetFormatter(MakeDefaultFormatter())
 	s.doReset()
@@ -82,7 +80,7 @@ func WrapWriter(wr io.Writer) Sender {
 }
 
 func (s *nativeLogger) Send(m message.Composer) {
-	if s.Level().ShouldLog(m) {
+	if ShouldLog(s, m) {
 		out, err := s.Formatter()(m)
 		if err != nil {
 			s.ErrorHandler()(err, m)

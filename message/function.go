@@ -130,11 +130,9 @@ func (cp *composerProducerMessage) Annotate(k string, v any) error {
 }
 
 func (cp *composerProducerMessage) SetPriority(p level.Priority) {
-	if p.IsValid() {
-		cp.level = p
-		if cp.cached != nil {
-			cp.cached.SetPriority(cp.level)
-		}
+	cp.level = p
+	if cp.cached != nil {
+		cp.cached.SetPriority(cp.level)
 	}
 }
 

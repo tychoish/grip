@@ -15,7 +15,7 @@ func TestStdLogging(t *testing.T) {
 	printableMessage := strings.Repeat("hello world", 8)
 
 	internal := NewInternalLogger(1)
-	assert.NotError(t, internal.SetLevel(LevelInfo{Default: level.Info, Threshold: level.Info}))
+	internal.SetPriority(level.Info)
 	std := MakeStandard(internal)
 	std.Print(printableMessage)
 	testt.Logf(t, "std=%+v", std)

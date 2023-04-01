@@ -3,6 +3,7 @@ package message
 import (
 	"errors"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/level"
 )
@@ -68,7 +69,9 @@ func (b *Builder) Send() {
 // converted to a group.
 func (b *Builder) Message() Composer {
 	if b.composer != nil {
-		b.composer = Unwind(b.composer)
+		if IsWrapped(b.composer) {
+			b.composer = MakeGroupComposer(fun.Unwind(b.composer))
+		}
 
 		if b.catcher.HasErrors() {
 			return WrapError(b.catcher.Resolve(), b.composer)

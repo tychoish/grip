@@ -20,15 +20,15 @@ type Priority uint8
 
 // Constants defined for easy access to
 const (
-	Emergency Priority = 100
-	Alert     Priority = 90
-	Critical  Priority = 80
-	Error     Priority = 70
-	Warning   Priority = 60
-	Notice    Priority = 50
-	Info      Priority = 40
-	Debug     Priority = 30
-	Trace     Priority = 20
+	Emergency Priority = 250
+	Alert     Priority = 225
+	Critical  Priority = 200
+	Error     Priority = 175
+	Warning   Priority = 150
+	Notice    Priority = 125
+	Info      Priority = 100
+	Debug     Priority = 50
+	Trace     Priority = 25
 	Invalid   Priority = 0
 )
 
@@ -36,35 +36,29 @@ const (
 // print human-readable string identifier for a log level.
 func (p Priority) String() string {
 	switch p {
-	case 100:
+	case Emergency:
 		return "emergency"
-	case 90:
+	case Alert:
 		return "alert"
-	case 80:
+	case Critical:
 		return "critical"
-	case 70:
+	case Error:
 		return "error"
-	case 60:
+	case Warning:
 		return "warning"
-	case 50:
+	case Notice:
 		return "notice"
-	case 40:
+	case Info:
 		return "info"
-	case 30:
+	case Debug:
 		return "debug"
-	case 20:
+	case Trace:
 		return "trace"
-	case 0:
+	case Invalid:
 		return "invalid"
 	default:
-		return fmt.Sprintf("<%d>", p)
+		return fmt.Sprintf("level.Priority<%d>", uint8(p))
 	}
-}
-
-// IsValid returns false when the priority valid is not a valid
-// priority value.
-func (p Priority) IsValid() bool {
-	return p >= 1 && p <= 100
 }
 
 // FromString takes a string, (case insensitive, leading and trailing space removed, )
@@ -89,19 +83,21 @@ func FromString(l string) Priority {
 		return Debug
 	case "trace":
 		return Trace
+	case "invalid":
+		return Invalid
 	default:
-		switch {
-		case strings.HasPrefix(l, "<") && strings.HasSuffix(l, ">"):
-			out, err := strconv.Atoi(l[1 : len(l)-1])
-			if err != nil {
-				return Invalid
-			}
-			if out > math.MaxInt16 {
-				return Invalid
-			}
-			return Priority(out)
-		default:
+		if strings.HasPrefix(l, "level.priority<") && strings.HasSuffix(l, ">") {
+			l = l[15 : len(l)-1]
+		}
+
+		out, err := strconv.Atoi(l)
+		if err != nil {
 			return Invalid
 		}
+		if out > math.MaxUint8 {
+			return Invalid
+		}
+
+		return Priority(out)
 	}
 }

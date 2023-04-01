@@ -19,9 +19,7 @@ func TestLogger(t *testing.T) {
 		t.Helper()
 		sender := send.MakePlain()
 		sender.SetName(name)
-		if err := sender.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Trace}); err != nil {
-			t.Fatal(err)
-		}
+		sender.SetPriority(level.Trace)
 		if sender.Name() != name {
 			t.Errorf("sender is named %q not %q", sender.Name(), name)
 		}
@@ -72,13 +70,11 @@ func TestLogger(t *testing.T) {
 	t.Run("PanicRespectsThreshold", func(t *testing.T) {
 		grip := NewLogger(testSender(t))
 
-		if level.Debug < grip.Sender().Level().Threshold {
+		if level.Debug < grip.Sender().Priority() {
 			t.Fatal("level ordering is not correct")
 		}
-		if err := grip.Sender().SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Notice}); err != nil {
-			t.Fatal(err)
-		}
-		if level.Debug > grip.Sender().Level().Threshold {
+		grip.Sender().SetPriority(level.Notice)
+		if level.Debug > grip.Sender().Priority() {
 			t.Fatal("level ordering is not correct")
 		}
 
@@ -100,7 +96,7 @@ func TestLogger(t *testing.T) {
 		logger.send(95, m)
 		check.Equal(t, m.Priority(), 95)
 		logger.send(0, m)
-		check.Equal(t, m.Priority(), 95)
+		check.Equal(t, m.Priority(), 0)
 		logger.send(level.Warning, m)
 		check.Equal(t, m.Priority(), level.Warning)
 		logger.send(level.Priority(103), m)
@@ -113,10 +109,7 @@ func TestLogger(t *testing.T) {
 		// is exported, we can't pass the sink between functions.
 		sink := send.MakeInternalLogger()
 		sink.SetName("sink")
-		err := sink.SetLevel(send.LevelInfo{Default: level.Debug, Threshold: level.Info})
-		if err != nil {
-			t.Fatal(err)
-		}
+		sink.SetPriority(level.Info)
 		grip := NewLogger(sink)
 
 		msg := message.MakeLines("foo")
@@ -162,10 +155,7 @@ func TestLogger(t *testing.T) {
 	t.Run("CatchMethods", func(t *testing.T) {
 		sink := send.MakeInternalLogger()
 		sink.SetName("sink")
-		err := sink.SetLevel(send.LevelInfo{Threshold: level.Trace, Default: level.Debug})
-		if err != nil {
-			t.Fatal(err)
-		}
+		sink.SetPriority(level.Trace)
 		grip := NewLogger(sink)
 
 		cases := []any{
@@ -373,7 +363,7 @@ func TestSendFatalExits(t *testing.T) {
 	t.Run("RespectsPriority", func(t *testing.T) {
 		grip := NewLogger(send.MakeStdOutput())
 		grip.impl.SetErrorHandler(send.ErrorHandlerFromSender(std.Sender()))
-		_ = grip.impl.SetLevel(send.LevelInfo{Default: level.Info, Threshold: level.Warning})
+		grip.impl.SetPriority(level.Warning)
 		// shouldn't fail
 		grip.sendFatal(level.Debug, message.Convert("hello world"))
 		grip.sendFatal(0, message.Convert("hello world"))

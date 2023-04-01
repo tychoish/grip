@@ -119,16 +119,13 @@ func (g *GroupComposer) Priority() level.Priority {
 // if the existing level is unset (or otherwise invalid), and will
 // *not* unset the level of a constituent composer.
 func (g *GroupComposer) SetPriority(l level.Priority) {
-	if l.IsValid() {
-		g.mutex.RLock()
-		defer g.mutex.RUnlock()
+	g.mutex.RLock()
+	defer g.mutex.RUnlock()
 
-		for _, m := range g.messages {
-			if m != nil && !m.Priority().IsValid() {
-				m.SetPriority(l)
-			}
+	for _, m := range g.messages {
+		if m != nil {
+			m.SetPriority(l)
 		}
-
 	}
 
 	return

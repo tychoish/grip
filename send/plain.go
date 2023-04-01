@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/grip/level"
 )
 
@@ -18,7 +17,7 @@ func WrapWriterPlain(wr io.Writer) Sender {
 	s := &nativeLogger{}
 
 	s.SetFormatter(MakePlainFormatter())
-	fun.InvariantMust(s.SetLevel(LevelInfo{Default: level.Trace, Threshold: level.Trace}))
+	s.SetPriority(level.Trace)
 	s.SetResetHook(func() {
 		s.logger = log.New(wr, "", 0)
 		s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))

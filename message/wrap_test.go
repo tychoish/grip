@@ -44,7 +44,7 @@ func TestWrap(t *testing.T) {
 		comp := MakeString("hello")
 		comp = Wrap(comp, MakeString("world"))
 
-		if sizeOfGroup(t, Unwind(comp)) != 2 {
+		if sizeOfGroup(t, MakeGroupComposer(Unwind(comp))) != 2 {
 			t.Fatal("wrap message does not unwrap correctly")
 
 		}
@@ -56,7 +56,7 @@ func TestWrap(t *testing.T) {
 		comp = Wrap(comp, MakeString("world"))
 		comp.SetPriority(level.Info)
 
-		comp = Unwind(comp)
+		comp = MakeGroupComposer(Unwind(comp))
 		if sizeOfGroup(t, comp) != 2 {
 			t.Fatal("wrap message does not unwrap correctly")
 		}
@@ -74,7 +74,7 @@ func TestWrap(t *testing.T) {
 		comp := MakeString("hello")
 		comp = Wrap(comp, Wrap(MakeString("world"), "earthling"))
 
-		comp = Unwind(comp)
+		comp = MakeGroupComposer(Unwind(comp))
 
 		if size := sizeOfGroup(t, comp); size != 2 {
 			t.Log(comp)
