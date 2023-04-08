@@ -1,6 +1,6 @@
 github.com/bluele/slack v0.0.0-20180528010058-b4b4d354a079 h1:dm7wU6Dyf+rVGryOAB8/J/I+pYT/9AdG8dstD3kdMWU=
 github.com/bluele/slack v0.0.0-20180528010058-b4b4d354a079/go.mod h1:W679Ri2W93VLD8cVpEY/zLH1ow4zhJcCyjzrKxfM3QM=
-github.com/tychoish/fun v0.8.3 h1:RdUzrAMqPmVljcTFBiOnvjDT6sTKFypa9Q4ygo11R6c=
-github.com/tychoish/fun v0.8.3/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
+github.com/tychoish/fun v0.8.4 h1:M31fylo455x7yUML+4jso3ewbf/JckkpwF/ptyXHc64=
+github.com/tychoish/fun v0.8.4/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
 github.com/tychoish/grip v0.2.1-0.20230322165316-8af4327dc8eb h1:OwcktOmO+/zHw2buVoY+n2Jk2qbY+hcevdUUMVZb6ms=
 github.com/tychoish/grip v0.2.1-0.20230322165316-8af4327dc8eb/go.mod h1:Xa/9RSKDUDURXA8DSgtPnQZDROTTwAJB221aAh3Chqw=

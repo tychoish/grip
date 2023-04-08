@@ -9,8 +9,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.8.0 h1:pSgiaMZlXftHpm5L7V1+rVB+AZJydKsMxsQBIJw4PKk=
-github.com/tychoish/fun v0.8.3 h1:RdUzrAMqPmVljcTFBiOnvjDT6sTKFypa9Q4ygo11R6c=
-github.com/tychoish/fun v0.8.3/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
+github.com/tychoish/fun v0.8.4 h1:M31fylo455x7yUML+4jso3ewbf/JckkpwF/ptyXHc64=
+github.com/tychoish/fun v0.8.4/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
 github.com/tychoish/grip v0.2.1-0.20230322165316-8af4327dc8eb h1:OwcktOmO+/zHw2buVoY+n2Jk2qbY+hcevdUUMVZb6ms=
 github.com/tychoish/grip v0.2.1-0.20230322165316-8af4327dc8eb/go.mod h1:Xa/9RSKDUDURXA8DSgtPnQZDROTTwAJB221aAh3Chqw=
 go.uber.org/atomic v1.7.0 h1:ADUqmZGgLDDfbSL9ZmPxKTybcoEYHgpYfELNoN+7hsw=
