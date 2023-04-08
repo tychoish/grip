@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -14,17 +14,17 @@ import (
 // implementations. All implementations of the functions
 type Base struct {
 	// data exposed via the interface and tools to track them
-	name     fun.Atomic[string]
-	priority fun.Atomic[level.Priority]
+	name     adt.Atomic[string]
+	priority adt.Atomic[level.Priority]
 	closed   atomic.Bool
 
 	// function literals which allow customizable functionality.
 	// they are set either in the constructor (e.g. MakeBase) of
 	// via the SetErrorHandler/SetFormatter injector.
-	errHandler fun.Atomic[ErrorHandler]
-	reset      fun.Atomic[func()]
-	closer     fun.Atomic[func() error]
-	formatter  fun.Atomic[MessageFormatter]
+	errHandler adt.Atomic[ErrorHandler]
+	reset      adt.Atomic[func()]
+	closer     adt.Atomic[func() error]
+	formatter  adt.Atomic[MessageFormatter]
 }
 
 // NewBase constructs a basic Base structure with no op functions for
