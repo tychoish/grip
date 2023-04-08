@@ -11,8 +11,8 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.8.0 h1:pSgiaMZlXftHpm5L7V1+rVB+AZJydKsMxsQBIJw4PKk=
 github.com/tychoish/fun v0.8.4 h1:M31fylo455x7yUML+4jso3ewbf/JckkpwF/ptyXHc64=
 github.com/tychoish/fun v0.8.4/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
-github.com/tychoish/grip v0.2.1-0.20230322165316-8af4327dc8eb h1:OwcktOmO+/zHw2buVoY+n2Jk2qbY+hcevdUUMVZb6ms=
-github.com/tychoish/grip v0.2.1-0.20230322165316-8af4327dc8eb/go.mod h1:Xa/9RSKDUDURXA8DSgtPnQZDROTTwAJB221aAh3Chqw=
+github.com/tychoish/grip v0.2.2 h1:GtmYZQ+qDYwaUNVG5eZNbkjtK5gTVUfHvEPKeHkyS/Y=
+github.com/tychoish/grip v0.2.2/go.mod h1:FAgqsQASkVgD/vzQ3NqM6rkHKgTxc5pcR93dxN+O7Vo=
 go.uber.org/atomic v1.7.0 h1:ADUqmZGgLDDfbSL9ZmPxKTybcoEYHgpYfELNoN+7hsw=
 go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
 go.uber.org/goleak v1.1.11 h1:wy28qYRKZgnJTxGxvye5/wgWr1EKjmUDGYox5mGlRlI=
