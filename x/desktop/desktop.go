@@ -8,7 +8,7 @@ import (
 )
 
 type desktopNotify struct {
-	*send.Base
+	send.Base
 }
 
 // NewDesktopNotify constructs a sender that pushes messages
