@@ -23,15 +23,14 @@ type multiSender struct {
 //
 // The Sender takes ownership of the underlying Senders, so closing this Sender
 // closes all underlying Senders.
-func NewMulti(name string, senders []Sender) (Sender, error) {
+func NewMulti(name string, senders []Sender) Sender {
 	for _, sender := range senders {
 		sender.SetName(name)
 	}
 
 	s := &multiSender{senders: senders}
 	s.SetName(name)
-
-	return s, nil
+	return s
 }
 
 // MakeMulti returns a multi sender implementation with
