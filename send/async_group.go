@@ -65,10 +65,15 @@ func MakeAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Send
 			defer s.cancel()
 			catcher.Add(s.senders.Close())
 
-			closeAll := fun.ObserveAll(ctx, s.senders.Iterator(), func(sender Sender) {
-				catcher.Add(sender.Close())
-			})
-			closeAll.Add(ctx, wg)
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				catcher.Add(fun.Observe(ctx, s.senders.Iterator(), func(sender Sender) {
+					catcher.Add(sender.Close())
+				}))
+
+			}()
+
 			catcher.Add(s.senders.Close())
 			close(shutdown)
 			wg.Wait(ctx)
@@ -105,9 +110,9 @@ func (s *asyncGroupSender) startSenderWorker(newSender Sender) {
 func (s *asyncGroupSender) SetPriority(p level.Priority) {
 	s.Base.SetPriority(p)
 
-	fun.Observe(s.ctx, s.senders.Iterator(), func(sender Sender) {
+	fun.InvariantMust(fun.Observe(s.ctx, s.senders.Iterator(), func(sender Sender) {
 		sender.SetPriority(p)
-	})
+	}))
 }
 
 func (s *asyncGroupSender) Send(m message.Composer) {
@@ -120,9 +125,9 @@ func (s *asyncGroupSender) Send(m message.Composer) {
 func (s *asyncGroupSender) Flush(ctx context.Context) error {
 	catcher := &erc.Collector{}
 
-	fun.ObserveAll(ctx, s.senders.Iterator(), func(sender Sender) {
+	catcher.Add(fun.Observe(ctx, s.senders.Iterator(), func(sender Sender) {
 		catcher.Add(sender.Flush(ctx))
-	})(ctx)
+	}))
 
 	return catcher.Resolve()
 }

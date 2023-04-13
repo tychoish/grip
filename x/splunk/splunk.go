@@ -2,7 +2,6 @@ package splunk
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -51,16 +50,6 @@ func GetConnectionInfo() ConnectionInfo {
 // there is missing data.
 func (info ConnectionInfo) Populated() bool {
 	return info.ServerURL != "" && info.Token != ""
-}
-
-func (info ConnectionInfo) validateFromEnv() error {
-	if info.ServerURL == "" {
-		return fmt.Errorf("environment variable %s not defined, cannot create splunk client", splunkServerURL)
-	}
-	if info.Token == "" {
-		return fmt.Errorf("environment variable %s not defined, cannot create splunk client", splunkClientToken)
-	}
-	return nil
 }
 
 func (s *splunkLogger) Send(m message.Composer) {

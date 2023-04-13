@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/fun/assert/check"
 )
 
@@ -24,7 +24,7 @@ func mockSender(t *testing.T, expected int) func(Composer) {
 func mockSenderMessage(t *testing.T, expected string) func(Composer) {
 	t.Helper()
 	count := &atomic.Int64{}
-	value := &fun.Atomic[string]{}
+	value := &adt.Atomic[string]{}
 	t.Cleanup(func() {
 		t.Helper()
 		check.Equal(t, int(count.Load()), 1)

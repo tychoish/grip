@@ -147,10 +147,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 		multiSenders = append(multiSenders, sender)
 	}
 
-	multi, err := NewMulti("multi", multiSenders)
-	if err != nil {
-		t.Fatal(err)
-	}
+	multi := NewMulti("multi", multiSenders)
 	if multi.SetPriority(l); err != nil {
 		t.Fatal(err)
 	}
