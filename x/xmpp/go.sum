@@ -2,5 +2,5 @@ github.com/mattn/go-xmpp v0.0.0-20220513082406-1411b9cc8b9a h1:sKMsZuaXOyrN9kzdM
 github.com/mattn/go-xmpp v0.0.0-20220513082406-1411b9cc8b9a/go.mod h1:Cs5mF0OsrRRmhkyOod//ldNPOwJsrBvJ+1WRspv0xoc=
 github.com/tychoish/fun v0.8.5 h1:8uTFk2fG8mxDyRmqMj6llKE8+vTuQRclUkl0/tyYwAU=
 github.com/tychoish/fun v0.8.5/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
-github.com/tychoish/grip v0.2.2 h1:GtmYZQ+qDYwaUNVG5eZNbkjtK5gTVUfHvEPKeHkyS/Y=
-github.com/tychoish/grip v0.2.2/go.mod h1:FAgqsQASkVgD/vzQ3NqM6rkHKgTxc5pcR93dxN+O7Vo=
+github.com/tychoish/grip v0.2.3 h1:1BdIrPlXVspZTBXNxSlHM3eOlR++ZYqYj2PLcI6tOec=
+github.com/tychoish/grip v0.2.3/go.mod h1:jQlzC/krYSoYf2HF5FSYBwc1ABVkWz+DKyvmff36PGc=
