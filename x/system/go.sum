@@ -1,6 +1,6 @@
 github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf h1:iW4rZ826su+pqaw19uhpSCzhj44qo35pNgKFGqzDKkU=
 github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf/go.mod h1:F5haX7vjVVG0kc13fIWeqUViNPyEJxv/OmvnBo0Yme4=
-github.com/tychoish/fun v0.8.4 h1:M31fylo455x7yUML+4jso3ewbf/JckkpwF/ptyXHc64=
-github.com/tychoish/fun v0.8.4/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
+github.com/tychoish/fun v0.8.5 h1:8uTFk2fG8mxDyRmqMj6llKE8+vTuQRclUkl0/tyYwAU=
+github.com/tychoish/fun v0.8.5/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
 github.com/tychoish/grip v0.2.2 h1:GtmYZQ+qDYwaUNVG5eZNbkjtK5gTVUfHvEPKeHkyS/Y=
 github.com/tychoish/grip v0.2.2/go.mod h1:FAgqsQASkVgD/vzQ3NqM6rkHKgTxc5pcR93dxN+O7Vo=

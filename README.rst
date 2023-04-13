@@ -1,7 +1,7 @@
 ====================================
 ``grip`` -- A Golang Logging Library
 ====================================
-
+q
 Overview
 --------
 
@@ -151,8 +151,8 @@ Features implemented here include:
   - process-tree metrics
   - single process metrics.
 
-While the core of grip only has dependency on a single library, `emt
-<github.com/tychoish/emt>`_, the packages in the ``x`` hierarchy do have
+While the core of grip only has dependency on a single library, `fun
+<github.com/tychoish/fun>`_, the packages in the ``x`` hierarchy do have
 external dependencies. However, the project and go mod files are structured so
 that these libraries are managed by different go mod files and can be
 versioned separately.

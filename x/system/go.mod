@@ -7,4 +7,4 @@ require (
 	github.com/tychoish/grip v0.2.2
 )
 
-require github.com/tychoish/fun v0.8.4 // indirect
+require github.com/tychoish/fun v0.8.5 // indirect
