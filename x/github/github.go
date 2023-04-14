@@ -15,8 +15,7 @@ import (
 type githubLogger struct {
 	opts *GithubOptions
 	gh   githubClient
-
-	*send.Base
+	send.Base
 }
 
 // GithubOptions contains information about a github account and
@@ -32,7 +31,6 @@ type GithubOptions struct {
 // new issue in a Github Project for each log message.
 func NewIssueSender(name string, opts *GithubOptions) (send.Sender, error) {
 	s := &githubLogger{
-		Base: send.NewBase(name),
 		opts: opts,
 		gh:   &githubClientImpl{},
 	}
@@ -42,6 +40,7 @@ func NewIssueSender(name string, opts *GithubOptions) (send.Sender, error) {
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
 
+	s.SetName(name)
 	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 	s.SetFormatter(send.MakeDefaultFormatter())
 	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] [%s/%s] ", s.Name(), opts.Account, opts.Repo)) })

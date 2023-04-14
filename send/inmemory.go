@@ -38,14 +38,13 @@ func NewInMemorySender(name string, p level.Priority, capacity int) (Sender, err
 	}
 
 	s := &InMemorySender{
-		Base:     *NewBase(name),
 		buffer:   make([]message.Composer, 0, capacity),
 		readHead: readHeadNone,
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-
-	s.Base.SetPriority(p)
+	s.SetName(name)
+	s.SetPriority(p)
 	s.SetErrorHandler(ErrorHandlerFromLogger(fallback))
 	s.SetFormatter(MakeDefaultFormatter())
 	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name())) })

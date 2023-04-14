@@ -70,9 +70,7 @@ func setupDefault() {
 //
 // Package level functions mirror all methods on the Logger type to
 // access a "global" Logger instance in the grip package.
-type Logger struct {
-	impl send.Sender
-}
+type Logger struct{ impl send.Sender }
 
 // NewLogger builds a new logging interface from a sender implementation.
 func NewLogger(s send.Sender) Logger { return Logger{impl: s} }

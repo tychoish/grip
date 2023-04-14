@@ -20,11 +20,10 @@ func setupFixture(t *testing.T) *SumoSuite {
 	s := &SumoSuite{
 		endpoint: "http://endpointVal",
 		client:   &sumoClientMock{},
-		sender: sumoLogger{
-			Base: send.NewBase("name"),
-		},
+		sender:   sumoLogger{},
 	}
 
+	s.sender.SetName(t.Name())
 	s.sender.endpoint = s.endpoint
 	s.sender.client = s.client
 	s.sender.SetFormatter(send.MakeJSONFormatter())

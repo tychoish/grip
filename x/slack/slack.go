@@ -20,7 +20,7 @@ const (
 
 type slackJournal struct {
 	opts *SlackOptions
-	*send.Base
+	send.Base
 }
 
 // MakeSlackLogger is equivalent to NewSlackLogger, but constructs a
@@ -39,9 +39,9 @@ func MakeSender(opts *SlackOptions) (send.Sender, error) {
 
 	s := &slackJournal{
 		opts: opts,
-		Base: send.NewBase(opts.Name),
 	}
 
+	s.SetName(opts.Name)
 	s.opts.client.Create(token)
 
 	if _, err := s.opts.client.AuthTest(); err != nil {

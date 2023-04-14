@@ -15,7 +15,7 @@ import (
 type sumoLogger struct {
 	endpoint string
 	client   sumoClient
-	*send.Base
+	send.Base
 }
 
 const sumoEndpointEnvVar = "GRIP_SUMO_ENDPOINT"
@@ -50,22 +50,14 @@ func NewSumo(name, endpoint string) (send.Sender, error) {
 	}
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	s.Base = send.MakeBase(
-		// name
-		name,
-		// reset
-		func() {
-			fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
-		},
-		// closer
-		func() error { return nil })
-
 	s.client.Create(s.endpoint)
 
 	if _, err := url.ParseRequestURI(s.endpoint); err != nil {
 		return nil, fmt.Errorf("cannot connect to url '%s': %s", s.endpoint, err)
 	}
 
+	s.SetName(name)
+	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name())) })
 	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 	s.SetFormatter(send.MakeJSONFormatter())
 

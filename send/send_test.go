@@ -2,7 +2,6 @@ package send
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -26,10 +25,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 	}
 
 	l := level.Notice
-	senders = map[string]Sender{
-		// "slack": &slackJournal{Base: NewBase("slack")},
-		// "xmpp":  &xmppLogger{Base: NewBase("xmpp")},
-	}
+	senders = map[string]Sender{}
 
 	internal := MakeInternalLogger()
 	internal.name = "internal"
@@ -273,46 +269,6 @@ func TestBasicNoopSendTest(t *testing.T) {
 			}
 		})
 
-	}
-}
-
-func TestBaseConstructor(t *testing.T) {
-	t.Parallel()
-
-	sink := MakeInternalLogger()
-	sink.SetName("sink")
-	sink.SetPriority(level.Debug)
-	handler := ErrorHandlerFromSender(sink)
-	if sink.Len() != 0 {
-		t.Error("elements should be equal")
-	}
-	if sink.HasMessage() {
-		t.Error("should be false")
-	}
-
-	for _, n := range []string{"logger", "grip", "sender"} {
-		made := MakeBase(n, func() {}, func() error { return nil })
-		newed := NewBase(n)
-		if newed.name != made.name {
-			t.Error("elements should be equal")
-		}
-		if newed.priority != made.priority {
-			t.Error("elements should be equal")
-		}
-
-		for _, s := range []*Base{made, newed} {
-			s.SetFormatter(nil)
-			s.SetErrorHandler(nil)
-			s.SetErrorHandler(handler)
-			s.ErrorHandler()(errors.New("failed"), message.MakeString("fated"))
-		}
-	}
-
-	if sink.Len() != 6 {
-		t.Error("elements should be equal")
-	}
-	if !sink.HasMessage() {
-		t.Error("should be true")
 	}
 }
 

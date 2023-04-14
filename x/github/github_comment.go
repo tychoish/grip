@@ -15,8 +15,7 @@ type githubCommentLogger struct {
 	issue int
 	opts  *GithubOptions
 	gh    githubClient
-
-	*send.Base
+	send.Base
 }
 
 // NewCommentSender creates a new Sender implementation that
@@ -27,7 +26,6 @@ type githubCommentLogger struct {
 // structure, and the issue number as an argument to the constructor.
 func NewCommentSender(name string, issueID int, opts *GithubOptions) (send.Sender, error) {
 	s := &githubCommentLogger{
-		Base:  send.NewBase(name),
 		opts:  opts,
 		issue: issueID,
 		gh:    &githubClientImpl{},
@@ -38,6 +36,7 @@ func NewCommentSender(name string, issueID int, opts *GithubOptions) (send.Sende
 	s.gh.Init(ctx, opts.Token)
 
 	fallback := log.New(os.Stdout, "", log.LstdFlags)
+	s.SetName(name)
 	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
 	s.SetFormatter(send.MakeDefaultFormatter())
 	s.SetResetHook(func() {

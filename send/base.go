@@ -19,26 +19,11 @@ type Base struct {
 	closed   atomic.Bool
 
 	// function literals which allow customizable functionality.
-	// they are set either in the constructor (e.g. MakeBase) of
-	// via the SetErrorHandler/SetFormatter injector.
+	// they set via the SetErrorHandler/SetFormatter injectors.
 	errHandler adt.Atomic[ErrorHandler]
 	reset      adt.Atomic[func()]
 	closer     adt.Atomic[func() error]
 	formatter  adt.Atomic[MessageFormatter]
-}
-
-// NewBase constructs a basic Base structure with no op functions for
-// reset, close, and error handling.
-func NewBase(n string) *Base { b := &Base{}; b.name.Set(n); return b }
-
-// MakeBase constructs a Base structure that allows callers to specify
-// the reset and caller function.
-func MakeBase(n string, reseter func(), closer func() error) *Base {
-	b := NewBase(n)
-	b.reset.Set(reseter)
-	b.closer.Set(closer)
-
-	return b
 }
 
 // Close calls the closer function if it is defined and it has not already been

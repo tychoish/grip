@@ -17,7 +17,7 @@ type githubStatusMessageLogger struct {
 	ref  string
 
 	gh githubClient
-	*send.Base
+	send.Base
 }
 
 func (s *githubStatusMessageLogger) Send(m message.Composer) {
@@ -73,9 +73,8 @@ func (s *githubStatusMessageLogger) Send(m message.Composer) {
 // API. Statuses will be attached to the given ref.
 func NewStatusSender(name string, opts *GithubOptions, ref string) send.Sender {
 	s := &githubStatusMessageLogger{
-		Base: send.NewBase(name),
-		gh:   &githubClientImpl{},
-		ref:  ref,
+		gh:  &githubClientImpl{},
+		ref: ref,
 	}
 
 	ctx := context.TODO()
