@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/andygrunwald/go-jira v1.15.1
 	github.com/dghubble/oauth1 v0.7.1
-	github.com/tychoish/grip v0.2.3
+	github.com/tychoish/grip v0.2.4
 )
 
 require (

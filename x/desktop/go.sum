@@ -10,8 +10,8 @@ github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af h1:6yITBqGTE2lEeTPG0
 github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af/go.mod h1:4F09kP5F+am0jAwlQLddpoMDM+iewkxxt6nxUQ5nq5o=
 github.com/tychoish/fun v0.8.5 h1:8uTFk2fG8mxDyRmqMj6llKE8+vTuQRclUkl0/tyYwAU=
 github.com/tychoish/fun v0.8.5/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
-github.com/tychoish/grip v0.2.3 h1:1BdIrPlXVspZTBXNxSlHM3eOlR++ZYqYj2PLcI6tOec=
-github.com/tychoish/grip v0.2.3/go.mod h1:jQlzC/krYSoYf2HF5FSYBwc1ABVkWz+DKyvmff36PGc=
+github.com/tychoish/grip v0.2.4 h1:u759iHGTvvCpFMBO4RxWywlvscB3O0esr22w5HntuUw=
+github.com/tychoish/grip v0.2.4/go.mod h1:jQlzC/krYSoYf2HF5FSYBwc1ABVkWz+DKyvmff36PGc=
 golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.5.0 h1:MUK/U/4lj1t1oPg0HfuXDN/Z1wv31ZJ/YcPiGccS4DU=
 golang.org/x/sys v0.5.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
