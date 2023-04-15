@@ -24,6 +24,7 @@ type Base struct {
 	reset      adt.Atomic[func()]
 	closer     adt.Atomic[func() error]
 	formatter  adt.Atomic[MessageFormatter]
+	converter  adt.Atomic[CustomMessageConverter]
 }
 
 // Close calls the closer function if it is defined and it has not already been
@@ -88,6 +89,22 @@ func (b *Base) ErrorHandler() ErrorHandler {
 		}
 
 		fn(err, m)
+	}
+}
+
+func (b *Base) SetConverter(mc CustomMessageConverter) {
+	b.converter.Set(mc)
+}
+
+func (b *Base) Converter() MessageConverter {
+	return func(in any) message.Composer {
+		converter := b.converter.Get()
+		if converter != nil {
+			if out, ok := converter(in); ok {
+				return out
+			}
+		}
+		return message.Convert(in)
 	}
 }
 

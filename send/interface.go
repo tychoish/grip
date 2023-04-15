@@ -13,10 +13,16 @@ import (
 	"github.com/tychoish/grip/message"
 )
 
-// The Sender interface describes how the Journaler type's method in primary
-// "grip" package's methods interact with a logging output method. The
-// Journaler type provides Sender() and SetSender() methods that allow client
-// code to swap logging backend implementations dependency-injection style.
+// The Sender interface describes a lower level message sending
+// interface used by the Logger to send messages. Implementations in
+// the send package, in addition to a number of senders implemented in
+// the x/ hierarchy, allow Loggers to target consumers in a number of
+// different forms directly.
+//
+// The send.Base implementation provides implementations for all
+// methods in the interface except Send. Most implementations will
+// only implement Send, and sometimes Flush, in addition to
+// exposing/composing Base.
 type Sender interface {
 	// Name returns the name of the logging system. Typically this
 	// corresponds directly with the underlying logging capture system.
@@ -56,12 +62,41 @@ type Sender interface {
 	SetFormatter(MessageFormatter)
 	Formatter() MessageFormatter
 
+	// SetConverter allows users to inject a custom converter into
+	// the sender to be used by the logging infrastructure to make
+	// message.Composer objects from arbitrary input types.
+	SetConverter(CustomMessageConverter)
+	Converter() MessageConverter
+
 	// If the logging sender holds any resources that require desecration
 	// they should be cleaned up in the Close() method. Close() is called
 	// by the SetSender() method before changing loggers. Sender implementations
 	// that wrap other Senders may or may not close their underlying Senders.
 	Close() error
 }
+
+// ErrorHandler is a function that you can use define how a sender
+// handles errors sending messages. Implementations of this type
+// should perform a noop if the err object is nil.
+type ErrorHandler func(error, message.Composer)
+
+// MessageFormatter is a function type used by senders to construct the
+// entire string returned as part of the output. This makes it
+// possible to modify the logging format without needing to implement
+// new Sender interfaces.
+type MessageFormatter func(message.Composer) (string, error)
+
+// CustomMessageConverter is a function that users can inject into
+// their sender that the grip.Logger will use to convert arbitrary
+// input types into message objects. If the second value is false, the
+// output message will not be used and the logger will fall back to
+// using `message.Convert`. Implementing a custom converter is optional.
+type CustomMessageConverter func(any) (message.Composer, bool)
+
+// MessageConverter defines the converter provided by the sender to
+// higher level interfaces (e.g. grip.Logger) that will always produce
+// a valid message.Composer from an arbitrary input.
+type MessageConverter func(any) message.Composer
 
 // MakeStandard produces a standard library logging instance that
 // write to the underlying sender.
@@ -72,7 +107,7 @@ func MakeStandard(s Sender) *log.Logger { return log.New(MakeWriter(s), "", 0) }
 func FromStandard(logger *log.Logger) Sender { return WrapWriter(logger.Writer()) }
 
 func ShouldLog(s Sender, m message.Composer) bool {
-	if !m.Loggable() {
+	if m == nil || !m.Loggable() {
 		return false
 	}
 	mp := m.Priority()

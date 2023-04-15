@@ -1,16 +1,25 @@
 package send
 
 import (
+	"fmt"
+	"io"
 	"log"
 
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
-// ErrorHandler is a function that you can use define how a sender
-// handles errors sending messages. Implementations of this type
-// should perform a noop if the err object is nil.
-type ErrorHandler func(error, message.Composer)
+func ErrorHandlerWriter(writer io.Writer) ErrorHandler {
+	return func(err error, m message.Composer) {
+		if err == nil {
+			return
+		}
+
+		_, _ = io.WriteString(writer, fmt.Sprintln("logging error:", err.Error()))
+		_, _ = writer.Write([]byte("\n"))
+		_, _ = io.WriteString(writer, m.String())
+	}
+}
 
 func ErrorHandlerFromLogger(l *log.Logger) ErrorHandler {
 	return func(err error, m message.Composer) {

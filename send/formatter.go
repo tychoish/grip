@@ -14,12 +14,6 @@ const (
 	callSiteTmpl      = "[p=%s] [%s:%d]: %s"
 )
 
-// MessageFormatter is a function type used by senders to construct the
-// entire string returned as part of the output. This makes it
-// possible to modify the logging format without needing to implement
-// new Sender interfaces.
-type MessageFormatter func(message.Composer) (string, error)
-
 // MakeJSONFormatter returns a MessageFormatter, that returns messages
 // as the string form of a JSON document built using the Raw method of
 // the Composer. Returns an error if there was a problem marshalling JSON.
