@@ -83,8 +83,12 @@ func (b *Base) SetErrorHandler(eh ErrorHandler) { b.errHandler.Set(eh) }
 // embedded ErrorHandler function.
 func (b *Base) ErrorHandler() ErrorHandler {
 	return func(err error, m message.Composer) {
+		if err == nil {
+			return
+		}
+
 		fn := b.errHandler.Get()
-		if err == nil || fn == nil {
+		if fn == nil {
 			return
 		}
 
