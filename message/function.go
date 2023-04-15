@@ -70,6 +70,14 @@ type FieldsProducer func() Fields
 // If the Fields object is nil or empty then no message is ever logged.
 type ComposerProducer func() Composer
 
+// Marshaler allows arbitrary types to control how they're converted
+// (in the default converter) to a message.Composer, without requiring
+// that the arbitrary type itself implement Composer, for a related
+// level of functionality.
+type Marshaler interface {
+	MarshalComposer() Composer
+}
+
 // ErrorProducer is a function that returns an error, and is used for
 // constructing message that lazily wraps the resulting function which
 // is called when the message is dispatched.

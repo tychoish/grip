@@ -92,6 +92,8 @@ func Convert[T any](input T) Composer {
 		return MakeProducer(message)
 	case func() error:
 		return MakeProducer(message)
+	case Marshaler:
+		return MakeProducer(message.MarshalComposer)
 	case [][]string:
 		return convertSlice(message)
 	case [][]byte:
@@ -117,6 +119,8 @@ func Convert[T any](input T) Composer {
 	case [][]any:
 		return convertSlice(message)
 	case []KVs:
+		return convertSlice(message)
+	case []Marshaler:
 		return convertSlice(message)
 	default:
 		return MakeFormat("%+v", message)
