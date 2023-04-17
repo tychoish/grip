@@ -10,5 +10,5 @@ require (
 require (
 	github.com/google/uuid v1.0.0 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
-	github.com/tychoish/fun v0.8.6 // indirect
+	github.com/tychoish/fun v0.8.7 // indirect
 )
