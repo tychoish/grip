@@ -6,10 +6,10 @@ replace github.com/nutmegdevelopment/sumologic => github.com/tychoish/sumologic 
 
 require (
 	github.com/nutmegdevelopment/sumologic v0.0.0-00010101000000-000000000000
-	github.com/tychoish/grip v0.2.4
+	github.com/tychoish/grip v0.2.5
 )
 
 require (
 	github.com/stretchr/testify v1.8.1 // indirect
-	github.com/tychoish/fun v0.8.5 // indirect
+	github.com/tychoish/fun v0.8.6 // indirect
 )
