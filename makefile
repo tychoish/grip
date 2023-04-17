@@ -9,3 +9,7 @@ upgrade-grip:
 	for i in $(shell find . -name "go.mod"); do pushd $$(dirname $$i); echo $(dirname $i); go get github.com/tychoish/grip@$(VERSION); go mod tidy; popd; done
 	git add ./x
 	git commit -m "post-bump: update x/ deps"
+
+go-mod-tidy:
+	go mod tidy
+	for i in $(shell find . -name "go.mod"); do pushd $$(dirname $$i); echo $(dirname $i); go mod tidy; popd; done

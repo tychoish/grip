@@ -46,3 +46,7 @@ func HasContextLogger(ctx context.Context, name string) bool {
 	_, ok := ctx.Value(ctxKey(name)).(Logger)
 	return ok
 }
+
+// HasLogger returns true when the default context logger is
+// attached.
+func HasLogger(ctx context.Context) bool { return HasContextLogger(ctx, string(defaultContextKey)) }
