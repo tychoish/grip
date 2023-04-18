@@ -20,7 +20,7 @@ func convertWithPriority(p level.Priority, m any) message.Composer {
 func TestBufferedSend(t *testing.T) {
 	t.Parallel()
 
-	s := MakeInternalLogger()
+	s := MakeInternal()
 	s.SetName("buffs")
 	s.SetPriority(level.Debug)
 
@@ -103,7 +103,7 @@ func TestBufferedSend(t *testing.T) {
 func TestFlush(t *testing.T) {
 	t.Parallel()
 
-	s := MakeInternalLogger()
+	s := MakeInternal()
 	s.SetName("buffs")
 	s.SetPriority(level.Debug)
 
@@ -156,7 +156,7 @@ func TestFlush(t *testing.T) {
 func TestBufferedClose(t *testing.T) {
 	t.Parallel()
 
-	s := MakeInternalLogger()
+	s := MakeInternal()
 	s.SetName("buffs")
 	s.SetPriority(level.Debug)
 
@@ -220,7 +220,7 @@ func TestBufferedClose(t *testing.T) {
 func TestIntervalFlush(t *testing.T) {
 	t.Parallel()
 
-	s := MakeInternalLogger()
+	s := MakeInternal()
 	s.SetName("buffs")
 	s.SetPriority(level.Debug)
 

@@ -7,7 +7,7 @@ import (
 )
 
 func TestSenderWriter(t *testing.T) {
-	sink := MakeInternalLogger()
+	sink := MakeInternal()
 	sink.SetName("sink")
 	sink.SetPriority(level.Debug)
 

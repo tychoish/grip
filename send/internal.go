@@ -38,9 +38,9 @@ func NewInternalLogger(size int) *InternalSender {
 	return &InternalSender{output: make(chan *InternalMessage, size)}
 }
 
-// MakeInternalLogger constructs an internal sender object, typically
+// MakeInternal constructs an internal sender object, typically
 // for use in testing.
-func MakeInternalLogger() *InternalSender {
+func MakeInternal() *InternalSender {
 	return NewInternalLogger(1000)
 }
 

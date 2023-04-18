@@ -73,7 +73,7 @@ func TestFilter(t *testing.T) {
 			return buf, nil
 		}
 
-		sender := send.MakeInternalLogger()
+		sender := send.MakeInternal()
 		filter := NewFilter(ctx, sender, opts)
 		for i := 0; i < 20; i++ {
 			filter.Send(CollectGoStatsTotals())
@@ -119,7 +119,7 @@ func TestFilter(t *testing.T) {
 			return out, nil
 		}
 
-		sender := send.MakeInternalLogger()
+		sender := send.MakeInternal()
 		filter := NewFilter(ctx, sender, opts)
 		for i := 0; i < 20; i++ {
 			filter.Send(CollectGoStatsTotals())
@@ -176,7 +176,7 @@ func TestFilter(t *testing.T) {
 			return out, nil
 		}
 
-		sender := send.MakeInternalLogger()
+		sender := send.MakeInternal()
 		filter := NewFilter(ctx, sender, opts)
 		sender.SetErrorHandler(send.ErrorHandlerFromLogger(log.Default()))
 		for i := 0; i < opts.SampleCount*opts.BlockCount*5; i++ {
@@ -196,7 +196,7 @@ func TestFilter(t *testing.T) {
 			opts := DefaultCollectionOptions()
 			opts.WriterConstructor = func(f string) (io.WriteCloser, error) { return nil, io.EOF }
 
-			sender := send.MakeInternalLogger()
+			sender := send.MakeInternal()
 			filter := NewFilter(ctx, sender, opts)
 			sender.SetErrorHandler(send.ErrorHandlerFromLogger(log.Default()))
 

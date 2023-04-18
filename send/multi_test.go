@@ -13,7 +13,7 @@ func TestMultiSenderRespectsLevel(t *testing.T) {
 	// this is a limited test to prevent level filtering to behave
 	// differently than expected
 
-	mock := MakeInternalLogger()
+	mock := MakeInternal()
 	mock.SetName("mock")
 	mock.SetPriority(level.Alert)
 	s := MakeStdError()

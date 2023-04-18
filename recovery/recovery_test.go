@@ -14,7 +14,7 @@ import (
 func setupFixture(t *testing.T) *send.InternalSender {
 	t.Helper()
 	sender := grip.Sender()
-	out := send.MakeInternalLogger()
+	out := send.MakeInternal()
 	if err := os.Setenv(killOverrideVarName, "true"); err != nil {
 		t.Fatal(err)
 	}

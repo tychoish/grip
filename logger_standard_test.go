@@ -31,8 +31,8 @@ func setupFixtures(t *testing.T) *LoggingMethodSuite {
 
 	s := &LoggingMethodSuite{
 		defaultSender: Sender(),
-		stdSender:     send.MakeInternalLogger(),
-		loggingSender: send.MakeInternalLogger(),
+		stdSender:     send.MakeInternal(),
+		loggingSender: send.MakeInternal(),
 	}
 	s.stdSender.SetPriority(lvl)
 	s.loggingSender.SetPriority(lvl)

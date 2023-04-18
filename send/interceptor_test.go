@@ -8,7 +8,7 @@ import (
 )
 
 func TestInterceptor(t *testing.T) {
-	base := MakeInternalLogger()
+	base := MakeInternal()
 	base.SetName("test")
 	base.SetPriority(level.Debug)
 

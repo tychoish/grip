@@ -9,7 +9,7 @@ import (
 )
 
 func TestAnnotatingSender(t *testing.T) {
-	insend := MakeInternalLogger()
+	insend := MakeInternal()
 	insend.SetName("annotatingSender")
 	insend.SetPriority(level.Debug)
 

@@ -27,7 +27,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 	l := level.Notice
 	senders = map[string]Sender{}
 
-	internal := MakeInternalLogger()
+	internal := MakeInternal()
 	internal.name = "internal"
 	internal.output = make(chan *InternalMessage)
 	senders["internal"] = internal
