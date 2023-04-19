@@ -6,7 +6,6 @@ import (
 	"os"
 
 	xmpp "github.com/mattn/go-xmpp"
-	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -145,20 +144,17 @@ func (c *xmppClientImpl) Create(info ConnectionInfo) error {
 	}
 	var err error
 	c.Client, err = opts.NewClient()
-	if err == nil {
-		return nil
+	if err != nil {
+		return err
 	}
-	erc := &erc.Collector{}
-	erc.Add(err)
 
 	opts.NoTLS = true
 	opts.InsecureAllowUnencryptedAuth = true
 
 	c.Client, err = opts.NewClient()
-	if err == nil {
-		return nil
+	if err != nil {
+		return err
 	}
-	erc.Add(err)
 
-	return fmt.Errorf("problem establishing connection to xmpp server: %w", erc.Resolve())
+	return nil
 }
