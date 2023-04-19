@@ -29,19 +29,19 @@ type InternalMessage struct {
 	Rendered string
 }
 
-// NewInternalLogger creates and returns a Sender implementation that
+// NewInternal creates and returns a Sender implementation that
 // does not log messages, but converts them to the InternalMessage
 // format and puts them into an internal channel, that allows you to
 // access the massages via the extra "GetMessage" method. Useful for
 // testing.
-func NewInternalLogger(size int) *InternalSender {
+func NewInternal(size int) *InternalSender {
 	return &InternalSender{output: make(chan *InternalMessage, size)}
 }
 
 // MakeInternal constructs an internal sender object, typically
 // for use in testing.
 func MakeInternal() *InternalSender {
-	return NewInternalLogger(1000)
+	return NewInternal(1000)
 }
 
 // GetMessage pops the first message in the queue and returns.

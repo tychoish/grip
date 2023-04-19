@@ -14,7 +14,7 @@ import (
 func TestStdLogging(t *testing.T) {
 	printableMessage := strings.Repeat("hello world", 8)
 
-	internal := NewInternalLogger(1)
+	internal := NewInternal(1)
 	internal.SetPriority(level.Info)
 	std := MakeStandard(internal)
 	std.Print(printableMessage)

@@ -98,7 +98,7 @@ func TestTwitter(t *testing.T) {
 		mock.reset()
 	})
 	t.Run("WithError", func(t *testing.T) {
-		errsender := send.NewInternalLogger(2)
+		errsender := send.NewInternal(2)
 		errsender.SetName("errr")
 		errsender.SetPriority(level.Info)
 
