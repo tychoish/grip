@@ -10,6 +10,6 @@ require (
 require (
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
-	github.com/tychoish/fun v0.8.8 // indirect
+	github.com/tychoish/fun v0.8.9 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 )

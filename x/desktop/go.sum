@@ -8,8 +8,8 @@ github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d h1:VhgPp6v9qf9Agr/
 github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d/go.mod h1:YUTz3bUH2ZwIWBy3CJBeOBEugqcmXREj14T+iG/4k4U=
 github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af h1:6yITBqGTE2lEeTPG04SN9W+iWHCRyHqlVYILiSXziwk=
 github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af/go.mod h1:4F09kP5F+am0jAwlQLddpoMDM+iewkxxt6nxUQ5nq5o=
-github.com/tychoish/fun v0.8.8 h1:dqA+ijc7yqcI4n7MAeAsgUpzGB00AWlKC6qeU9vtpUY=
-github.com/tychoish/fun v0.8.8/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
+github.com/tychoish/fun v0.8.9 h1:4FzBUluELM5j6fJjVfR8AOZmiixD++H7Hi/8BYq0/Hk=
+github.com/tychoish/fun v0.8.9/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
 github.com/tychoish/grip v0.2.6 h1:Tw5+HDdN/N04qnvT2FI089C5HgnUxsqfTdZoO9yui9k=
 github.com/tychoish/grip v0.2.6/go.mod h1:6z338k71NOTt1/WxR3Zhzj49GBHpr0CJXepjJORJUU0=
 golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=

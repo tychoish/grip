@@ -17,8 +17,8 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
-github.com/tychoish/fun v0.8.8 h1:dqA+ijc7yqcI4n7MAeAsgUpzGB00AWlKC6qeU9vtpUY=
-github.com/tychoish/fun v0.8.8/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
+github.com/tychoish/fun v0.8.9 h1:4FzBUluELM5j6fJjVfR8AOZmiixD++H7Hi/8BYq0/Hk=
+github.com/tychoish/fun v0.8.9/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
 github.com/tychoish/grip v0.2.6 h1:Tw5+HDdN/N04qnvT2FI089C5HgnUxsqfTdZoO9yui9k=
 github.com/tychoish/grip v0.2.6/go.mod h1:6z338k71NOTt1/WxR3Zhzj49GBHpr0CJXepjJORJUU0=
 github.com/tychoish/sumologic v1.0.0 h1:Np1J+dQBhhi7e7XbnW6hX/689gquD/3SumMBYT5OyqI=
