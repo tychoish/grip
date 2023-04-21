@@ -168,7 +168,7 @@ func (b *Builder) KVs(kvs KVs) *Builder {
 // all cases.
 func (b *Builder) Annotate(key string, val any) *Builder {
 	if b.composer == nil {
-		return b.Fields(Fields{key: val})
+		return b.KV(KV{Key: key, Value: val})
 	}
 
 	b.catcher.Add(b.composer.Annotate(key, val))
