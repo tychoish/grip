@@ -51,7 +51,7 @@ func MakePlainFormatter() MessageFormatter {
 // MakeCallSiteFormatter returns a MessageFormater that formats
 // messages with the following format:
 //
-//	[p=<levvel>] [<fileName>:<lineNumber>]: <message>
+//	[p=<level>] [<fileName>:<lineNumber>]: <message>
 //
 // It can never error.
 func MakeCallSiteFormatter(depth int) MessageFormatter {
