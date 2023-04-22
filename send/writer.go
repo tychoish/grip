@@ -7,17 +7,31 @@ import (
 	"sync"
 	"unicode"
 
+	"github.com/tychoish/fun/adt"
+	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
-// WriterSender wraps another sender and also provides an io.Writer.
-// (and because Sender is an io.Closer) the type also implements
-// io.WriteCloser.
-type WriterSender struct {
+type writerSenderImpl struct {
 	Sender
+	adt.Atomic[level.Priority]
+
 	writer *bufio.Writer
 	buffer *bytes.Buffer
 	mu     sync.Mutex
+}
+
+// WriterSender wraps another sender and also provides an io.Writer.
+// (and because Sender is an io.Closer) the type also implements
+// io.WriteCloser. Set the Level field to control the level that the
+// data is logged at. If not specified, the sender will use the
+// Sender's configured priority threshold.
+//
+// If you do not use the `MakeWriter
+type WriterSender interface {
+	Sender
+	adt.AtomicValue[level.Priority]
+	io.WriteCloser
 }
 
 // MakeWriter wraps another sender and also provides an io.Writer.
@@ -37,20 +51,21 @@ type WriterSender struct {
 // called, this sender flushes the buffer. WriterSender does not own the
 // underlying Sender, so users are responsible for closing the underlying Sender
 // if/when it is appropriate to release its resources.
-func MakeWriter(s Sender) *WriterSender {
+func MakeWriter(s Sender) *writerSenderImpl {
 	buffer := new(bytes.Buffer)
 
-	return &WriterSender{
+	return &writerSenderImpl{
 		Sender: s,
+
 		writer: bufio.NewWriter(buffer),
 		buffer: buffer,
 	}
 }
 
-func (s *WriterSender) Unwrap() Sender { return s.Sender }
+func (s *writerSenderImpl) Unwrap() Sender { return s.Sender }
 
 // Write captures a sequence of bytes to the send interface. It never errors.
-func (s *WriterSender) Write(p []byte) (int, error) {
+func (s *writerSenderImpl) Write(p []byte) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	n, err := s.writer.Write(p)
@@ -66,7 +81,7 @@ func (s *WriterSender) Write(p []byte) (int, error) {
 	return n, err
 }
 
-func (s *WriterSender) doSend() error {
+func (s *writerSenderImpl) doSend() error {
 	pri := s.Sender.Priority()
 	for {
 		line, err := s.buffer.ReadBytes('\n')
@@ -94,7 +109,7 @@ func (s *WriterSender) doSend() error {
 
 // Close writes any buffered messages to the underlying Sender. This does
 // not close the underlying sender.
-func (s *WriterSender) Close() error {
+func (s *writerSenderImpl) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

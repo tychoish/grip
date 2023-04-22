@@ -61,8 +61,8 @@ func MakeStdError() Sender {
 // As a special case, if the writer is a *WriterSender, then this
 // method will unwrap and return the underlying sender from the writer.
 func WrapWriter(wr io.Writer) Sender {
-	if s, ok := wr.(*WriterSender); ok {
-		return s.Sender
+	if s, ok := wr.(WriterSender); ok {
+		return s
 	}
 
 	s := &nativeLogger{}
