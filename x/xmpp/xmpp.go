@@ -23,7 +23,9 @@ type ConnectionInfo struct {
 	Username string
 	Password string
 
-	client xmppClient
+	DisableTLS           bool
+	AllowUnencryptedAuth bool
+	client               xmppClient
 }
 
 const (
@@ -141,16 +143,11 @@ func (c *xmppClientImpl) Create(info ConnectionInfo) error {
 		Host:     info.Hostname,
 		User:     info.Username,
 		Password: info.Password,
+
+		NoTLS:                        info.DisableTLS,
+		InsecureAllowUnencryptedAuth: info.AllowUnencryptedAuth,
 	}
 	var err error
-	c.Client, err = opts.NewClient()
-	if err != nil {
-		return err
-	}
-
-	opts.NoTLS = true
-	opts.InsecureAllowUnencryptedAuth = true
-
 	c.Client, err = opts.NewClient()
 	if err != nil {
 		return err
