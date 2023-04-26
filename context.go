@@ -1,6 +1,10 @@
 package grip
 
-import "context"
+import (
+	"context"
+
+	"github.com/tychoish/grip/send"
+)
 
 type ctxKey string
 
@@ -8,7 +12,7 @@ const defaultContextKey ctxKey = "__GRIP_STD_LOGGER"
 
 // WithLogger attaches a Logger instance to the context.
 func WithLogger(ctx context.Context, logger Logger) context.Context {
-	return WithContextLogger(ctx, logger, string(defaultContextKey))
+	return WithContextLogger(ctx, string(defaultContextKey), logger)
 }
 
 // Context resolves a logger from the given context, and if one does
@@ -21,7 +25,14 @@ func Context(ctx context.Context) Logger { return ContextLogger(ctx, string(defa
 // constants for logger names. In most cases, WithLogger to set a
 // default logger, or even just using the standard Context is
 // preferable.
-func WithContextLogger(ctx context.Context, logger Logger, name string) context.Context {
+//
+// If this logger exists, WitContextLogger is a noop and the existing
+// context is returned directly.
+func WithContextLogger(ctx context.Context, name string, logger Logger) context.Context {
+	if HasContextLogger(ctx, name) {
+		return ctx
+	}
+
 	return context.WithValue(ctx, ctxKey(name), logger)
 }
 
@@ -38,6 +49,22 @@ func ContextLogger(ctx context.Context, name string) Logger {
 		return l
 	}
 	return std
+}
+
+// WithNewContextLogger checks if a logger is configured with a
+// specific name in the current context. If this logger exists,
+// WithNewContextLogger is a noop; otherwise, it constructs a logger
+// with the sender produced by the provided function and attaches it
+// to the context returning that context.
+//
+// The name provided controls the id of the logger in the context, not
+// the name of the logger.
+func WithNewContextLogger(ctx context.Context, name string, fn func() send.Sender) context.Context {
+	if HasContextLogger(ctx, name) {
+		return ctx
+	}
+
+	return WithContextLogger(ctx, name, NewLogger(fn()))
 }
 
 // HasContextLogger checks the provided context to see if a logger

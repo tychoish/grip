@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/tychoish/fun/assert/check"
 	"github.com/tychoish/grip/send"
 )
 
@@ -33,4 +34,11 @@ func TestContext(t *testing.T) {
 	if Context(ctx) != logger {
 		t.Fatal("context should return expected value")
 	}
+
+	ctx = WithNewContextLogger(ctx, string(defaultContextKey), func() send.Sender { panic("should not panic") })
+	check.True(t, HasContextLogger(ctx, string(defaultContextKey)))
+	check.Panic(t, func() {
+		ctx = WithNewContextLogger(ctx, "novel-key", func() send.Sender { panic("should not panic") })
+	})
+
 }
