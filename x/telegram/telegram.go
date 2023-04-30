@@ -13,11 +13,16 @@ import (
 	"github.com/tychoish/grip/send"
 )
 
+// Options are used to configure a telegram sender.
 type Options struct {
-	Name    string `bson:"name" json:"name" yaml:"name"`
+	Name   string `bson:"name" json:"name" yaml:"name"`
+	Token  string `bson:"token" json:"token" yaml:"token"`
+	Target string `bson:"target" json:"target" yaml:"target"`
+
+	// Optional: BaseURL defaults to https://api.telegram.org, and
+	// a new [unconfigured] HTTP client is constructed if one is
+	// not provided.
 	BaseURL string `bson:"base_url" json:"base_url" yaml:"base_url"`
-	Token   string `bson:"token" json:"token" yaml:"token"`
-	Target  string `bson:"target" json:"target" yaml:"target"`
 	Client  *http.Client
 }
 
@@ -47,11 +52,15 @@ func (opts *Options) Validate() error {
 	return ec.Resolve()
 }
 
+// New constructs a telegram sender. The implementation posts each
+// message independently. Use the buffered send.Sender implementation
+// to batch these messages.
 func New(opts Options) send.Sender {
 	s := &sender{
 		opts: opts,
 		url:  fmt.Sprintf("%s/bot%s/sendMessage", opts.BaseURL, opts.Token),
 	}
+	s.SetName(opts.Name)
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 	return s
 }
@@ -62,6 +71,10 @@ type payload struct {
 }
 
 func (s *sender) Send(m message.Composer) {
+	if !send.ShouldLog(s, m) {
+		return
+	}
+
 	txt, err := s.Formatter()(m)
 	if err != nil {
 		s.ErrorHandler()(err, m)
@@ -83,6 +96,7 @@ func (s *sender) Send(m message.Composer) {
 		s.ErrorHandler()(err, m)
 		return
 	}
+	req.Header.Set("content-type", "application/json")
 
 	resp, err := s.opts.Client.Do(req)
 	if err != nil {
