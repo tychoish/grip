@@ -11,6 +11,7 @@ use (
 	./x/splunk
 	./x/sumologic
 	./x/system
+	./x/telegram
 	./x/twitter
 	./x/xmpp
 	./x/zap
