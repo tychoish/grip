@@ -14,9 +14,10 @@ import (
 )
 
 type Options struct {
-	BaseURL string
-	Token   string
-	ChatID  string
+	Name    string `bson:"name" json:"name" yaml:"name"`
+	BaseURL string `bson:"base_url" json:"base_url" yaml:"base_url"`
+	Token   string `bson:"token" json:"token" yaml:"token"`
+	Target  string `bson:"target" json:"target" yaml:"target"`
 	Client  *http.Client
 }
 
@@ -26,6 +27,10 @@ type sender struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	send.Base
+}
+
+func (opts Options) IsZero() bool {
+	return opts.Client == nil && opts.BaseURL == "" && opts.Token == "" && opts.Target == ""
 }
 
 func (opts *Options) Validate() error {
@@ -38,7 +43,7 @@ func (opts *Options) Validate() error {
 
 	ec := &erc.Collector{}
 	erc.When(ec, opts.Token == "", "must specify a token")
-	erc.When(ec, opts.ChatID == "", "must specify a chatID")
+	erc.When(ec, opts.Target == "", "must specify a target or chatID")
 	return ec.Resolve()
 }
 
@@ -64,7 +69,7 @@ func (s *sender) Send(m message.Composer) {
 	}
 
 	body, err := json.Marshal(payload{
-		ChatID: s.opts.ChatID,
+		ChatID: s.opts.Target,
 		Text:   txt,
 	})
 
