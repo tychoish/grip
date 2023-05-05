@@ -24,17 +24,17 @@ func TestWrap(t *testing.T) {
 			comp := MakeString("hello")
 			comp = Wrap(comp, MakeString("world"))
 
-			if !IsWrapped(comp) {
+			if !fun.IsWrapped(comp) {
 				t.Fatal("wrapped message not detected")
 			}
 		})
 		t.Run("NilParent", func(t *testing.T) {
-			if IsWrapped(Wrap(nil, MakeString("hello"))) {
+			if fun.IsWrapped(Wrap(nil, MakeString("hello"))) {
 				t.Fatal("nil parent wrapped messagese aren't wrapped")
 			}
 		})
 		t.Run(" goUnwrapped", func(t *testing.T) {
-			if IsWrapped(MakeString("hello")) {
+			if fun.IsWrapped(MakeString("hello")) {
 				t.Fatal("unwrapped messages should not be detected")
 			}
 		})

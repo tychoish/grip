@@ -69,7 +69,7 @@ func (b *Builder) Send() {
 // converted to a group.
 func (b *Builder) Message() Composer {
 	if b.composer != nil {
-		if IsWrapped(b.composer) {
+		if fun.IsWrapped(b.composer) {
 			b.composer = MakeGroupComposer(fun.Unwind(b.composer))
 		}
 
