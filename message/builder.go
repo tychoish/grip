@@ -41,16 +41,15 @@ func (b *Builder) Send() {
 		return
 	}
 
-	switch msg := b.Message().(type) {
-	case *GroupComposer:
-		if b.sendAsGroup {
-			b.send(msg)
-			return
-		}
-		for _, m := range msg.Messages() {
-			b.send(m)
-		}
-	default:
+	m := b.Message()
+
+	if b.sendAsGroup {
+		b.send(m)
+		return
+	}
+
+	msgs := fun.Unwind(m)
+	for _, msg := range msgs {
 		b.send(msg)
 	}
 }
@@ -69,9 +68,6 @@ func (b *Builder) Send() {
 // converted to a group.
 func (b *Builder) Message() Composer {
 	if b.composer != nil {
-		if fun.IsWrapped(b.composer) {
-			b.composer = MakeGroupComposer(fun.Unwind(b.composer))
-		}
 
 		if b.catcher.HasErrors() {
 			return WrapError(b.catcher.Resolve(), b.composer)

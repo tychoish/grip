@@ -138,6 +138,27 @@ func (g *GroupComposer) Messages() []Composer {
 	return g.messages
 }
 
+func (g *GroupComposer) Unwrap() Composer {
+	g.mutex.RLock()
+	defer g.mutex.RUnlock()
+	switch len(g.messages) {
+	case 0:
+		return nil
+	case 1:
+		return g.messages[0]
+	case 2:
+		return &wrappedImpl{parent: g.messages[0], Composer: g.messages[1]}
+	default:
+		var stack Composer
+
+		for idx := len(g.messages) - 1; idx >= 0; idx-- {
+			stack = Wrap(stack, g.messages[idx])
+		}
+
+		return stack
+	}
+}
+
 // Extend makes it possible to add a group of messages to an existing
 // group composer.
 func (g *GroupComposer) Extend(msg []Composer) {
