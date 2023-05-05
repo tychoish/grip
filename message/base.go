@@ -1,7 +1,6 @@
 package message
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -56,21 +55,13 @@ func (b *Base) SetPriority(l level.Priority) { b.Level = l }
 
 // Annotate makes it possible for callers and senders to add
 // structured data to a message. This may be overridden for some
-// implementations
-func (b *Base) Annotate(key string, value any) error {
+// implementations.
+func (b *Base) Annotate(key string, value any) {
 	if b.Context == nil {
-		b.Context = Fields{
-			key: value,
-		}
-
-		return nil
-	}
-
-	if _, ok := b.Context[key]; ok {
-		return fmt.Errorf("key '%s' already exists", key)
+		b.Context = Fields{}
 	}
 
 	b.Context[key] = value
 
-	return nil
+	return
 }

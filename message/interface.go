@@ -35,10 +35,10 @@ type Composer interface {
 	// sender as structured data.
 	Structured() bool
 
-	// Annotate makes it possible for Senders and Journalers to
-	// add structured data to a log message. May return an error
-	// when the key alrady exists.
-	Annotate(string, any) error
+	// Annotate makes it possible for users (including internally)
+	// to add structured data to a log message. Implementations may
+	// choose to override key/value pairs that already exist.
+	Annotate(string, any)
 
 	// Priority returns the priority of the message.
 	Priority() level.Priority

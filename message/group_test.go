@@ -3,7 +3,6 @@ package message
 import (
 	"testing"
 
-	"github.com/tychoish/fun/assert"
 	"github.com/tychoish/fun/assert/check"
 	"github.com/tychoish/grip/level"
 )
@@ -54,7 +53,7 @@ func TestGroupComposer(t *testing.T) {
 			MakeFields(Fields{"hello": "world", "one": 1}),
 			MakeFields(Fields{"goodbye": "moon", "two": 2}),
 		)
-		assert.NotError(t, cmp.Annotate("mars", "venus"))
+		cmp.Annotate("mars", "venus")
 		for idx, m := range cmp.Messages() {
 			mp := m.Raw().(Fields)
 			val, ok := mp["mars"]

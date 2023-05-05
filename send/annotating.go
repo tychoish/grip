@@ -1,7 +1,6 @@
 package send
 
 import (
-	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/message"
 )
 
@@ -34,15 +33,8 @@ func (s *annotatingSender) Send(m message.Composer) {
 		return
 	}
 
-	ec := &erc.Collector{}
-
 	for k, v := range s.annotations {
-		ec.Add(m.Annotate(k, v))
-	}
-
-	if ec.HasErrors() {
-		s.ErrorHandler()(ec.Resolve(), m)
-		return
+		m.Annotate(k, v)
 	}
 
 	s.Sender.Send(m)

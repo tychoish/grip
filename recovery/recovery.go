@@ -184,17 +184,17 @@ func getMessage(details []string) message.Fields {
 }
 
 func logAndContinue(p any, logger grip.Logger, msg message.Composer) {
-	_ = msg.Annotate("panic", panicString(p))
-	_ = msg.Annotate("stack", message.MakeStack(3, "").Raw().(message.StackTrace).Frames)
-	_ = msg.Annotate(message.FieldsMsgName, "hit panic; recovering")
+	msg.Annotate("panic", panicString(p))
+	msg.Annotate("stack", message.MakeStack(3, "").Raw().(message.StackTrace).Frames)
+	msg.Annotate(message.FieldsMsgName, "hit panic; recovering")
 
 	logger.Alert(msg)
 }
 
 func logAndExit(p any, logger grip.Logger, msg message.Composer) {
-	_ = msg.Annotate("panic", panicString(p))
-	_ = msg.Annotate("stack", message.MakeStack(3, "").Raw().(message.StackTrace).Frames)
-	_ = msg.Annotate(message.FieldsMsgName, "hit panic; exiting")
+	msg.Annotate("panic", panicString(p))
+	msg.Annotate("stack", message.MakeStack(3, "").Raw().(message.StackTrace).Frames)
+	msg.Annotate(message.FieldsMsgName, "hit panic; exiting")
 
 	// check this env var so that we can avoid exiting in the test.
 	if os.Getenv(killOverrideVarName) == "" {
@@ -205,12 +205,12 @@ func logAndExit(p any, logger grip.Logger, msg message.Composer) {
 }
 
 func handleWithError(p error, err error, logger grip.Logger, msg message.Composer) {
-	_ = msg.Annotate("panic", p.Error())
-	_ = msg.Annotate("stack", message.MakeStack(3, "").Raw().(message.StackTrace).Frames)
-	_ = msg.Annotate(message.FieldsMsgName, "hit panic; adding error")
+	msg.Annotate("panic", p.Error())
+	msg.Annotate("stack", message.MakeStack(3, "").Raw().(message.StackTrace).Frames)
+	msg.Annotate(message.FieldsMsgName, "hit panic; adding error")
 
 	if err != nil {
-		_ = msg.Annotate("error", err.Error())
+		msg.Annotate("error", err.Error())
 	}
 
 	logger.Alert(msg)

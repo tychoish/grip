@@ -132,11 +132,6 @@ func (cp *composerProducerMessage) resolve() {
 	})
 }
 
-func (cp *composerProducerMessage) Annotate(k string, v any) error {
-	cp.resolve()
-	return cp.cached.Annotate(k, v)
-}
-
 func (cp *composerProducerMessage) SetPriority(p level.Priority) {
 	cp.level = p
 	if cp.cached != nil {
@@ -157,3 +152,4 @@ func (cp *composerProducerMessage) Priority() level.Priority { return cp.level }
 func (cp *composerProducerMessage) Structured() bool         { cp.resolve(); return cp.cached.Structured() }
 func (cp *composerProducerMessage) String() string           { cp.resolve(); return cp.cached.String() }
 func (cp *composerProducerMessage) Raw() any                 { cp.resolve(); return cp.cached.Raw() }
+func (cp *composerProducerMessage) Annotate(k string, v any) { cp.resolve(); cp.cached.Annotate(k, v) }

@@ -65,10 +65,9 @@ func MakeSimpleKVs(kvs KVs) Composer { return &kvMsg{fields: kvs, skipMetadata: 
 // populate the "base" structure (with time, hostname and pid information).
 func MakeSimpleKV(kvs ...KV) Composer { return MakeSimpleKVs(kvs) }
 
-func (m *kvMsg) Annotate(key string, value any) error {
+func (m *kvMsg) Annotate(key string, value any) {
 	m.cachedOutput = ""
 	m.fields = append(m.fields, KV{Key: key, Value: value})
-	return nil
 }
 
 func (m *kvMsg) Loggable() bool   { return len(m.fields) > 0 }

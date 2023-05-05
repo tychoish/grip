@@ -9,6 +9,7 @@ import (
 
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/assert/check"
+	"github.com/tychoish/fun/testt"
 	"github.com/tychoish/grip/level"
 )
 
@@ -87,15 +88,9 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		case *GroupComposer:
 			continue
 		default:
-			if err := msg.Annotate("k1", "foo"); err != nil {
-				t.Error(err)
-			}
-			if err := msg.Annotate("k1", "foo"); err == nil {
-				t.Error("annotation should be an error")
-			}
-			if err := msg.Annotate("k2", "foo"); err != nil {
-				t.Error(err)
-			}
+			msg.Annotate("k1", "foo")
+			msg.Annotate("k1", "foo")
+			msg.Annotate("k2", "foo")
 		}
 	}
 }
@@ -489,18 +484,18 @@ func TestConverter(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			for convMethod, got := range map[string]Composer{
 				"Converter":       Convert(tt.Input),
-				"Builder":         NewBuilder(nil).Any(tt.Input).Message(),
-				"BuilderComposer": NewBuilder(nil).Composer(Convert(tt.Input)).Message(),
 				"BuilderProducer": NewBuilder(nil).CovertProducer(func() any { return tt.Input }).Message(),
 				"AddToBuilder":    AddProducerToBuilder(NewBuilder(nil), func() Composer { return Convert(tt.Input) }).Message(),
+				"Builder":         NewBuilder(nil).Any(tt.Input).Message(),
+				"BuilderComposer": NewBuilder(nil).Composer(Convert(tt.Input)).Message(),
 			} {
 				t.Run(convMethod, func(t *testing.T) {
 					check.Equal(t, got.Loggable(), tt.Expected.Loggable())
 					check.Equal(t, got.String(), tt.Expected.String())
 					check.True(t, got.Structured() == tt.IsStructured)
 					check.True(t, got.Loggable() == !tt.Unloggable)
-					t.Logf("got<%T>:%q", got, got)
-					t.Logf("had:%q", tt.Expected)
+					testt.Logf(t, "got<%T>:%q", got, got)
+					testt.Logf(t, "had:%q", tt.Expected)
 				})
 			}
 		})

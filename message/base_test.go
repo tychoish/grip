@@ -42,11 +42,14 @@ func TestAnnotateAddsFields(t *testing.T) {
 	if base.Context != nil {
 		t.Fatal("context should not be populated yet")
 	}
-	if err := base.Annotate("k", "foo"); err != nil {
-		t.Fatal(err)
-	}
+
+	base.Annotate("k", "foo")
+
 	if base.Context == nil {
-		t.Error("context should be populated")
+		t.Fatal("context should be populated")
+	}
+	if _, ok := base.Context["k"]; !ok {
+		t.Error("annotate should have value", base.Context)
 	}
 }
 
@@ -55,13 +58,9 @@ func TestAnnotateErrorsForSameValue(t *testing.T) {
 	if !base.IsZero() {
 		t.Fatal("base must be zero on init")
 	}
-	if err := base.Annotate("k", "foo"); err != nil {
-		t.Fatal(err)
-	}
-	if err := base.Annotate("k", "foo"); err == nil {
-		t.Error("error should not be nil")
-	}
-	if base.Context["k"] != "foo" {
+	base.Annotate("k", "foo")
+	base.Annotate("k", "bar")
+	if base.Context["k"] != "bar" {
 		t.Error("values should be equal")
 	}
 }
@@ -75,12 +74,8 @@ func TestAnnotateMultipleValues(t *testing.T) {
 		t.Fatal("should not be structured yet")
 
 	}
-	if err := base.Annotate("kOne", "foo"); err != nil {
-		t.Fatal(err)
-	}
-	if err := base.Annotate("kTwo", "foo"); err != nil {
-		t.Fatal(err)
-	}
+	base.Annotate("kOne", "foo")
+	base.Annotate("kTwo", "foo")
 	if base.Context["kOne"] != "foo" {
 		t.Error("values should be equal")
 	}

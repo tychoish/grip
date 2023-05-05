@@ -1,7 +1,6 @@
 package slack
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 
@@ -153,7 +152,7 @@ func (c *slackMessage) Raw() any {
 
 // Annotate adds additional attachments to the message. The key value is ignored
 // if a SlackAttachment or *SlackAttachment is supplied
-func (c *slackMessage) Annotate(key string, data any) error {
+func (c *slackMessage) Annotate(key string, data any) {
 	var annotate *Attachment
 
 	switch v := data.(type) {
@@ -162,16 +161,16 @@ func (c *slackMessage) Annotate(key string, data any) error {
 	case Attachment:
 		annotate = &v
 	default:
-		return c.Base.Annotate(key, data)
+		c.Base.Annotate(key, data)
+		return
 	}
 	if annotate == nil {
-		return errors.New("Annotate data must not be nil")
+		return
 	}
-	if len(c.raw.Attachments) == slackMaxAttachments {
-		return fmt.Errorf("adding another Slack attachment would exceed maximum number of attachments, %d", slackMaxAttachments)
+	if len(c.raw.Attachments) >= slackMaxAttachments && annotate.Text != "" {
+		c.Base.Annotate(key, annotate.Text)
+		return
 	}
 
 	c.raw.Attachments = append(c.raw.Attachments, annotate.convert())
-
-	return nil
 }

@@ -150,14 +150,5 @@ func (m *fieldMessage) String() string {
 	return m.cachedOutput
 }
 
-func (m *fieldMessage) Raw() any { return m.fields }
-
-func (m *fieldMessage) Annotate(key string, value any) error {
-	if _, ok := m.fields[key]; ok {
-		return fmt.Errorf("key %q already exists", key)
-	}
-
-	m.fields[key] = value
-
-	return nil
-}
+func (m *fieldMessage) Raw() any                       { return m.fields }
+func (m *fieldMessage) Annotate(key string, value any) { m.fields[key] = value }

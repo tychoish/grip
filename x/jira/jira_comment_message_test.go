@@ -239,13 +239,13 @@ func TestCommentJiraIssueAnnotationOnlySupportsStrings(t *testing.T) {
 		issue: &Issue{},
 	}
 
-	if err := m.Annotate("k", 1); err == nil {
-		t.Error("error should not be nil")
+	m.Annotate("k", 1)
+	m.Annotate("k", true)
+	m.Annotate("k", nil)
+	if m.issue.Fields == nil {
+		t.Fatal("message context should be non-nil")
 	}
-	if err := m.Annotate("k", true); err == nil {
-		t.Error("error should not be nil")
-	}
-	if err := m.Annotate("k", nil); err == nil {
-		t.Error("error should not be nil")
+	if len(m.issue.Fields) != 1 {
+		t.Error(len(m.Base.Context))
 	}
 }

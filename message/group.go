@@ -4,7 +4,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/level"
 )
 
@@ -156,16 +155,13 @@ func (g *GroupComposer) Append(msgs ...Composer) { g.Extend(msgs) }
 
 // Annotate calls the Annotate method of every non-nil component
 // Composer.
-func (g *GroupComposer) Annotate(k string, v any) error {
+func (g *GroupComposer) Annotate(k string, v any) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	ec := &erc.Collector{}
 	for _, m := range g.messages {
 		if m != nil {
-			ec.Add(m.Annotate(k, v))
+			m.Annotate(k, v)
 		}
 	}
-
-	return ec.Resolve()
 }

@@ -1,7 +1,6 @@
 package message
 
 import (
-	"github.com/tychoish/fun"
 	"github.com/tychoish/grip/level"
 )
 
@@ -43,8 +42,8 @@ func (c *conditional) Raw() any {
 	return safeDo(c.msg, func(c Composer) any { return c.Raw() })
 }
 
-func (c *conditional) Annotate(k string, v any) error {
-	return safeDo(c.msg, func(c Composer) error { return c.Annotate(k, v) })
+func (c *conditional) Annotate(k string, v any) {
+	safeOp(c.msg, func(c Composer) { c.Annotate(k, v) })
 }
 
 func (c *conditional) Structured() bool {
@@ -73,5 +72,7 @@ func safeDo[O any](c Composer, fn func(Composer) O) O {
 	if c != nil {
 		return fn(c)
 	}
-	return fun.ZeroOf[O]()
+
+	var out O
+	return out
 }

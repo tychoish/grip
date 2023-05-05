@@ -138,7 +138,7 @@ func (b *Builder) Fields(f Fields) *Builder {
 	}
 
 	for k, v := range f {
-		b.catcher.Add(b.composer.Annotate(k, v))
+		b.composer.Annotate(k, v)
 	}
 
 	return b
@@ -155,7 +155,7 @@ func (b *Builder) KVs(kvs KVs) *Builder {
 	}
 
 	for _, kv := range kvs {
-		b.catcher.Add(b.composer.Annotate(kv.Key, kv.Value))
+		b.composer.Annotate(kv.Key, kv.Value)
 	}
 	return b
 }
@@ -171,7 +171,7 @@ func (b *Builder) Annotate(key string, val any) *Builder {
 		return b.KV(KV{Key: key, Value: val})
 	}
 
-	b.catcher.Add(b.composer.Annotate(key, val))
+	b.composer.Annotate(key, val)
 	return b
 }
 

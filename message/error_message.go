@@ -36,20 +36,17 @@ func (m *errorComposerWrap) String() string {
 	return m.cached
 }
 
-func (m *errorComposerWrap) Error() string     { return m.String() }
-func (m *errorComposerWrap) Unwrap() Composer  { return m.Composer }
-func (m *errorComposerWrap) Is(err error) bool { return errors.Is(m.err, err) }
-func (m *errorComposerWrap) As(err any) bool   { return errors.As(m.err, err) }
-func (m *errorComposerWrap) Loggable() bool    { return m.err != nil && m.Composer.Loggable() }
+func (m *errorComposerWrap) Error() string            { return m.String() }
+func (m *errorComposerWrap) Unwrap() Composer         { return m.Composer }
+func (m *errorComposerWrap) Is(err error) bool        { return errors.Is(m.err, err) }
+func (m *errorComposerWrap) As(err any) bool          { return errors.As(m.err, err) }
+func (m *errorComposerWrap) Loggable() bool           { return m.err != nil && m.Composer.Loggable() }
+func (m *errorComposerWrap) Annotate(k string, v any) { m.Composer.Annotate(k, v) }
 
 func (m *errorComposerWrap) Raw() any {
 	m.populate.Do(func() {
-		_ = m.Composer.Annotate("error", m.err)
+		m.Composer.Annotate("error", m.err)
 	})
 
 	return m.Composer.Raw()
-}
-
-func (m *errorComposerWrap) Annotate(k string, v any) error {
-	return m.Composer.Annotate(k, v)
 }
