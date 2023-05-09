@@ -3,10 +3,7 @@ package send
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
-
-	"github.com/tychoish/grip/level"
 )
 
 // WrapWriterPlain produces a simple writer that does not modify the log
@@ -14,16 +11,8 @@ import (
 //
 // The underlying mechanism uses the standard library's logging facility.
 func WrapWriterPlain(wr io.Writer) Sender {
-	s := &nativeLogger{}
-
+	s := makeNativeFromWriter(wr, 0)
 	s.SetFormatter(MakePlainFormatter())
-	s.SetPriority(level.Trace)
-	s.SetResetHook(func() {
-		s.logger = log.New(wr, "", 0)
-		s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
-	})
-	s.doReset()
-
 	return s
 }
 
@@ -36,10 +25,9 @@ func MakePlainFile(filePath string) (Sender, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error opening logging file: %w", err)
 	}
-
-	s := WrapWriterPlain(f).(*nativeLogger)
+	s := makeNativeFromWriter(f, 0)
+	s.SetFormatter(MakePlainFormatter())
 	s.SetCloseHook(func() error { return f.Close() })
-	s.doReset()
 	return s, nil
 }
 

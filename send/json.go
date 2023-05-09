@@ -6,6 +6,7 @@ package send
 // message.Composer and Marshalling the results.
 func MakeJSON() Sender {
 	s := MakePlain()
+
 	s.SetFormatter(MakeJSONFormatter())
 
 	return s

@@ -60,7 +60,7 @@ func (b *Base) doReset() {
 func (b *Base) SetCloseHook(f func() error) { b.closer.Set(f) }
 
 // SetFormatter users to set the formatting function used to construct log messages.
-func (b *Base) SetFormatter(mf MessageFormatter) { b.formatter.Set(mf) }
+func (b *Base) SetFormatter(mf MessageFormatter) { b.formatter.Set(mf); b.doReset() }
 
 // Formatter returns the formatter, defaulting to using the string
 // form of the message if no formatter is configured.
@@ -79,8 +79,9 @@ func (b *Base) Formatter() MessageFormatter {
 // SetErrorHandler configures the error handling function for this Sender.
 func (b *Base) SetErrorHandler(eh ErrorHandler) { b.errHandler.Set(eh) }
 
-// ErrorHandler returns an error handling functioncalls the error handler, and is a wrapper around the
-// embedded ErrorHandler function.
+// ErrorHandler returns an error handling functioncalls the error
+// handler, and is a wrapper around the embedded ErrorHandler
+// function.
 func (b *Base) ErrorHandler() ErrorHandler {
 	return func(err error, m message.Composer) {
 		if err == nil {

@@ -19,24 +19,14 @@ type nativeLogger struct {
 // the specified file. The Sender instance is not configured: Pass to
 // Journaler.SetSender or call SetName before using.
 func MakeFile(filePath string) (Sender, error) {
-	s := &nativeLogger{}
-	s.SetFormatter(MakeDefaultFormatter())
-
 	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, fmt.Errorf("error opening logging file: %w", err)
 	}
-	s.SetPriority(level.Trace)
 
-	s.SetResetHook(func() {
-		prefix := fmt.Sprintf("[%s] ", s.Name())
-		s.logger = log.New(f, prefix, log.LstdFlags)
-		s.SetErrorHandler(ErrorHandlerFromLogger(log.New(os.Stderr, prefix, log.LstdFlags)))
-	})
-	s.SetCloseHook(func() error {
-		return f.Close()
-	})
-	s.doReset()
+	s := makeNativeFromWriter(f, log.LstdFlags)
+	s.SetFormatter(MakeDefaultFormatter())
+	s.SetCloseHook(func() error { return f.Close() })
 
 	return s, nil
 }
@@ -64,18 +54,16 @@ func WrapWriter(wr io.Writer) Sender {
 	if s, ok := wr.(WriterSender); ok {
 		return s
 	}
-
-	s := &nativeLogger{}
-
-	s.SetResetHook(func() {
-		s.logger = log.New(wr, fmt.Sprintf("[%s] ", s.Name()), log.LstdFlags)
-		s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
-	})
-	s.SetPriority(level.Trace)
-	s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
+	s := makeNativeFromWriter(wr, log.LstdFlags)
 	s.SetFormatter(MakeDefaultFormatter())
-	s.doReset()
+	return s
+}
 
+func makeNativeFromWriter(wr io.Writer, stdFlags int) *nativeLogger {
+	s := &nativeLogger{}
+	s.logger = log.New(wr, "", stdFlags)
+	s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
+	s.SetPriority(level.Trace)
 	return s
 }
 
