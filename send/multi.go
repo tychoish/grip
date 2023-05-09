@@ -121,3 +121,17 @@ func (s *multiSender) Flush(ctx context.Context) error {
 
 	return catcher.Resolve()
 }
+
+func (s *multiSender) SetFormatter(fmtr MessageFormatter) {
+	s.Base.SetFormatter(fmtr)
+	for _, s := range s.senders {
+		s.SetFormatter(fmtr)
+	}
+}
+
+func (s *multiSender) SetErrorHandler(errh ErrorHandler) {
+	s.Base.SetErrorHandler(errh)
+	for _, s := range s.senders {
+		s.SetErrorHandler(errh)
+	}
+}

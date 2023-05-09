@@ -115,6 +115,22 @@ func (s *asyncGroupSender) SetPriority(p level.Priority) {
 	}))
 }
 
+func (s *asyncGroupSender) SetErrorHandler(erh ErrorHandler) {
+	s.Base.SetErrorHandler(erh)
+
+	fun.InvariantMust(fun.Observe(s.ctx, s.senders.Iterator(), func(sender Sender) {
+		sender.SetErrorHandler(erh)
+	}))
+}
+
+func (s *asyncGroupSender) SetFormatter(fmtr MessageFormatter) {
+	s.Base.SetFormatter(fmtr)
+
+	fun.InvariantMust(fun.Observe(s.ctx, s.senders.Iterator(), func(sender Sender) {
+		sender.SetFormatter(fmtr)
+	}))
+}
+
 func (s *asyncGroupSender) Send(m message.Composer) {
 	if !ShouldLog(s, m) {
 		return
