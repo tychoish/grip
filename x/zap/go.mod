@@ -3,7 +3,7 @@ module github.com/tychoish/grip/x/zap
 go 1.19
 
 require (
-	github.com/tychoish/grip v0.2.9
+	github.com/tychoish/grip v0.2.10
 	go.uber.org/zap v1.24.0
 )
 
