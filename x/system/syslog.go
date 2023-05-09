@@ -4,31 +4,36 @@ package system
 
 import (
 	"fmt"
-	"log"
 	"log/syslog"
 	"os"
 
+	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
 
 type syslogger struct {
-	logger *syslog.Writer
+	logger        *syslog.Writer
+	fallback      send.Sender
+	fallbackSetup adt.Once[send.Sender]
 	send.Base
 }
 
 // MakeSyslogSender constructs a minimal and unconfigured logger that
-// posts to systemd's journal.
-// Pass to Journaler.SetSender or call SetName before using.
+// sends all log message over a socket to a syslog instance at the
+// specified address. If no connection can be made, the
 func MakeSyslogSender(network, raddr string) send.Sender {
 	s := &syslogger{}
 
-	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
-
 	s.SetResetHook(func() {
-		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
+		s.fallback = s.fallbackSetup.Do(func() send.Sender {
+			return send.WrapWriterPlain(os.Stderr)
+		})
+
+		s.SetErrorHandler(send.ErrorHandlerFromSender(s.fallback))
+		s.fallback.SetFormatter(s.Formatter())
 
 		if s.logger != nil {
 			if err := s.logger.Close(); err != nil {
@@ -50,6 +55,8 @@ func MakeSyslogSender(network, raddr string) send.Sender {
 		s.logger = w
 	})
 
+	s.SetFormatter(send.MakeDefaultFormatter())
+
 	return s
 }
 
@@ -61,16 +68,22 @@ func MakeSyslogSender(network, raddr string) send.Sender {
 func MakeLocalSyslog() send.Sender { return MakeSyslogSender("", "") }
 func (s *syslogger) Close() error  { return s.logger.Close() }
 func (s *syslogger) Send(m message.Composer) {
-	defer func() {
-		if err := recover(); err != nil {
-			s.ErrorHandler()(fmt.Errorf("panic: %v", err), m)
+	if !send.ShouldLog(s, m) {
+		return
+	}
+	if err := fun.Check(func() {
+		outstr, err := s.Formatter()(m)
+		if err != nil {
+			s.ErrorHandler()(err, m)
+			return
 		}
-	}()
 
-	if send.ShouldLog(s, m) {
-		if err := s.sendToSysLog(m.Priority(), m.String()); err != nil {
+		if err := s.sendToSysLog(m.Priority(), outstr); err != nil {
 			s.ErrorHandler()(err, m)
 		}
+	}); err != nil {
+		// there was a panic
+		s.ErrorHandler()(err, m)
 	}
 }
 

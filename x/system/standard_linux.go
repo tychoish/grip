@@ -10,10 +10,10 @@ import (
 // MakeDefaultSystem constructs a default logger that pushes to
 // systemd on platforms where that's available and standard output
 // otherwise.
-func MakeDefault() (send.Sender, error) {
+func MakeDefault() send.Sender {
 	if journal.Enabled() {
 		return MakeSystemdSender()
 	}
 
-	return send.MakeStdOutput(), nil
+	return send.MakeStdError()
 }

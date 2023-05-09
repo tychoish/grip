@@ -1,61 +1,72 @@
 package system
 
 import (
-	"errors"
-	"fmt"
-	"log"
 	"os"
 
 	"github.com/coreos/go-systemd/journal"
+	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
 
 type systemdJournal struct {
+	fallback      send.Sender
+	fallbackSetup adt.Once[send.Sender]
+
 	options map[string]string
 	send.Base
 }
 
-// NewSystemdSender creates a Sender object that writes log messages
-// MakeSystemdSender constructs an unconfigured systemd journald
-// logger. Pass to Journaler.SetSender or call SetName before using.
-func MakeSystemdSender() (send.Sender, error) {
+// MakeSystemdSender creates a Sender object that writes log messages
+// to the sysemd journal service directly. If such a service does not
+// exist on the current system, returns a sender that writes all
+// messages to standard output.
+func MakeSystemdSender() send.Sender {
 	if !journal.Enabled() {
-		return nil, errors.New("systemd journal logging is not available on this platform")
+		return send.WrapWriter(os.Stderr)
 	}
 
 	s := &systemdJournal{
 		options: make(map[string]string),
 	}
 
-	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
-
 	s.SetResetHook(func() {
-		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
+		s.fallback = s.fallbackSetup.Do(func() send.Sender {
+			return send.WrapWriterPlain(os.Stderr)
+		})
+		s.SetErrorHandler(send.ErrorHandlerFromSender(s.fallback))
+		s.fallback.SetFormatter(s.Formatter())
 	})
 
-	return s, nil
+	s.SetFormatter(send.MakePlainFormatter())
+
+	return s
 }
 
 func (s *systemdJournal) Send(m message.Composer) {
-	defer func() {
-		if err := recover(); err != nil {
-			s.ErrorHandler()(fmt.Errorf("panic: %v", err), m)
-		}
-	}()
+	if !send.ShouldLog(s, m) {
+		return
+	}
 
-	if send.ShouldLog(s, m) {
-		err := journal.Send(m.String(), convertPrioritySystemd(s.Priority(), m.Priority()), s.options)
+	if err := fun.Check(func() {
+		outstr, err := s.Formatter()(m)
 		if err != nil {
 			s.ErrorHandler()(err, m)
+			return
 		}
 
+		if err := journal.Send(outstr, convertPrioritySystemd(m.Priority(), 0), s.options); err != nil {
+			s.ErrorHandler()(err, m)
+		}
+	}); err != nil {
+		// there was a panic
+		s.ErrorHandler()(err, m)
 	}
 }
 
-func convertPrioritySystemd(defaultPrio, prio level.Priority) journal.Priority {
+func convertPrioritySystemd(prio level.Priority, depth int) journal.Priority {
 	switch prio {
 	case level.Emergency:
 		return journal.PriEmerg
@@ -74,6 +85,20 @@ func convertPrioritySystemd(defaultPrio, prio level.Priority) journal.Priority {
 	case level.Debug, level.Trace, level.Invalid:
 		return journal.PriDebug
 	default:
-		return convertPrioritySystemd(level.Invalid, defaultPrio)
+		// levels increase by 25(ish); if we're going to be
+		// invalid by being too low, just return debug now,
+		// otherwise, attempt to round down to the nearest 25,
+		// should only need 1 or 2 recursions to get to some
+		// return.
+		if prio%25 == 0 {
+			prio -= 25
+			convertPrioritySystemd(prio, depth+1)
+		}
+
+		if l := (prio - (prio % 25)); l < 0 {
+			return journal.PriDebug
+		} else {
+			return convertPrioritySystemd(l, depth+1)
+		}
 	}
 }
