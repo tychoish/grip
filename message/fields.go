@@ -110,9 +110,7 @@ func (m *fieldMessage) String() string {
 				fmt.Sprintf("%s='%v'", FieldsMsgName, m.fields[FieldsMsgName]),
 			}, out...)
 		}
-		if meta, ok := m.fields["meta"]; ok && !m.SkipMetadata {
-			out = append(out, fmt.Sprintf("%s='%v'", "meta", meta))
-		}
+
 		m.cachedOutput = strings.Join(out, " ")
 	}
 	return m.cachedOutput
