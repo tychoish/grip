@@ -2,10 +2,10 @@ package xmpp
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	xmpp "github.com/mattn/go-xmpp"
+	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -58,8 +58,12 @@ const completeFormatTmpl = "[%s] (p=%s) %s"
 // It can never error.
 func MakeXMPPFormatter(name string) send.MessageFormatter {
 	return func(m message.Composer) (string, error) {
-		return fmt.Sprintf(completeFormatTmpl, name, m.Priority(), m.String()), nil
+		return formatXmppMessage(name, m)
 	}
+}
+
+func formatXmppMessage(name string, m message.Composer) (string, error) {
+	return fmt.Sprintf(completeFormatTmpl, name, m.Priority(), m.String()), nil
 }
 
 // MakeSender constructs an XMPP logging backend that reads the
@@ -88,14 +92,10 @@ func NewSender(target string, info ConnectionInfo) (send.Sender, error) {
 		return nil, err
 	}
 
-	fallback := log.New(os.Stdout, "", log.LstdFlags)
-
 	s.SetCloseHook(func() error { return s.info.client.Close() })
-	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
-	s.SetFormatter(MakeXMPPFormatter(s.Name()))
-	s.SetResetHook(func() {
-		s.SetFormatter(MakeXMPPFormatter(s.Name()))
-		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
+	s.SetErrorHandler(send.ErrorHandlerFromSender(grip.Sender()))
+	s.SetFormatter(func(m message.Composer) (string, error) {
+		return formatXmppMessage(s.Name(), m)
 	})
 
 	return s, nil
