@@ -90,15 +90,19 @@ func convertPrioritySystemd(prio level.Priority, depth int) journal.Priority {
 		// otherwise, attempt to round down to the nearest 25,
 		// should only need 1 or 2 recursions to get to some
 		// return.
-		if prio%25 == 0 {
-			prio -= 25
-			convertPrioritySystemd(prio, depth+1)
-		}
-
-		if l := (prio - (prio % 25)); l < 0 {
+		switch {
+		case prio <= 25:
 			return journal.PriDebug
-		} else {
-			return convertPrioritySystemd(l, depth+1)
+		case prio%25 == 0 && int(prio)-25 >= 0:
+			prio -= 25
+			return convertPrioritySystemd(prio, depth+1)
+		default:
+			val := int(prio) - int(prio)%25
+			if val >= 0 {
+				return convertPrioritySystemd(level.Priority(val), depth+1)
+			}
+
+			return journal.PriDebug
 		}
 	}
 }
