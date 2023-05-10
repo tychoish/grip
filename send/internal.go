@@ -14,6 +14,8 @@ import (
 // purposes.
 type InternalSender struct {
 	Base
+	Filter func(message.Composer)
+
 	name   string
 	output chan *InternalMessage
 	mu     sync.RWMutex
@@ -22,8 +24,7 @@ type InternalSender struct {
 // InternalMessage provides a complete representation of all
 // information associated with a logging event.
 type InternalMessage struct {
-	Message message.Composer
-
+	Message  message.Composer
 	Logged   bool
 	Priority level.Priority
 	Rendered string
@@ -81,6 +82,9 @@ func (s *InternalSender) Len() int {
 func (s *InternalSender) Send(m message.Composer) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.Filter != nil {
+		s.Filter(m)
+	}
 	s.output <- &InternalMessage{
 		Message:  m,
 		Priority: m.Priority(),

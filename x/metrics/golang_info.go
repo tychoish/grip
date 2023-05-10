@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/tychoish/birch"
-	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
@@ -134,21 +133,22 @@ func CollectBasicGoStats() message.Composer {
 
 // GoRuntimeInfo provides
 type GoRuntimeInfo struct {
-	HeapObjects uint64        `bson:"memory.objects.heap" json:"memory.objects.heap" yaml:"memory.objects.heap"`
-	Alloc       uint64        `bson:"memory.summary.alloc" json:"memory.summary.alloc" yaml:"memory.summary.alloc"`
-	HeapSystem  uint64        `bson:"memory.summary.system" json:"memory.summary.system" yaml:"memory.summary.system"`
-	HeapIdle    uint64        `bson:"memory.heap.idle" json:"memory.heap.idle" yaml:"memory.heap.idle"`
-	HeapInUse   uint64        `bson:"memory.heap.used" json:"memory.heap.used" yaml:"memory.heap.used"`
-	Mallocs     int64         `bson:"memory.counters.mallocs" json:"memory.counters.mallocs" yaml:"memory.counters.mallocs"`
-	Frees       int64         `bson:"memory.counters.frees" json:"memory.counters.frees" yaml:"memory.counters.frees"`
-	GC          int64         `bson:"gc.rate" json:"gc.rate" yaml:"gc.rate"`
-	GCPause     time.Duration `bson:"gc.pause.duration.last" json:"gc.pause.last" yaml:"gc.pause.last"`
-	GCLatency   time.Duration `bson:"gc.pause.duration.latency" json:"gc.pause.duration.latency" yaml:"gc.pause.duration.latency"`
-	Goroutines  int64         `bson:"goroutines.total" json:"goroutines.total" yaml:"goroutines.total"`
-	CgoCalls    int64         `bson:"cgo.calls" json:"cgo.calls" yaml:"cgo.calls"`
-
-	Message      string `bson:"msg" json:"msg" yaml:"msg"`
-	message.Base `json:"metadata,omitempty" bson:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Message string `bson:"msg" json:"msg" yaml:"msg"`
+	Payload struct {
+		HeapObjects uint64        `bson:"memory.objects.heap" json:"memory.objects.heap" yaml:"memory.objects.heap"`
+		Alloc       uint64        `bson:"memory.summary.alloc" json:"memory.summary.alloc" yaml:"memory.summary.alloc"`
+		HeapSystem  uint64        `bson:"memory.summary.system" json:"memory.summary.system" yaml:"memory.summary.system"`
+		HeapIdle    uint64        `bson:"memory.heap.idle" json:"memory.heap.idle" yaml:"memory.heap.idle"`
+		HeapInUse   uint64        `bson:"memory.heap.used" json:"memory.heap.used" yaml:"memory.heap.used"`
+		Mallocs     int64         `bson:"memory.counters.mallocs" json:"memory.counters.mallocs" yaml:"memory.counters.mallocs"`
+		Frees       int64         `bson:"memory.counters.frees" json:"memory.counters.frees" yaml:"memory.counters.frees"`
+		GC          int64         `bson:"gc.rate" json:"gc.rate" yaml:"gc.rate"`
+		GCPause     time.Duration `bson:"gc.pause.duration.last" json:"gc.pause.last" yaml:"gc.pause.last"`
+		GCLatency   time.Duration `bson:"gc.pause.duration.latency" json:"gc.pause.duration.latency" yaml:"gc.pause.duration.latency"`
+		Goroutines  int64         `bson:"goroutines.total" json:"goroutines.total" yaml:"goroutines.total"`
+		CgoCalls    int64         `bson:"cgo.calls" json:"cgo.calls" yaml:"cgo.calls"`
+	}
+	message.Base `json:"meta,omitempty" bson:"meta,omitempty" yaml:"meta,omitempty"`
 
 	loggable  bool
 	useDeltas bool
@@ -174,19 +174,10 @@ func CollectGoStatsTotals() message.Composer {
 // but additionally allows you to set a message string to annotate the
 // data.
 func MakeGoStatsTotals(msg string) message.Composer {
-	s := &GoRuntimeInfo{Message: msg}
+	s := &GoRuntimeInfo{}
+	s.Message = msg
 	s.build()
 
-	return s
-}
-
-// NewGoStatsTotals has the same semantics as CollectGoStatsTotals,
-// but additionally allows you to set a message string and log level
-// to annotate the data.
-func NewGoStatsTotals(p level.Priority, msg string) message.Composer {
-	s := &GoRuntimeInfo{Message: msg}
-	s.build()
-	s.SetPriority(p)
 	return s
 }
 
@@ -211,18 +202,9 @@ func CollectGoStatsDeltas() message.Composer {
 // but additionally allows you to set a message string to annotate the
 // data.
 func MakeGoStatsDeltas(msg string) message.Composer {
-	s := &GoRuntimeInfo{Message: msg, useDeltas: true}
+	s := &GoRuntimeInfo{useDeltas: true}
+	s.Message = msg
 	s.build()
-	return s
-}
-
-// NewGoStatsDeltas has the same semantics as CollectGoStatsDeltas,
-// but additionally allows you to set a message string to annotate the
-// data.
-func NewGoStatsDeltas(p level.Priority, msg string) message.Composer {
-	s := &GoRuntimeInfo{Message: msg, useDeltas: true}
-	s.build()
-	s.SetPriority(p)
 	return s
 }
 
@@ -248,18 +230,9 @@ func CollectGoStatsRates() message.Composer {
 // but additionally allows you to set a message string to annotate the
 // data.
 func MakeGoStatsRates(msg string) message.Composer {
-	s := &GoRuntimeInfo{Message: msg, useRates: true}
+	s := &GoRuntimeInfo{useRates: true}
+	s.Message = msg
 	s.build()
-	return s
-}
-
-// NewGoStatsRates has the same semantics as CollectGoStatsRates,
-// but additionally allows you to set a message string to annotate the
-// data.
-func NewGoStatsRates(p level.Priority, msg string) message.Composer {
-	s := &GoRuntimeInfo{Message: msg, useRates: true}
-	s.build()
-	s.SetPriority(p)
 	return s
 }
 
@@ -268,31 +241,31 @@ func (s *GoRuntimeInfo) build() {
 	defer goStatsCache.Unlock()
 	m := goStatsCache.update()
 
-	s.HeapObjects = m.HeapObjects
-	s.Alloc = m.Alloc
-	s.HeapSystem = m.HeapSys
-	s.HeapIdle = m.HeapIdle
-	s.HeapInUse = m.HeapInuse
-	s.Goroutines = int64(runtime.NumGoroutine())
+	s.Payload.HeapObjects = m.HeapObjects
+	s.Payload.Alloc = m.Alloc
+	s.Payload.HeapSystem = m.HeapSys
+	s.Payload.HeapIdle = m.HeapIdle
+	s.Payload.HeapInUse = m.HeapInuse
+	s.Payload.Goroutines = int64(runtime.NumGoroutine())
 
-	s.GCLatency = time.Since(goStatsCache.lastGC)
-	s.GCPause = time.Duration(goStatsCache.gcPause)
+	s.Payload.GCLatency = time.Since(goStatsCache.lastGC)
+	s.Payload.GCPause = time.Duration(goStatsCache.gcPause)
 
 	if s.useDeltas {
-		s.Mallocs = goStatsCache.mallocs().Delta
-		s.Frees = goStatsCache.frees().Delta
-		s.GC = goStatsCache.gcs().Delta
-		s.CgoCalls = goStatsCache.cgo().Delta
+		s.Payload.Mallocs = goStatsCache.mallocs().Delta
+		s.Payload.Frees = goStatsCache.frees().Delta
+		s.Payload.GC = goStatsCache.gcs().Delta
+		s.Payload.CgoCalls = goStatsCache.cgo().Delta
 	} else if s.useRates {
-		s.Mallocs = goStatsCache.mallocs().int()
-		s.Frees = goStatsCache.frees().int()
-		s.GC = goStatsCache.gcs().int()
-		s.CgoCalls = goStatsCache.cgo().int()
+		s.Payload.Mallocs = goStatsCache.mallocs().int()
+		s.Payload.Frees = goStatsCache.frees().int()
+		s.Payload.GC = goStatsCache.gcs().int()
+		s.Payload.CgoCalls = goStatsCache.cgo().int()
 	} else {
-		s.Mallocs = goStatsCache.mallocCounter.current
-		s.Frees = goStatsCache.freesCounter.current
-		s.GC = goStatsCache.gcRate.current
-		s.CgoCalls = goStatsCache.cgoCalls.current
+		s.Payload.Mallocs = goStatsCache.mallocCounter.current
+		s.Payload.Frees = goStatsCache.freesCounter.current
+		s.Payload.GC = goStatsCache.gcRate.current
+		s.Payload.CgoCalls = goStatsCache.cgoCalls.current
 	}
 
 	s.loggable = true
@@ -306,12 +279,22 @@ func (*GoRuntimeInfo) Schema() string   { return "runtime.0" }
 
 // Raw is part of the Composer interface and returns the GoRuntimeInfo
 // object itself.
-func (s *GoRuntimeInfo) Raw() any { s.Collect(); return s }
+func (s *GoRuntimeInfo) Raw() any {
+	if s.SkipMetadata {
+		return s.Payload
+	}
+	if !s.SkipCollection {
+		s.Collect()
+	}
+	return s
+}
 func (s *GoRuntimeInfo) String() string {
-	s.Collect()
+	if !s.SkipCollection {
+		s.Collect()
+	}
 
 	if s.rendered == "" {
-		s.rendered = renderStatsString(s.Message, s)
+		s.rendered = renderStatsString(s.Message, s.Payload)
 	}
 
 	return s.rendered
@@ -319,16 +302,16 @@ func (s *GoRuntimeInfo) String() string {
 
 func (s *GoRuntimeInfo) MarshalDocument() (*birch.Document, error) {
 	return birch.DC.Elements(
-		birch.EC.Int64("memory.objects.heap", int64(s.HeapObjects)),
-		birch.EC.Int64("memory.summary.alloc", int64(s.Alloc)),
-		birch.EC.Int64("memory.summary.system", int64(s.HeapSystem)),
-		birch.EC.Int64("memory.heap.idle", int64(s.HeapIdle)),
-		birch.EC.Int64("memory.heap.used", int64(s.HeapInUse)),
-		birch.EC.Int64("memory.counters.mallocs", s.Mallocs),
-		birch.EC.Int64("memory.counters.frees", s.Frees),
-		birch.EC.Int64("gc.rate", s.GC),
-		birch.EC.Duration("gc.pause.duration.last", s.GCPause),
-		birch.EC.Duration("gc.pause.duration.latency", s.GCLatency),
-		birch.EC.Int64("goroutines.total", s.Goroutines),
-		birch.EC.Int64("cgo.calls", s.CgoCalls)), nil
+		birch.EC.Int64("memory.objects.heap", int64(s.Payload.HeapObjects)),
+		birch.EC.Int64("memory.summary.alloc", int64(s.Payload.Alloc)),
+		birch.EC.Int64("memory.summary.system", int64(s.Payload.HeapSystem)),
+		birch.EC.Int64("memory.heap.idle", int64(s.Payload.HeapIdle)),
+		birch.EC.Int64("memory.heap.used", int64(s.Payload.HeapInUse)),
+		birch.EC.Int64("memory.counters.mallocs", s.Payload.Mallocs),
+		birch.EC.Int64("memory.counters.frees", s.Payload.Frees),
+		birch.EC.Int64("gc.rate", s.Payload.GC),
+		birch.EC.Duration("gc.pause.duration.last", s.Payload.GCPause),
+		birch.EC.Duration("gc.pause.duration.latency", s.Payload.GCLatency),
+		birch.EC.Int64("goroutines.total", s.Payload.Goroutines),
+		birch.EC.Int64("cgo.calls", s.Payload.CgoCalls)), nil
 }

@@ -14,7 +14,8 @@ func TestAnnotatingSender(t *testing.T) {
 	insend.SetPriority(level.Debug)
 
 	annotate := MakeAnnotating(insend, map[string]any{"a": "b"})
-	m := message.MakeSimpleFields(message.Fields{"b": "a"})
+	m := message.MakeFields(message.Fields{"b": "a"})
+	m.Option(message.OptionSkipAllMetadata)
 	m.SetPriority(level.Info)
 	annotate.Send(m)
 

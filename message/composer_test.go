@@ -27,7 +27,6 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		MakeLines(testMsg):                                           testMsg,
 		BuildGroupComposer(MakeString(testMsg)):                      testMsg,
 		MakeGroupComposer([]Composer{MakeString(testMsg)}):           testMsg,
-		MakeSimpleFields(Fields{"message": testMsg}):                 fmt.Sprintf("[message='%s']", testMsg),
 		MakeFields(Fields{"test": testMsg}):                          fmt.Sprintf("[test='%s']", testMsg),
 		When(true, testMsg):                                          testMsg,
 		Whenf(true, testMsg):                                         testMsg,
@@ -213,8 +212,8 @@ func TestComposerConverter(t *testing.T) {
 				t.Errorf("should be false: %T", comp)
 			}
 			if "" != comp.String() {
-				t.Errorf("%T", msg)
 				testt.Logf(t, "%T>%s", comp, comp.String())
+				t.Errorf("%T", msg)
 			}
 		})
 

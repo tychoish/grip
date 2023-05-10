@@ -44,9 +44,7 @@ func (m *errorComposerWrap) Loggable() bool           { return m.err != nil && m
 func (m *errorComposerWrap) Annotate(k string, v any) { m.Composer.Annotate(k, v) }
 
 func (m *errorComposerWrap) Raw() any {
-	m.populate.Do(func() {
-		m.Composer.Annotate("error", m.err)
-	})
+	m.populate.Do(func() { m.Composer.Annotate("error", m.err) })
 
 	return m.Composer.Raw()
 }

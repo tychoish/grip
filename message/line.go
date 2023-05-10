@@ -56,9 +56,6 @@ func (l *lineMessenger) String() string {
 }
 
 func (l *lineMessenger) Raw() any {
-	if !l.SkipCollection {
-		l.Collect()
-	}
 	m := l.String()
 
 	if l.SkipMetadata {
@@ -67,6 +64,10 @@ func (l *lineMessenger) Raw() any {
 		}{
 			Msg: m,
 		}
+	}
+
+	if !l.SkipCollection {
+		l.Collect()
 	}
 
 	return l

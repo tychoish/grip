@@ -17,10 +17,6 @@ func (s *bytesMessage) String() string { return string(s.data) }
 func (s *bytesMessage) Loggable() bool { return len(s.data) > 0 }
 
 func (s *bytesMessage) Raw() any {
-	if !s.SkipCollection {
-		s.Collect()
-	}
-
 	out := struct {
 		Meta    *Base  `bson:"meta,omitempty" json:"meta,omitempty" yaml:"meta,omitempty"`
 		Message string `bson:"msg" json:"msg" yaml:"msg"`
@@ -28,9 +24,15 @@ func (s *bytesMessage) Raw() any {
 		Message: string(s.data),
 	}
 
-	if !s.SkipMetadata {
-		out.Meta = &s.Base
+	if s.SkipMetadata {
+		return out
 	}
+
+	if !s.SkipCollection {
+		s.Collect()
+	}
+
+	out.Meta = &s.Base
 
 	return out
 }

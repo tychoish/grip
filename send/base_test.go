@@ -17,9 +17,11 @@ func TestBaseCustomFormatter(t *testing.T) {
 		t.Run("Success", func(t *testing.T) {
 			b := &Base{}
 			b.SetConverter(func(in any) (message.Composer, bool) {
-				return message.MakeSimpleFields(message.Fields{
+				m := message.MakeFields(message.Fields{
 					"input": in,
-				}), true
+				})
+				m.Option(message.OptionSkipAllMetadata)
+				return m, true
 			})
 			m := b.Converter()("hello")
 			check.Equal(t, "input='hello'", m.String())
@@ -27,9 +29,11 @@ func TestBaseCustomFormatter(t *testing.T) {
 		t.Run("Passthrough", func(t *testing.T) {
 			b := &Base{}
 			b.SetConverter(func(in any) (message.Composer, bool) {
-				return message.MakeSimpleFields(message.Fields{
+				m := message.MakeFields(message.Fields{
 					"input": in,
-				}), false
+				})
+				m.Option(message.OptionSkipAllMetadata)
+				return m, false
 			})
 			m := b.Converter()("hello words")
 			check.Equal(t, "hello words", m.String())

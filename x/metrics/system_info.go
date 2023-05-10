@@ -10,7 +10,6 @@ import (
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
 	"github.com/tychoish/birch"
-	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
@@ -18,16 +17,18 @@ import (
 // collects system-wide resource utilization statistics about memory,
 // CPU, and network use, along with an optional message.
 type SystemInfo struct {
-	Message      string                `json:"msg" bson:"msg"`
-	CPU          StatCPUTimes          `json:"cpu" bson:"cpu"`
-	CPUPercent   float64               `json:"cpu_percent" bson:"cpu_percent"`
-	NumCPU       int                   `json:"num_cpus" bson:"num_cpus"`
-	VMStat       mem.VirtualMemoryStat `json:"vmstat" bson:"vmstat"`
-	NetStat      net.IOCountersStat    `json:"netstat" bson:"netstat"`
-	Partitions   []disk.PartitionStat  `json:"partitions" bson:"partitions"`
-	Usage        []disk.UsageStat      `json:"usage" bson:"usage"`
-	IOStat       []disk.IOCountersStat `json:"iostat" bson:"iostat"`
-	Errors       []string              `json:"errors" bson:"errors"`
+	Message string `json:"msg" bson:"msg"`
+	Payload struct {
+		CPU        StatCPUTimes          `json:"cpu" bson:"cpu"`
+		CPUPercent float64               `json:"cpu_percent" bson:"cpu_percent"`
+		NumCPU     int                   `json:"num_cpus" bson:"num_cpus"`
+		VMStat     mem.VirtualMemoryStat `json:"vmstat" bson:"vmstat"`
+		NetStat    net.IOCountersStat    `json:"netstat" bson:"netstat"`
+		Partitions []disk.PartitionStat  `json:"partitions" bson:"partitions"`
+		Usage      []disk.UsageStat      `json:"usage" bson:"usage"`
+		IOStat     []disk.IOCountersStat `json:"iostat" bson:"iostat"`
+		Errors     []string              `json:"errors" bson:"errors"`
+	}
 	message.Base `json:"metadata,omitempty" bson:"metadata,omitempty"`
 	loggable     bool
 	rendered     string
@@ -66,25 +67,16 @@ func convertCPUTimes(in cpu.TimesStat) StatCPUTimes {
 // CollectSystemInfo returns a populated SystemInfo object,
 // without a message.
 func CollectSystemInfo() message.Composer {
-	return NewSystemInfo(level.Trace, "")
+	return MakeSystemInfo("")
 }
 
 // MakeSystemInfo builds a populated SystemInfo object with the
 // specified message.
 func MakeSystemInfo(message string) message.Composer {
-	return NewSystemInfo(level.Info, message)
-}
-
-// NewSystemInfo returns a fully configured and populated SystemInfo
-// object.
-func NewSystemInfo(priority level.Priority, message string) message.Composer {
 	var err error
-	s := &SystemInfo{
-		Message: message,
-		NumCPU:  runtime.NumCPU(),
-	}
-
-	s.SetPriority(priority)
+	s := &SystemInfo{}
+	s.Message = message
+	s.Payload.NumCPU = runtime.NumCPU()
 
 	s.loggable = true
 
@@ -93,26 +85,26 @@ func NewSystemInfo(priority level.Priority, message string) message.Composer {
 	if err == nil && len(times) > 0 {
 		// since we're not storing per-core information,
 		// there's only one thing we care about in this struct
-		s.CPU = convertCPUTimes(times[0])
+		s.Payload.CPU = convertCPUTimes(times[0])
 	}
 	percent, err := cpu.Percent(0, false)
 	if err != nil {
 		s.saveError("cpu_times", err)
 	} else {
-		s.CPUPercent = percent[0]
+		s.Payload.CPUPercent = percent[0]
 	}
 
 	vmstat, err := mem.VirtualMemory()
 	s.saveError("vmstat", err)
 	if err == nil && vmstat != nil {
-		s.VMStat = *vmstat
-		s.VMStat.UsedPercent = 0.0
+		s.Payload.VMStat = *vmstat
+		s.Payload.VMStat.UsedPercent = 0.0
 	}
 
 	netstat, err := net.IOCounters(false)
 	s.saveError("netstat", err)
 	if err == nil && len(netstat) > 0 {
-		s.NetStat = netstat[0]
+		s.Payload.NetStat = netstat[0]
 	}
 
 	partitions, err := disk.Partitions(true)
@@ -129,16 +121,16 @@ func NewSystemInfo(priority level.Priority, message string) message.Composer {
 			u.UsedPercent = 0.0
 			u.InodesUsedPercent = 0.0
 
-			s.Usage = append(s.Usage, *u)
+			s.Payload.Usage = append(s.Payload.Usage, *u)
 		}
 
-		s.Partitions = partitions
+		s.Payload.Partitions = partitions
 	}
 
 	iostatMap, err := disk.IOCounters()
 	s.saveError("iostat", err)
 	for _, stat := range iostatMap {
-		s.IOStat = append(s.IOStat, stat)
+		s.Payload.IOStat = append(s.Payload.IOStat, stat)
 	}
 
 	return s
@@ -151,13 +143,22 @@ func (*SystemInfo) Structured() bool { return true }
 func (*SystemInfo) Schema() string   { return "sysinfo.0" }
 
 // Raw always returns the SystemInfo object.
-func (s *SystemInfo) Raw() any { return s }
+func (s *SystemInfo) Raw() any {
+	if s.SkipMetadata {
+		return s.Payload
+	}
+
+	if !s.SkipCollection {
+		s.Collect()
+	}
+	return s
+}
 
 // String returns a string representation of the message, lazily
 // rendering the message, and caching it privately.
 func (s *SystemInfo) String() string {
 	if s.rendered == "" {
-		s.rendered = renderStatsString(s.Message, s)
+		s.rendered = renderStatsString(s.Message, s.Payload)
 	}
 
 	return s.rendered
@@ -165,55 +166,55 @@ func (s *SystemInfo) String() string {
 
 func (s *SystemInfo) saveError(stat string, err error) {
 	if shouldSaveError(err) {
-		s.Errors = append(s.Errors, fmt.Sprintf("%s: %v", stat, err))
+		s.Payload.Errors = append(s.Payload.Errors, fmt.Sprintf("%s: %v", stat, err))
 	}
 }
 
 func (s *SystemInfo) MarshalDocument() (*birch.Document, error) {
 	sys := birch.DC.Elements(
-		birch.EC.Int("num_cpu", s.NumCPU),
-		birch.EC.Double("cpu_percent", s.CPUPercent),
-		birch.EC.SubDocument("cpu", marshalCPU(&s.CPU)),
+		birch.EC.Int("num_cpu", s.Payload.NumCPU),
+		birch.EC.Double("cpu_percent", s.Payload.CPUPercent),
+		birch.EC.SubDocument("cpu", marshalCPU(&s.Payload.CPU)),
 		birch.EC.SubDocumentFromElements("vmstat",
-			birch.EC.Int64("total", int64(s.VMStat.Total)),
-			birch.EC.Int64("available", int64(s.VMStat.Available)),
-			birch.EC.Int64("used", int64(s.VMStat.Used)),
-			birch.EC.Int64("usedPercent", int64(s.VMStat.UsedPercent)),
-			birch.EC.Int64("free", int64(s.VMStat.Free)),
-			birch.EC.Int64("active", int64(s.VMStat.Active)),
-			birch.EC.Int64("inactive", int64(s.VMStat.Inactive)),
-			birch.EC.Int64("wired", int64(s.VMStat.Wired)),
-			birch.EC.Int64("laundry", int64(s.VMStat.Laundry)),
-			birch.EC.Int64("buffers", int64(s.VMStat.Buffers)),
-			birch.EC.Int64("cached", int64(s.VMStat.Cached)),
-			birch.EC.Int64("writeback", int64(s.VMStat.Writeback)),
-			birch.EC.Int64("dirty", int64(s.VMStat.Dirty)),
-			birch.EC.Int64("writebacktmp", int64(s.VMStat.WritebackTmp)),
-			birch.EC.Int64("shared", int64(s.VMStat.Shared)),
-			birch.EC.Int64("slab", int64(s.VMStat.Slab)),
-			birch.EC.Int64("sreclaimable", int64(s.VMStat.SReclaimable)),
-			birch.EC.Int64("sunreclaim", int64(s.VMStat.SUnreclaim)),
-			birch.EC.Int64("pagetables", int64(s.VMStat.PageTables)),
-			birch.EC.Int64("swapcached", int64(s.VMStat.SwapCached)),
-			birch.EC.Int64("commitlimit", int64(s.VMStat.CommitLimit)),
-			birch.EC.Int64("commitedas", int64(s.VMStat.CommittedAS)),
-			birch.EC.Int64("hightotal", int64(s.VMStat.HighTotal)),
-			birch.EC.Int64("highfree", int64(s.VMStat.HighFree)),
-			birch.EC.Int64("lowtotal", int64(s.VMStat.LowTotal)),
-			birch.EC.Int64("lowfree", int64(s.VMStat.LowFree)),
-			birch.EC.Int64("swaptotal", int64(s.VMStat.SwapTotal)),
-			birch.EC.Int64("swapfree", int64(s.VMStat.SwapFree)),
-			birch.EC.Int64("mapped", int64(s.VMStat.Mapped)),
-			birch.EC.Int64("vmalloctotal", int64(s.VMStat.VMallocTotal)),
-			birch.EC.Int64("vmallocused", int64(s.VMStat.VMallocUsed)),
-			birch.EC.Int64("vmallocchunk", int64(s.VMStat.VMallocChunk)),
-			birch.EC.Int64("hugepagestotal", int64(s.VMStat.HugePagesTotal)),
-			birch.EC.Int64("hugepagesfree", int64(s.VMStat.HugePagesFree)),
-			birch.EC.Int64("hugepagessize", int64(s.VMStat.HugePageSize))),
-		birch.EC.SubDocument("netstat", marshalNetStat(&s.NetStat)))
+			birch.EC.Int64("total", int64(s.Payload.VMStat.Total)),
+			birch.EC.Int64("available", int64(s.Payload.VMStat.Available)),
+			birch.EC.Int64("used", int64(s.Payload.VMStat.Used)),
+			birch.EC.Int64("usedPercent", int64(s.Payload.VMStat.UsedPercent)),
+			birch.EC.Int64("free", int64(s.Payload.VMStat.Free)),
+			birch.EC.Int64("active", int64(s.Payload.VMStat.Active)),
+			birch.EC.Int64("inactive", int64(s.Payload.VMStat.Inactive)),
+			birch.EC.Int64("wired", int64(s.Payload.VMStat.Wired)),
+			birch.EC.Int64("laundry", int64(s.Payload.VMStat.Laundry)),
+			birch.EC.Int64("buffers", int64(s.Payload.VMStat.Buffers)),
+			birch.EC.Int64("cached", int64(s.Payload.VMStat.Cached)),
+			birch.EC.Int64("writeback", int64(s.Payload.VMStat.Writeback)),
+			birch.EC.Int64("dirty", int64(s.Payload.VMStat.Dirty)),
+			birch.EC.Int64("writebacktmp", int64(s.Payload.VMStat.WritebackTmp)),
+			birch.EC.Int64("shared", int64(s.Payload.VMStat.Shared)),
+			birch.EC.Int64("slab", int64(s.Payload.VMStat.Slab)),
+			birch.EC.Int64("sreclaimable", int64(s.Payload.VMStat.SReclaimable)),
+			birch.EC.Int64("sunreclaim", int64(s.Payload.VMStat.SUnreclaim)),
+			birch.EC.Int64("pagetables", int64(s.Payload.VMStat.PageTables)),
+			birch.EC.Int64("swapcached", int64(s.Payload.VMStat.SwapCached)),
+			birch.EC.Int64("commitlimit", int64(s.Payload.VMStat.CommitLimit)),
+			birch.EC.Int64("commitedas", int64(s.Payload.VMStat.CommittedAS)),
+			birch.EC.Int64("hightotal", int64(s.Payload.VMStat.HighTotal)),
+			birch.EC.Int64("highfree", int64(s.Payload.VMStat.HighFree)),
+			birch.EC.Int64("lowtotal", int64(s.Payload.VMStat.LowTotal)),
+			birch.EC.Int64("lowfree", int64(s.Payload.VMStat.LowFree)),
+			birch.EC.Int64("swaptotal", int64(s.Payload.VMStat.SwapTotal)),
+			birch.EC.Int64("swapfree", int64(s.Payload.VMStat.SwapFree)),
+			birch.EC.Int64("mapped", int64(s.Payload.VMStat.Mapped)),
+			birch.EC.Int64("vmalloctotal", int64(s.Payload.VMStat.VMallocTotal)),
+			birch.EC.Int64("vmallocused", int64(s.Payload.VMStat.VMallocUsed)),
+			birch.EC.Int64("vmallocchunk", int64(s.Payload.VMStat.VMallocChunk)),
+			birch.EC.Int64("hugepagestotal", int64(s.Payload.VMStat.HugePagesTotal)),
+			birch.EC.Int64("hugepagesfree", int64(s.Payload.VMStat.HugePagesFree)),
+			birch.EC.Int64("hugepagessize", int64(s.Payload.VMStat.HugePageSize))),
+		birch.EC.SubDocument("netstat", marshalNetStat(&s.Payload.NetStat)))
 	{
-		ua := birch.MakeArray(len(s.Usage))
-		for _, usage := range s.Usage {
+		ua := birch.MakeArray(len(s.Payload.Usage))
+		for _, usage := range s.Payload.Usage {
 			ua.Append(birch.VC.DocumentFromElements(
 				birch.EC.String("path", usage.Path),
 				birch.EC.String("fstype", usage.Fstype),
@@ -228,8 +229,8 @@ func (s *SystemInfo) MarshalDocument() (*birch.Document, error) {
 		sys.Append(birch.EC.Array("usage", ua))
 	}
 	{
-		ioa := birch.MakeArray(len(s.IOStat))
-		for _, iostat := range s.IOStat {
+		ioa := birch.MakeArray(len(s.Payload.IOStat))
+		for _, iostat := range s.Payload.IOStat {
 			ioa.Append(birch.VC.DocumentFromElements(
 				birch.EC.String("name", iostat.Name),
 				birch.EC.String("serialNumber", iostat.SerialNumber),
@@ -250,8 +251,8 @@ func (s *SystemInfo) MarshalDocument() (*birch.Document, error) {
 		sys.Append(birch.EC.Array("iostat", ioa))
 	}
 	{
-		parts := birch.MakeArray(len(s.Partitions))
-		for _, part := range s.Partitions {
+		parts := birch.MakeArray(len(s.Payload.Partitions))
+		for _, part := range s.Payload.Partitions {
 			parts.Append(birch.VC.DocumentFromElements(
 				birch.EC.String("device", part.Device),
 				birch.EC.String("mountpoint", part.Mountpoint),

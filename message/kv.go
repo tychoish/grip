@@ -67,13 +67,16 @@ func (m *kvMsg) Raw() any {
 	if m.SkipMetadata {
 		return m.fields
 	}
+
 	if !m.SkipCollection {
 		m.Collect()
 	}
+
 	if !m.hasMetadata {
 		m.fields = append(m.fields, KV{Key: "meta", Value: &m.Base})
 		m.hasMetadata = true
 	}
+
 	return m.fields
 }
 func (m *kvMsg) String() string {

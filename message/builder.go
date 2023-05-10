@@ -149,6 +149,7 @@ func AddProducerToBuilder[T any, F ~func() T](b *Builder, fn F) *Builder {
 func (b *Builder) Fields(f Fields) *Builder {
 	if b.composer == nil {
 		b.composer = MakeFields(f)
+		b.composer.Option(OptionSkipAllMetadata)
 		return b
 	}
 

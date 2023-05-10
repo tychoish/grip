@@ -36,6 +36,12 @@ func setupFixtures(t *testing.T) *LoggingMethodSuite {
 	}
 	s.stdSender.SetPriority(lvl)
 	s.loggingSender.SetPriority(lvl)
+	s.stdSender.Filter = func(m message.Composer) {
+		m.Option(message.OptionSkipCollect)
+	}
+	s.loggingSender.Filter = func(m message.Composer) {
+		m.Option(message.OptionSkipCollect)
+	}
 
 	SetGlobalLogger(NewLogger(s.stdSender))
 	s.logger = NewLogger(s.loggingSender)
@@ -142,8 +148,10 @@ func TestBasicMethod(t *testing.T) {
 				if !s.stdSender.HasMessage() {
 					t.Error("value should be true")
 				}
+
 				lgrMsg := s.loggingSender.GetMessage()
 				stdMsg := s.stdSender.GetMessage()
+
 				if lgrMsg.Rendered != stdMsg.Rendered {
 					t.Log("rendered", lgrMsg.Rendered)
 					t.Log("standard", stdMsg.Rendered)

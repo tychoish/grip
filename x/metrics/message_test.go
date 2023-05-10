@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
@@ -23,11 +22,11 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 		}{
 			{
 				Name: "ProcessInfoCurrentProc",
-				Msg:  NewProcessInfo(level.Error, int32(os.Getpid()), testMsg),
+				Msg:  MakeProcessInfo(int32(os.Getpid()), testMsg),
 			},
 			{
 				Name:     "NewSystemInfo",
-				Msg:      NewSystemInfo(level.Error, testMsg),
+				Msg:      MakeSystemInfo(testMsg),
 				Expected: testMsg,
 			},
 
@@ -82,17 +81,17 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 			},
 			{
 				Name:     "NewGoStatsDeltas",
-				Msg:      NewGoStatsDeltas(level.Error, testMsg),
+				Msg:      MakeGoStatsDeltas(testMsg),
 				Expected: testMsg,
 			},
 			{
 				Name:     "NewGoStatsRates",
-				Msg:      NewGoStatsRates(level.Error, testMsg),
+				Msg:      MakeGoStatsRates(testMsg),
 				Expected: testMsg,
 			},
 			{
 				Name:     "NewGoStatsTotals",
-				Msg:      NewGoStatsTotals(level.Error, testMsg),
+				Msg:      MakeGoStatsTotals(testMsg),
 				Expected: testMsg,
 			},
 		} {
@@ -176,7 +175,7 @@ func TestProcessTreeDoesNotHaveDuplicates(t *testing.T) {
 		if !ok {
 			t.Error("should be true")
 		}
-		seen[pinfo.Pid] = struct{}{}
+		seen[pinfo.Payload.Pid] = struct{}{}
 	}
 
 	if len(procs) != len(seen) {

@@ -8,12 +8,12 @@ import (
 
 // FieldsMsgName is the name of the default "message" field in the
 // fields structure.
-const FieldsMsgName = "message"
+const FieldsMsgName = "msg"
 
 type fieldMessage struct {
-	fields       Fields
-	cachedOutput string
-	skipMetadata bool
+	fields        Fields
+	cachedOutput  string
+	metadataAdded bool
 	Base
 }
 
@@ -27,15 +27,6 @@ type Fields map[string]any
 // MakeFields creates a composer interface from *just* a Fields instance.
 func MakeFields(f Fields) Composer {
 	m := &fieldMessage{fields: f}
-	m.setup()
-	return m
-}
-
-// MakeSimpleFields returns a structured Composer that does
-// not attach basic logging metadata.
-func MakeSimpleFields(f Fields) Composer {
-	m := &fieldMessage{fields: f, skipMetadata: true}
-	m.setup()
 	return m
 }
 
@@ -77,78 +68,79 @@ func FieldsFromMap[V any](in map[string]V) Fields {
 //
 ////////////////////////////////////////////////////////////////////////
 
-func (m *fieldMessage) setup() {
-	if m.fields == nil {
-		m.fields = Fields{}
-	}
-
-	if m.skipMetadata {
-		return
-	}
-
-	m.Collect()
-
-	if b, ok := m.fields["metadata"]; !ok {
-		m.fields["metadata"] = &m.Base
-	} else if _, ok = b.(*Base); ok {
-		m.fields["metadata"] = &m.Base
-	}
-}
-
 func (*fieldMessage) Structured() bool { return true }
 
 func (m *fieldMessage) Loggable() bool {
 	if len(m.fields) > 1 || (len(m.fields) == 1 && !m.fields.hasMetadatField()) {
-		// it's not loggable if there's more than one field or
-		// if there is only one field that isn't the metadata field added by m.setup().
+		// it's loggable if there's more than one field or
+		// if there is only one field that isn't the metadata field
 		return true
 	}
 	return false
 }
 
-func (f Fields) hasMetadatField() bool { _, ok := f["metadata"]; return ok }
+func (f Fields) hasMetadatField() bool { _, ok := f["meta"]; return ok }
 
 var skippedFields = map[string]struct{}{
 	FieldsMsgName: {},
-	"time":        {},
-	"metadata":    {},
+	"meta":        {},
 }
 
 func (m *fieldMessage) String() string {
-	if !m.Loggable() {
-		return ""
-	}
+	if m.cachedOutput == "" {
+		m.addMetadatIfNeeded()
 
-	if m.cachedOutput != "" {
-		return m.cachedOutput
-	}
+		out := make([]string, 0, len(m.fields))
+		for k, v := range m.fields {
+			if _, ok := skippedFields[k]; ok {
+				continue
+			}
 
-	out := make([]string, 0, len(m.fields))
-	if _, ok := m.fields[FieldsMsgName]; ok {
-		out = append(out, "")
-	}
-
-	for k, v := range m.fields {
-		if _, ok := skippedFields[k]; ok {
-			continue
+			switch val := v.(type) {
+			case fmt.Stringer, string:
+				out = append(out, fmt.Sprintf("%s='%s'", k, val))
+			default:
+				out = append(out, fmt.Sprintf("%s='%v'", k, v))
+			}
 		}
 
-		switch val := v.(type) {
-		case fmt.Stringer, string:
-			out = append(out, fmt.Sprintf("%s='%s'", k, val))
-		default:
-			out = append(out, fmt.Sprintf("%s='%v'", k, v))
+		sort.Strings(out)
+		if _, ok := m.fields[FieldsMsgName]; ok {
+			out = append([]string{
+				fmt.Sprintf("%s='%v'", FieldsMsgName, m.fields[FieldsMsgName]),
+			}, out...)
 		}
+		if meta, ok := m.fields["meta"]; ok && !m.SkipMetadata {
+			out = append(out, fmt.Sprintf("%s='%v'", "meta", meta))
+		}
+		m.cachedOutput = strings.Join(out, " ")
 	}
-
-	sort.Strings(out)
-	if _, ok := m.fields[FieldsMsgName]; ok {
-		out[0] = fmt.Sprintf("%s='%v'", FieldsMsgName, m.fields[FieldsMsgName])
-	}
-	m.cachedOutput = strings.Join(out, " ")
-
 	return m.cachedOutput
 }
 
-func (m *fieldMessage) Raw() any                       { return m.fields }
+func (m *fieldMessage) addMetadatIfNeeded() {
+	if m.fields == nil {
+		m.fields = Fields{}
+	}
+
+	if m.SkipMetadata || m.metadataAdded || len(m.fields) == 0 {
+		return
+	}
+	if !m.SkipCollection {
+		m.Collect()
+	}
+
+	if b, ok := m.fields["meta"]; !ok {
+		m.fields["meta"] = &m.Base
+	} else if _, ok = b.(*Base); ok {
+		m.fields["meta"] = &m.Base
+	}
+
+	m.metadataAdded = true
+}
+
+func (m *fieldMessage) Raw() any {
+	m.addMetadatIfNeeded()
+	return m.fields
+}
 func (m *fieldMessage) Annotate(key string, value any) { m.fields[key] = value }

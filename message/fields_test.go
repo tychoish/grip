@@ -15,7 +15,7 @@ func TestFieldsLevelMutability(t *testing.T) {
 	if level.Error != c.Priority() {
 		t.Error("elements shold be equal")
 	}
-	if level.Error != r["metadata"].(*Base).Level {
+	if level.Error != r["meta"].(*Base).Level {
 		t.Error("elements shold be equal")
 	}
 
@@ -26,17 +26,17 @@ func TestFieldsLevelMutability(t *testing.T) {
 	if level.Info != c.Priority() {
 		t.Error("elements shold be equal")
 	}
-	if level.Info != r["metadata"].(*Base).Level {
+	if level.Info != r["meta"].(*Base).Level {
 		t.Error("elements shold be equal")
 	}
 }
 
 func TestDefaultFieldsMessage(t *testing.T) {
-	if out := GetDefaultFieldsMessage(MakeFields(Fields{"message": "hello world"}), "what"); out != "hello world" {
+	if out := GetDefaultFieldsMessage(MakeFields(Fields{"msg": "hello world"}), "what"); out != "hello world" {
 		t.Fatal("incorrect form resolved")
 	}
 
-	if out := GetDefaultFieldsMessage(MakeFields(Fields{"message": ""}), "what"); out != "" {
+	if out := GetDefaultFieldsMessage(MakeFields(Fields{"msg": ""}), "what"); out != "" {
 		t.Fatal("bad default for empty value")
 	}
 

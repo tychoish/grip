@@ -29,4 +29,20 @@ func (f *formatMessenger) String() string {
 }
 
 func (f *formatMessenger) Loggable() bool { return f.base != "" }
-func (f *formatMessenger) Raw() any       { f.Collect(); _ = f.String(); return f }
+func (f *formatMessenger) Raw() any {
+	_ = f.String()
+
+	if f.SkipMetadata {
+		return struct {
+			Message string `bson:"msg" json:"msg" yaml:"msg"`
+		}{
+			Message: f.Message,
+		}
+	}
+
+	if !f.SkipCollection {
+		f.Collect()
+	}
+
+	return f
+}

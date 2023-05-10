@@ -13,11 +13,11 @@ func MakeString(m string) Composer {
 func (s *stringMessage) String() string { return s.Message }
 func (s *stringMessage) Loggable() bool { return s.Message != "" }
 func (s *stringMessage) Raw() any {
-	if !s.SkipCollection {
-		s.Collect()
-	}
 	if s.SkipMetadata {
 		return stringMessage{Message: s.Message}
+	}
+	if !s.SkipCollection {
+		s.Collect()
 	}
 	return s
 }
