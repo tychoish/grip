@@ -3,9 +3,8 @@ package jira
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
 
+	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -43,11 +42,9 @@ func MakeCommentSender(ctx context.Context, id string, opts *Options) (send.Send
 		return nil, fmt.Errorf("jira authentication error: %v", err)
 	}
 
-	fallback := log.New(os.Stdout, "", log.LstdFlags)
+	j.SetName(fmt.Sprint(opts.Name, id))
 
-	j.SetName(id)
-	j.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", j.Name())) })
-	j.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
+	j.SetErrorHandler(send.ErrorHandlerFromSender(grip.Sender()))
 
 	return j, nil
 }

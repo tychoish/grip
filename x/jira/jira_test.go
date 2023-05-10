@@ -237,12 +237,12 @@ func TestGetFieldsWithJiraIssue(t *testing.T) {
 
 func TestGetFieldsWithFields(t *testing.T) {
 	msg := "Get the message"
-	testFields := message.Fields{"key0": 12, "key1": 42, "message": msg}
+	testFields := message.Fields{"key0": 12, "key1": 42, "msg": msg}
 	m := message.MakeFields(testFields)
 
 	fields := getFields(m)
 	if fields.Summary != msg {
-		t.Errorf("%v should be equal to %v", fields.Summary, msg)
+		t.Errorf("%q should be equal to %q", fields.Summary, msg)
 	}
 	if fields.Description == "" {
 		t.Error("fields.Description should be nil")
@@ -405,8 +405,8 @@ func TestPopulateKey(t *testing.T) {
 	}
 
 	messageFields := message.MakeFields(message.Fields{
-		"msg":     "something",
-		"message": "foo",
+		"msg":     "foo",
+		"message": "something",
 	})
 
 	messageFields.SetPriority(level.Info)

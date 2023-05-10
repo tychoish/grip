@@ -166,8 +166,8 @@ func TestJiraCommentCreateMethodChangesClientState(t *testing.T) {
 
 func TestJiraCommentSendWithJiraIssueComposer(t *testing.T) {
 	opts := setupOptionsFixture()
-	c := NewComment(level.Notice, "ABC-123", "Hi")
-
+	c := MakeComment("ABC-123", "Hi")
+	c.SetPriority(level.Warning)
 	sender, err := MakeCommentSender(context.Background(), "XYZ-123", opts)
 	if err != nil {
 		t.Fatal(err)
@@ -183,9 +183,9 @@ func TestJiraCommentSendWithJiraIssueComposer(t *testing.T) {
 		t.Fatal("expected true")
 	}
 	if 1 != mock.numSent {
-		t.Fatal("expected values to be equal")
+		t.Error("expected values to be equal", mock.numSent)
 	}
 	if "ABC-123" != mock.lastIssue {
-		t.Fatal("expected values to be equal")
+		t.Error("expected values to be equal", mock.lastIssue)
 	}
 }

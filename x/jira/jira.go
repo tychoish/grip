@@ -7,13 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	jira "github.com/andygrunwald/go-jira"
 	"github.com/dghubble/oauth1"
+	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -77,11 +76,8 @@ func MakeIssueSender(ctx context.Context, opts *Options) (send.Sender, error) {
 		return nil, fmt.Errorf("jira authentication error: %v", err)
 	}
 
-	fallback := log.New(os.Stdout, "", log.LstdFlags)
-
-	j.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
-	j.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", j.Name())) })
 	j.SetName(opts.Name)
+	j.SetErrorHandler(send.ErrorHandlerFromSender(grip.Sender()))
 
 	return j, nil
 }

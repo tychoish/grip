@@ -1,7 +1,6 @@
 package jira
 
 import (
-	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
 
@@ -15,16 +14,6 @@ type jiraComment struct {
 type Comment struct {
 	IssueID string `bson:"issue_id,omitempty" json:"issue_id,omitempty" yaml:"issue_id,omitempty"`
 	Body    string `bson:"body" json:"body" yaml:"body"`
-}
-
-// NewComment returns a self-contained composer for posting a comment
-// to a single JIRA issue. This composer will override the issue set in the
-// JIRA sender
-func NewComment(p level.Priority, issueID, body string) message.Composer {
-	s := MakeComment(issueID, body)
-	s.SetPriority(p)
-
-	return s
 }
 
 // MakeComment returns a self-contained composer for posting a comment

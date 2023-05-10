@@ -175,8 +175,8 @@ func TestCommentCreateMethodChangesClientState(t *testing.T) {
 func TestCommentSendWithJiraIssueComposer(t *testing.T) {
 	opts := setupFixture()
 
-	c := NewComment(level.Notice, "ABC-123", "Hi")
-
+	c := MakeComment("ABC-123", "Hi")
+	c.SetPriority(level.Warning)
 	sender, err := MakeCommentSender(context.Background(), "XYZ-123", opts)
 	if err != nil {
 		t.Fatal(err)
