@@ -60,7 +60,7 @@ type Composer interface {
 	// other packages, and implementations are under no obligation
 	// to respect them. In the case where two options that
 	// contradict eachother, the last one should win.
-	Option(...Option)
+	SetOption(...Option)
 }
 
 type Option string
@@ -106,7 +106,7 @@ func Convert[T any](input T) Composer {
 		return MakeKVs(message)
 	case nil:
 		m := MakeKV()
-		m.Option(OptionSkipAllMetadata)
+		m.SetOption(OptionSkipAllMetadata)
 		return m
 	case map[string]any:
 		return MakeFields(Fields(message))
@@ -165,7 +165,7 @@ func convertSlice[T any](in []T) Composer {
 	switch len(in) {
 	case 0:
 		m := MakeKV()
-		m.Option(OptionSkipAllMetadata)
+		m.SetOption(OptionSkipAllMetadata)
 		return m
 	case 1:
 		return Convert(in[0])
@@ -181,7 +181,7 @@ func convertSlice[T any](in []T) Composer {
 func buildFromSlice(vals []any) Composer {
 	if len(vals) == 0 {
 		m := MakeKV()
-		m.Option(OptionSkipAllMetadata)
+		m.SetOption(OptionSkipAllMetadata)
 		return m
 	}
 

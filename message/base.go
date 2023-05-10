@@ -36,7 +36,7 @@ type Base struct {
 	SkipMetadata   bool           `bson:"-" json:"-" yaml:"-"`
 }
 
-func (b *Base) Option(opts ...Option) {
+func (b *Base) SetOption(opts ...Option) {
 	for _, opt := range opts {
 		switch opt {
 		case OptionSkipAllMetadata:
@@ -74,6 +74,7 @@ func (b *Base) Collect() {
 func (b *Base) Priority() level.Priority { return b.Level }
 
 // Structured returns true if there are any annotations. Otherwise
+
 // false. Most Composer implementations should override.
 func (b *Base) Structured() bool { return len(b.Context) >= 1 }
 

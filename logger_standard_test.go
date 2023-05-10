@@ -37,10 +37,10 @@ func setupFixtures(t *testing.T) *LoggingMethodSuite {
 	s.stdSender.SetPriority(lvl)
 	s.loggingSender.SetPriority(lvl)
 	s.stdSender.Filter = func(m message.Composer) {
-		m.Option(message.OptionSkipCollect)
+		m.SetOption(message.OptionSkipCollect)
 	}
 	s.loggingSender.Filter = func(m message.Composer) {
-		m.Option(message.OptionSkipCollect)
+		m.SetOption(message.OptionSkipCollect)
 	}
 
 	SetGlobalLogger(NewLogger(s.stdSender))

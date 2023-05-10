@@ -99,8 +99,8 @@ func (c *conditional) SetPriority(p level.Priority) {
 
 }
 
-func (c *conditional) Option(opts ...Option) {
-	c.lazyOpts = append(c.lazyOpts, func(cp Composer) { cp.Option(opts...) })
+func (c *conditional) SetOption(opts ...Option) {
+	c.lazyOpts = append(c.lazyOpts, func(cp Composer) { cp.SetOption(opts...) })
 }
 
 func safeDo[O any](c Composer, fn func(Composer) O) O {

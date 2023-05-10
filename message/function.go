@@ -167,11 +167,11 @@ func (cp *composerProducerMessage) Annotate(k string, v any) {
 	}
 }
 
-func (cp *composerProducerMessage) Option(opts ...Option) {
+func (cp *composerProducerMessage) SetOption(opts ...Option) {
 	if cp.cached != nil {
-		cp.cached.Option(opts...)
+		cp.cached.SetOption(opts...)
 	} else {
-		cp.lazyOps = append(cp.lazyOps, func(c Composer) { c.Option(opts...) })
+		cp.lazyOps = append(cp.lazyOps, func(c Composer) { c.SetOption(opts...) })
 	}
 
 }

@@ -46,7 +46,7 @@ func (b *Builder) Send() {
 
 	if b.sendAsGroup {
 		if len(b.opts) > 0 {
-			m.Option(b.opts...)
+			m.SetOption(b.opts...)
 		}
 		b.send(m)
 		return
@@ -55,7 +55,7 @@ func (b *Builder) Send() {
 	msgs := fun.Unwind(m)
 	for _, msg := range msgs {
 		if len(b.opts) > 0 {
-			msg.Option(b.opts...)
+			msg.SetOption(b.opts...)
 		}
 		b.send(msg)
 	}
@@ -89,7 +89,7 @@ func (b *Builder) getMessage() Composer {
 func (b *Builder) Message() Composer {
 	msg := b.getMessage()
 	if len(b.opts) > 0 {
-		msg.Option(b.opts...)
+		msg.SetOption(b.opts...)
 	}
 	return msg
 }
@@ -97,7 +97,7 @@ func (b *Builder) Message() Composer {
 // Option sets options on the builder which are applied to the
 // message(s) as they are sent with Send(), or exported with
 // Message().
-func (b *Builder) Option(opts ...Option) *Builder { b.opts = append(b.opts, opts...); return b }
+func (b *Builder) SetOption(opts ...Option) *Builder { b.opts = append(b.opts, opts...); return b }
 
 // Level sets the priority of the message. Call this after creating a
 // message via another method, otherwise an error is generated and
@@ -149,7 +149,7 @@ func AddProducerToBuilder[T any, F ~func() T](b *Builder, fn F) *Builder {
 func (b *Builder) Fields(f Fields) *Builder {
 	if b.composer == nil {
 		b.composer = MakeFields(f)
-		b.composer.Option(OptionSkipAllMetadata)
+		b.composer.SetOption(OptionSkipAllMetadata)
 		return b
 	}
 

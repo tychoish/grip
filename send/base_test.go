@@ -20,7 +20,7 @@ func TestBaseCustomFormatter(t *testing.T) {
 				m := message.MakeFields(message.Fields{
 					"input": in,
 				})
-				m.Option(message.OptionSkipAllMetadata)
+				m.SetOption(message.OptionSkipAllMetadata)
 				return m, true
 			})
 			m := b.Converter()("hello")
@@ -32,7 +32,7 @@ func TestBaseCustomFormatter(t *testing.T) {
 				m := message.MakeFields(message.Fields{
 					"input": in,
 				})
-				m.Option(message.OptionSkipAllMetadata)
+				m.SetOption(message.OptionSkipAllMetadata)
 				return m, false
 			})
 			m := b.Converter()("hello words")

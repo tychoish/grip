@@ -253,11 +253,11 @@ func (g *GroupComposer) Annotate(k string, v any) {
 	})
 }
 
-func (g *GroupComposer) Option(opts ...Option) {
+func (g *GroupComposer) SetOption(opts ...Option) {
 	g.messages.With(func(list *seq.List[Composer]) {
 		_ = fun.WorkerFunc(func(ctx context.Context) error {
 			return fun.Observe(ctx, seq.ListValues(list.Iterator()), func(m Composer) {
-				m.Option(opts...)
+				m.SetOption(opts...)
 			})
 		}).Block()
 	})

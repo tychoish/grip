@@ -476,7 +476,7 @@ func TestConverter(t *testing.T) {
 	}
 	for _, tt := range cases {
 		t.Run(tt.Name, func(t *testing.T) {
-			tt.Expected.Option(OptionSkipAllMetadata)
+			tt.Expected.SetOption(OptionSkipAllMetadata)
 			for convMethod, got := range map[string]Composer{
 				"Converter":       Convert(tt.Input),
 				"BuilderProducer": NewBuilder(nil).CovertProducer(func() any { return tt.Input }).Message(),
@@ -485,7 +485,7 @@ func TestConverter(t *testing.T) {
 				"BuilderComposer": NewBuilder(nil).Composer(Convert(tt.Input)).Message(),
 			} {
 				t.Run(convMethod, func(t *testing.T) {
-					got.Option(OptionSkipAllMetadata)
+					got.SetOption(OptionSkipAllMetadata)
 					check.Equal(t, got.Loggable(), tt.Expected.Loggable())
 					check.Equal(t, got.String(), tt.Expected.String())
 					check.True(t, got.Structured() == tt.IsStructured)
