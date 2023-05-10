@@ -7,13 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/mail"
 	"net/smtp"
 	"os"
 	"strings"
 	"sync"
 
+	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -35,11 +35,8 @@ func MakeSender(opts *SMTPOptions) (send.Sender, error) {
 
 	s := &smtpLogger{opts: opts}
 
-	fallback := log.New(os.Stdout, "", log.LstdFlags)
-
 	s.SetName(opts.Name)
-	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
-	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name())) })
+	s.SetErrorHandler(send.ErrorHandlerFromSender(grip.Sender()))
 
 	return s, nil
 }

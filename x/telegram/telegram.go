@@ -61,7 +61,9 @@ func New(opts Options) send.Sender {
 		url:  fmt.Sprintf("%s/bot%s/sendMessage", opts.BaseURL, opts.Token),
 	}
 	s.SetName(opts.Name)
+
 	s.ctx, s.cancel = context.WithCancel(context.Background())
+
 	return s
 }
 

@@ -3,12 +3,12 @@ package slack
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"sync"
 
 	"github.com/bluele/slack"
+	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -48,9 +48,8 @@ func MakeSender(opts *SlackOptions) (send.Sender, error) {
 		return nil, fmt.Errorf("slack authentication error: %v", err)
 	}
 
-	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
-	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name())) })
+	s.SetErrorHandler(send.ErrorHandlerFromSender(grip.Sender()))
+
 	s.SetName(opts.Name)
 
 	return s, nil

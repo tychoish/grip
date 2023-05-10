@@ -3,11 +3,9 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
-	"log"
-	"os"
 
 	"github.com/google/go-github/github"
+	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -80,14 +78,9 @@ func NewStatusSender(name string, opts *GithubOptions, ref string) send.Sender {
 	ctx := context.TODO()
 	s.gh.Init(ctx, opts.Token)
 
-	fallback := log.New(os.Stdout, "", log.LstdFlags)
-
 	s.SetName(name)
 	s.SetFormatter(send.MakePlainFormatter())
-	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
-	s.SetResetHook(func() {
-		fallback.SetPrefix(fmt.Sprintf("[%s] [%s/%s] ", s.Name(), opts.Account, opts.Repo))
-	})
+	s.SetErrorHandler(send.ErrorHandlerFromSender(grip.Sender()))
 
 	return s
 }

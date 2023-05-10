@@ -31,9 +31,7 @@ func MakeFile(filePath string) (Sender, error) {
 	return s, nil
 }
 
-// MakeStdOutput returns an unconfigured native standard-out logger. You
-// *must* call SetName on this instance before using it. (Journaler's
-// SetSender will typically do this.)
+// MakeStdOutput returns an unconfigured native standard-out logger.
 func MakeStdOutput() Sender {
 	return WrapWriter(os.Stdout)
 }

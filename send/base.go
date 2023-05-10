@@ -47,11 +47,11 @@ func (b *Base) Close() error {
 func (b *Base) Name() string { return b.name.Get() }
 
 // SetName allows clients to change the name of the Sender.
-func (b *Base) SetName(name string) { b.name.Set(name); b.doReset() }
+func (b *Base) SetName(name string) { b.name.Set(name); b.Reset() }
 
 func (b *Base) SetResetHook(f func()) { b.reset.Set(f) }
 
-func (b *Base) doReset() {
+func (b *Base) Reset() {
 	if reset := b.reset.Get(); reset != nil {
 		reset()
 	}
@@ -60,7 +60,7 @@ func (b *Base) doReset() {
 func (b *Base) SetCloseHook(f func() error) { b.closer.Set(f) }
 
 // SetFormatter users to set the formatting function used to construct log messages.
-func (b *Base) SetFormatter(mf MessageFormatter) { b.formatter.Set(mf); b.doReset() }
+func (b *Base) SetFormatter(mf MessageFormatter) { b.formatter.Set(mf) }
 
 // Formatter returns the formatter, defaulting to using the string
 // form of the message if no formatter is configured.

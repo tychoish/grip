@@ -43,7 +43,6 @@ func MakeCommentSender(ctx context.Context, id string, opts *Options) (send.Send
 	}
 
 	j.SetName(fmt.Sprint(opts.Name, id))
-
 	j.SetErrorHandler(send.ErrorHandlerFromSender(grip.Sender()))
 
 	return j, nil

@@ -3,11 +3,10 @@ package twitter
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
+	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -42,12 +41,8 @@ func MakeSender(ctx context.Context, opts *Options) (send.Sender, error) {
 	s := &twitterLogger{
 		twitter: newTwitterClient(ctx, opts),
 	}
-	fallback := log.New(os.Stdout, "", log.LstdFlags)
-	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
-	s.SetResetHook(func() {
-		fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name()))
-	})
 
+	s.SetErrorHandler(send.ErrorHandlerFromSender(grip.Sender()))
 	s.SetName(opts.Name)
 
 	if err := s.twitter.Verify(); err != nil {

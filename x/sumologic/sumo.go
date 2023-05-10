@@ -3,11 +3,11 @@ package sumogrip
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 
 	sumo "github.com/nutmegdevelopment/sumologic/upload"
+	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -49,7 +49,6 @@ func NewSumo(name, endpoint string) (send.Sender, error) {
 		client:   &sumoClientImpl{},
 	}
 
-	fallback := log.New(os.Stdout, "", log.LstdFlags)
 	s.client.Create(s.endpoint)
 
 	if _, err := url.ParseRequestURI(s.endpoint); err != nil {
@@ -57,8 +56,7 @@ func NewSumo(name, endpoint string) (send.Sender, error) {
 	}
 
 	s.SetName(name)
-	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name())) })
-	s.SetErrorHandler(send.ErrorHandlerFromLogger(fallback))
+	s.SetErrorHandler(send.ErrorHandlerFromSender(grip.Sender()))
 	s.SetFormatter(send.MakeJSONFormatter())
 
 	return s, nil
