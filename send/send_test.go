@@ -188,7 +188,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 			_ = senders["plain.file"].Close()
 		}
 		if err := senders["internal"].Close(); err != nil {
-			t.Error(err)
+			check.ErrorIs(t, err, ErrAlreadyClosed)
 		}
 	})
 	return senders

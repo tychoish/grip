@@ -2,10 +2,7 @@ package send
 
 import (
 	"errors"
-	"fmt"
 	"io"
-	"log"
-	"os"
 	"sync"
 
 	"github.com/tychoish/grip/level"
@@ -42,12 +39,10 @@ func NewInMemorySender(name string, p level.Priority, capacity int) (Sender, err
 		readHead: readHeadNone,
 	}
 
-	fallback := log.New(os.Stdout, "", log.LstdFlags)
 	s.SetName(name)
 	s.SetPriority(p)
-	s.SetErrorHandler(ErrorHandlerFromLogger(fallback))
+	s.SetErrorHandler(ErrorHandlerFromSender(MakeStdError()))
 	s.SetFormatter(MakeDefaultFormatter())
-	s.SetResetHook(func() { fallback.SetPrefix(fmt.Sprintf("[%s] ", s.Name())) })
 
 	return s, nil
 }

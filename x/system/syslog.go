@@ -5,19 +5,20 @@ package system
 import (
 	"fmt"
 	"log/syslog"
-	"os"
 
 	"github.com/tychoish/fun"
-	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
 
 type syslogger struct {
-	logger        *syslog.Writer
-	fallback      send.Sender
-	fallbackSetup adt.Once[send.Sender]
+	network string
+	raddr   string
+
+	logger   *syslog.Writer
+	fallback send.Sender
+
 	send.Base
 }
 
@@ -25,37 +26,14 @@ type syslogger struct {
 // sends all log message over a socket to a syslog instance at the
 // specified address. If no connection can be made, the
 func MakeSyslogSender(network, raddr string) send.Sender {
-	s := &syslogger{}
-
-	s.SetResetHook(func() {
-		s.fallback = s.fallbackSetup.Do(func() send.Sender {
-			return send.WrapWriterPlain(os.Stderr)
-		})
-
-		s.SetErrorHandler(send.ErrorHandlerFromSender(s.fallback))
-		s.fallback.SetFormatter(s.Formatter())
-
-		if s.logger != nil {
-			if err := s.logger.Close(); err != nil {
-				s.ErrorHandler()(err, message.MakeString("problem closing syslogger"))
-			}
-		}
-
-		w, err := syslog.Dial(network, raddr, syslog.LOG_DEBUG, s.Name())
-		if err != nil {
-			s.ErrorHandler()(err, message.WrapErrorf(err,
-				"error restarting syslog [%s] for logger: %s", err.Error(), s.Name()))
-			return
-		}
-
-		s.SetCloseHook(func() error {
-			return w.Close()
-		})
-
-		s.logger = w
-	})
+	s := &syslogger{
+		fallback: send.MakePlainStdError(),
+		raddr:    raddr,
+		network:  network,
+	}
 
 	s.SetFormatter(send.MakeDefaultFormatter())
+	s.SetErrorHandler(send.ErrorHandlerFromSender(s.fallback))
 
 	return s
 }
@@ -66,7 +44,36 @@ func MakeSyslogSender(network, raddr string) send.Sender {
 // there are issues connecting to it, writes logging messages to
 // standard error. Pass to Journaler.SetSender or call SetName before using.
 func MakeLocalSyslog() send.Sender { return MakeSyslogSender("", "") }
-func (s *syslogger) Close() error  { return s.logger.Close() }
+
+func (s *syslogger) reconfig() {
+	s.fallback.SetFormatter(s.Formatter())
+	s.fallback.SetName(s.Name())
+}
+
+func (s *syslogger) SetName(name string)                    { s.Base.SetName(name); s.reconfig() }
+func (s *syslogger) SetFormater(fmtr send.MessageFormatter) { s.Base.SetFormatter(fmtr); s.reconfig() }
+
+func (s *syslogger) reset() {
+	s.reconfig()
+
+	if s.logger != nil {
+		if err := s.logger.Close(); err != nil {
+			s.ErrorHandler()(err, message.MakeString("problem closing syslogger"))
+		}
+	}
+
+	w, err := syslog.Dial(s.network, s.raddr, syslog.LOG_DEBUG, s.Name())
+	if err != nil {
+		s.ErrorHandler()(err, message.WrapErrorf(err,
+			"error restarting syslog [%s] for logger: %s", err.Error(), s.Name()))
+		return
+	}
+
+	s.SetCloseHook(func() error { return w.Close() })
+
+	s.logger = w
+}
+
 func (s *syslogger) Send(m message.Composer) {
 	if !send.ShouldLog(s, m) {
 		return

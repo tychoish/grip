@@ -1,19 +1,15 @@
 package system
 
 import (
-	"os"
-
 	"github.com/coreos/go-systemd/journal"
 	"github.com/tychoish/fun"
-	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
 
 type systemdJournal struct {
-	fallback      send.Sender
-	fallbackSetup adt.Once[send.Sender]
+	fallback send.Sender
 
 	options map[string]string
 	send.Base
@@ -25,24 +21,32 @@ type systemdJournal struct {
 // messages to standard output.
 func MakeSystemdSender() send.Sender {
 	if !journal.Enabled() {
-		return send.WrapWriter(os.Stderr)
+		return send.MakeStdError()
 	}
 
 	s := &systemdJournal{
-		options: make(map[string]string),
+		options:  make(map[string]string),
+		fallback: send.MakeStdError(),
 	}
 
-	s.SetResetHook(func() {
-		s.fallback = s.fallbackSetup.Do(func() send.Sender {
-			return send.WrapWriterPlain(os.Stderr)
-		})
-		s.SetErrorHandler(send.ErrorHandlerFromSender(s.fallback))
-		s.fallback.SetFormatter(s.Formatter())
-	})
-
+	s.SetErrorHandler(send.ErrorHandlerFromSender(s.fallback))
 	s.SetFormatter(send.MakePlainFormatter())
 
+	s.reconfig()
+
 	return s
+}
+
+func (s *systemdJournal) reconfig() {
+	s.fallback.SetFormatter(s.Formatter())
+	s.fallback.SetName(s.Name())
+}
+
+func (s *systemdJournal) SetName(name string) { s.Base.SetName(name); s.reconfig() }
+
+func (s *systemdJournal) SetFormater(fmtr send.MessageFormatter) {
+	s.Base.SetFormatter(fmtr)
+	s.reconfig()
 }
 
 func (s *systemdJournal) Send(m message.Composer) {
