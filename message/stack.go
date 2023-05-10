@@ -26,6 +26,7 @@ import (
 	"go/build"
 	"runtime"
 	"strings"
+	"sync"
 )
 
 const maxLevels = 1024
@@ -34,7 +35,9 @@ const maxLevels = 1024
 
 type stackMessage struct {
 	Composer
-	trace StackFrames
+	trace        StackFrames
+	annotateOnce sync.Once
+	cached       string
 }
 
 // StackFrame captures a single item in a stack trace, and is used
@@ -45,9 +48,12 @@ type StackFrame struct {
 	Line     int    `bson:"line" json:"line" yaml:"line"`
 }
 
-// StackTrace structs are returned by the Raw method of the stackMessage type
+// StackTrace structs are returned by the Raw method for stack
+// messages IF the message is not structured. For structured messages,
+// the Raw() method annotates the underlying message with the
+// "stack.frames" key, and a value of StackFrames type.
 type StackTrace struct {
-	Context any         `bson:"context,omitempty" json:"context,omitempty" yaml:"context,omitempty"`
+	Context any         `bson:"data,omitempty" json:"data,omitempty" yaml:"data,omitempty"`
 	Frames  StackFrames `bson:"frames" json:"frames" yaml:"frames"`
 }
 
@@ -86,19 +92,26 @@ func MakeStack(skip int, message string) Composer {
 ////////////////////////////////////////////////////////////////////////
 
 func (m *stackMessage) String() string {
-	return strings.Trim(strings.Join([]string{m.trace.String(), m.Composer.String()}, " "), " \n\t")
+	if m.cached == "" {
+		m.cached = strings.Trim(strings.Join([]string{m.trace.String(), m.Composer.String()}, " "), " \n\t")
+	}
+
+	return m.cached
 }
 
+func (m *stackMessage) Structured() bool { return true }
+
 func (m *stackMessage) Raw() any {
-	switch payload := m.Composer.(type) {
-	case *fieldMessage:
-		payload.fields["stack.frames"] = m.trace
-		return payload.fields
-	default:
-		return StackTrace{
-			Context: payload,
-			Frames:  m.trace,
-		}
+	if m.Composer.Structured() {
+		m.annotateOnce.Do(func() {
+			m.Composer.Annotate("stack.frames", m.trace)
+		})
+		return m.Composer.Raw()
+	}
+
+	return StackTrace{
+		Frames:  m.trace,
+		Context: m.Composer.Raw(),
 	}
 }
 

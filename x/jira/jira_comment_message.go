@@ -8,7 +8,7 @@ import (
 type jiraComment struct {
 	Payload Comment `bson:"payload" json:"payload" yaml:"payload"`
 
-	message.Base `bson:"metadata" json:"metadata" yaml:"metadata"`
+	message.Base `bson:"meta" json:"meta" yaml:"meta"`
 }
 
 // Comment represents a single comment to post to the given JIRA issue

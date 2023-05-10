@@ -27,7 +27,7 @@ type Message struct {
 
 type emailMessage struct {
 	data         Message
-	message.Base `bson:"metadata" json:"metadata" yaml:"metadata"`
+	message.Base `bson:"meta" json:"meta" yaml:"meta"`
 }
 
 // NewMessage returns a composer for emails

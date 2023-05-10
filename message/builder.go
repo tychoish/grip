@@ -23,6 +23,7 @@ type Builder struct {
 	composer    Composer
 	catcher     erc.Collector
 	sendAsGroup bool
+	opts        []Option
 }
 
 // NewBuilder constructs the chainable builder type, and initializes
@@ -44,13 +45,32 @@ func (b *Builder) Send() {
 	m := b.Message()
 
 	if b.sendAsGroup {
+		if len(b.opts) > 0 {
+			m.Option(b.opts...)
+		}
 		b.send(m)
 		return
 	}
 
 	msgs := fun.Unwind(m)
 	for _, msg := range msgs {
+		if len(b.opts) > 0 {
+			msg.Option(b.opts...)
+		}
 		b.send(msg)
+	}
+}
+
+func (b *Builder) getMessage() Composer {
+	if b.composer != nil {
+		if b.catcher.HasErrors() {
+			return WrapError(b.catcher.Resolve(), b.composer)
+		}
+
+		return b.composer
+	} else {
+		out := MakeError(b.catcher.Resolve())
+		return out
 	}
 }
 
@@ -67,18 +87,17 @@ func (b *Builder) Send() {
 // levels, etc.) affect the most recent message, and then later
 // converted to a group.
 func (b *Builder) Message() Composer {
-	if b.composer != nil {
-
-		if b.catcher.HasErrors() {
-			return WrapError(b.catcher.Resolve(), b.composer)
-		}
-
-		return b.composer
-	} else {
-		return MakeError(b.catcher.Resolve())
+	msg := b.getMessage()
+	if len(b.opts) > 0 {
+		msg.Option(b.opts...)
 	}
-
+	return msg
 }
+
+// Option sets options on the builder which are applied to the
+// message(s) as they are sent with Send(), or exported with
+// Message().
+func (b *Builder) Option(opts ...Option) *Builder { b.opts = append(b.opts, opts...); return b }
 
 // Level sets the priority of the message. Call this after creating a
 // message via another method, otherwise an error is generated and

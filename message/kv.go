@@ -45,7 +45,6 @@ func (kvs *KVs) UnmarshalJSON(in []byte) error {
 
 type kvMsg struct {
 	fields       KVs
-	skipMetadata bool
 	cachedOutput string
 	hasMetadata  bool
 	Base
@@ -57,14 +56,6 @@ func MakeKVs(kvs KVs) Composer { return &kvMsg{fields: kvs} }
 // MakeKV constructs a new Composer using KV pairs.
 func MakeKV(kvs ...KV) Composer { return MakeKVs(kvs) }
 
-// MakeSimpleKVs constructs a composer using KV pairs that does *not*
-// populate the "base" structure (with time, hostname and pid information).
-func MakeSimpleKVs(kvs KVs) Composer { return &kvMsg{fields: kvs, skipMetadata: true} }
-
-// MakeSimpleKV constructs a composer using KV pairs that does *not*
-// populate the "base" structure (with time, hostname and pid information).
-func MakeSimpleKV(kvs ...KV) Composer { return MakeSimpleKVs(kvs) }
-
 func (m *kvMsg) Annotate(key string, value any) {
 	m.cachedOutput = ""
 	m.fields = append(m.fields, KV{Key: key, Value: value})
@@ -73,33 +64,50 @@ func (m *kvMsg) Annotate(key string, value any) {
 func (m *kvMsg) Loggable() bool   { return len(m.fields) > 0 }
 func (m *kvMsg) Structured() bool { return true }
 func (m *kvMsg) Raw() any {
-	if !m.skipMetadata && !m.hasMetadata {
-		m.Collect()
-		m.fields = append(m.fields, KV{Key: "metadata", Value: &m.Base})
-		m.hasMetadata = true
-		m.cachedOutput = ""
+	if m.SkipMetadata {
+		return m.fields
 	}
-
+	if !m.SkipCollection {
+		m.Collect()
+	}
+	if !m.hasMetadata {
+		m.fields = append(m.fields, KV{Key: "meta", Value: &m.Base})
+		m.hasMetadata = true
+	}
 	return m.fields
 }
 func (m *kvMsg) String() string {
-	if !m.Loggable() {
-		return ""
-	}
 	if m.cachedOutput != "" {
 		return m.cachedOutput
 	}
 
+	if !m.SkipCollection && !m.SkipMetadata {
+		m.Collect()
+	}
+
+	if !m.SkipMetadata && !m.hasMetadata {
+		m.fields = append(m.fields, KV{Key: "meta", Value: &m.Base})
+		m.hasMetadata = true
+	}
+
 	out := make([]string, len(m.fields))
+	var seenMetadata bool
 	for idx, kv := range m.fields {
+		if kv.Key == "meta" && (seenMetadata || m.SkipMetadata) {
+			seenMetadata = true
+			continue
+		}
+
 		switch val := kv.Value.(type) {
 		case string, fmt.Stringer:
 			out[idx] = fmt.Sprintf("%s='%s'", kv.Key, val)
 		default:
 			out[idx] = fmt.Sprintf("%s='%v'", kv.Key, kv.Value)
 		}
-		if kv.Key == "metadata" {
+
+		if kv.Key == "meta" {
 			m.hasMetadata = true
+			seenMetadata = true
 		}
 	}
 

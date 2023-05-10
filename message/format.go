@@ -7,8 +7,8 @@ import (
 type formatMessenger struct {
 	base    string
 	args    []any
-	Base    `bson:"metadata" json:"metadata" yaml:"metadata"`
-	Message string `bson:"message" json:"message" yaml:"message"`
+	Base    `bson:"meta" json:"meta" yaml:"meta"`
+	Message string `bson:"msg" json:"msg" yaml:"msg"`
 }
 
 // MakeFormat returns a message.Composer roughly equivalent to an

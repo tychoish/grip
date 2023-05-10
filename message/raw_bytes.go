@@ -4,8 +4,7 @@
 package message
 
 type bytesMessage struct {
-	data         []byte
-	skipMetadata bool
+	data []byte
 	Base
 }
 
@@ -14,24 +13,24 @@ func MakeBytes(b []byte) Composer {
 	return &bytesMessage{data: b}
 }
 
-// MakeSimpleBytes produces a bytes-wrapping message but does not
-// collect metadata.
-func MakeSimpleBytes(b []byte) Composer {
-	return &bytesMessage{data: b, skipMetadata: true}
-}
-
 func (s *bytesMessage) String() string { return string(s.data) }
 func (s *bytesMessage) Loggable() bool { return len(s.data) > 0 }
 
 func (s *bytesMessage) Raw() any {
-	if !s.skipMetadata {
+	if !s.SkipCollection {
 		s.Collect()
 	}
-	return struct {
-		Metadata *Base  `bson:"metadata" json:"metadata" yaml:"metadata"`
-		Message  string `bson:"message" json:"message" yaml:"message"`
+
+	out := struct {
+		Meta    *Base  `bson:"meta,omitempty" json:"meta,omitempty" yaml:"meta,omitempty"`
+		Message string `bson:"msg" json:"msg" yaml:"msg"`
 	}{
-		Metadata: &s.Base,
-		Message:  string(s.data),
+		Message: string(s.data),
 	}
+
+	if !s.SkipMetadata {
+		out.Meta = &s.Base
+	}
+
+	return out
 }

@@ -147,7 +147,7 @@ type GoRuntimeInfo struct {
 	Goroutines  int64         `bson:"goroutines.total" json:"goroutines.total" yaml:"goroutines.total"`
 	CgoCalls    int64         `bson:"cgo.calls" json:"cgo.calls" yaml:"cgo.calls"`
 
-	Message      string `bson:"message" json:"message" yaml:"message"`
+	Message      string `bson:"msg" json:"msg" yaml:"msg"`
 	message.Base `json:"metadata,omitempty" bson:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	loggable  bool

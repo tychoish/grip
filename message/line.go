@@ -7,8 +7,8 @@ import (
 
 type lineMessenger struct {
 	lines   []any
-	Base    `bson:"metadata" json:"metadata" yaml:"metadata"`
-	Message string `bson:"message" json:"message" yaml:"message"`
+	Base    `bson:"meta" json:"meta" yaml:"meta"`
+	Message string `bson:"msg" json:"msg" yaml:"msg"`
 }
 
 // MakeLines returns a message Composer roughly equivalent to
@@ -55,4 +55,19 @@ func (l *lineMessenger) String() string {
 	return l.Message
 }
 
-func (l *lineMessenger) Raw() any { l.Collect(); _ = l.String(); return l }
+func (l *lineMessenger) Raw() any {
+	if !l.SkipCollection {
+		l.Collect()
+	}
+	m := l.String()
+
+	if l.SkipMetadata {
+		return struct {
+			Msg string `bson:"msg" json:"msg" yaml:"msg"`
+		}{
+			Msg: m,
+		}
+	}
+
+	return l
+}

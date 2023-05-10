@@ -18,7 +18,7 @@ import (
 // collects system-wide resource utilization statistics about memory,
 // CPU, and network use, along with an optional message.
 type SystemInfo struct {
-	Message      string                `json:"message" bson:"message"`
+	Message      string                `json:"msg" bson:"msg"`
 	CPU          StatCPUTimes          `json:"cpu" bson:"cpu"`
 	CPUPercent   float64               `json:"cpu_percent" bson:"cpu_percent"`
 	NumCPU       int                   `json:"num_cpus" bson:"num_cpus"`

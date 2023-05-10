@@ -16,7 +16,7 @@ import (
 // memory, io). The Process info composers produce messages in this
 // form.
 type ProcessInfo struct {
-	Message        string                   `json:"message" bson:"message"`
+	Message        string                   `json:"msg" bson:"msg"`
 	Pid            int32                    `json:"pid" bson:"pid"`
 	Parent         int32                    `json:"parentPid" bson:"parentPid"`
 	Threads        int                      `json:"numThreads" bson:"numThreads"`

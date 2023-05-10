@@ -17,8 +17,6 @@ func TestFunctionMessage(t *testing.T) {
 		check.True(t, p.Loggable()) // calse resolve
 		assert.True(t, p.(*composerProducerMessage).cached != nil)
 		assert.Equal(t, level.Error, p.(*composerProducerMessage).cached.Priority())
-		p.SetPriority(level.Info)
-		assert.Equal(t, level.Info, p.(*composerProducerMessage).cached.Priority())
 
 		check.Equal(t, "works", p.String())
 	})

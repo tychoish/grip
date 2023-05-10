@@ -9,12 +9,12 @@ func TestCollectWorksWithUnsetPids(t *testing.T) {
 	if !base.IsZero() {
 		t.Fatal("base must be zero on init")
 	}
-	if base.Hostname != "" {
+	if base.Host != "" {
 		t.Error("values should be equal")
 	}
 	base.Pid = 0
 	base.Collect()
-	if base.Hostname == "" {
+	if base.Host == "" {
 		t.Error("hostname should be populated")
 	}
 }
@@ -24,12 +24,12 @@ func TestCollectNoopsIfPidIsSet(t *testing.T) {
 	if !base.IsZero() {
 		t.Fatal("base must be zero on init")
 	}
-	if base.Hostname != "" {
+	if base.Host != "" {
 		t.Error("values should be equal")
 	}
 	base.Pid = 1
 	base.Collect()
-	if base.Hostname != "" {
+	if base.Host != "" {
 		t.Error("values should be equal")
 	}
 }

@@ -60,7 +60,7 @@ type githubStatusMessage struct {
 	raw Status
 	str string
 
-	message.Base `bson:"metadata" json:"metadata" yaml:"metadata"`
+	message.Base `bson:"meta" json:"metadata" yaml:"metadata"`
 }
 
 // NewStatusMessageWithRepo creates a composer for sending payloads to the Github Status

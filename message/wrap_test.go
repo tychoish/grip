@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/seq"
 	"github.com/tychoish/grip/level"
 )
 
@@ -15,7 +16,13 @@ func sizeOfGroup(t *testing.T, comp Composer) int {
 		t.Fatalf("%T is not a group composer", comp)
 	}
 
-	return len(gc.messages)
+	var num int
+
+	gc.messages.With(func(list *seq.List[Composer]) {
+		num = list.Len()
+	})
+
+	return num
 }
 
 func TestWrap(t *testing.T) {

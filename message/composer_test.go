@@ -18,9 +18,7 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 	// map objects to output
 	cases := map[Composer]string{
 		MakeString(testMsg):                                          testMsg,
-		MakeSimpleString(testMsg):                                    testMsg,
 		MakeBytes([]byte(testMsg)):                                   testMsg,
-		MakeSimpleBytes([]byte(testMsg)):                             testMsg,
 		MakeError(errors.New(testMsg)):                               testMsg,
 		MakeFormat(string(testMsg[0])+"%s", testMsg[1:]):             testMsg,
 		WrapError(errors.New("hello"), "world"):                      "world: hello",
@@ -105,12 +103,8 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 		&lineMessenger{},
 		MakeLines(),
 		&formatMessenger{},
-		MakeSimpleKV(),
-		MakeSimpleBytes(nil),
-		MakeSimpleKVs(KVs{}),
 		MakeFormat(""),
 		BuildGroupComposer(),
-		&GroupComposer{},
 		MakeError(nil),
 		When(false, ""),
 		Whenln(false, "", ""),
@@ -212,7 +206,7 @@ func TestComposerConverter(t *testing.T) {
 	}
 
 	for idx, msg := range cases {
-		t.Run(fmt.Sprint(idx), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%T/%d", msg, idx), func(t *testing.T) {
 			comp := Convert(msg)
 			comp.SetPriority(level.Error)
 			if comp.Loggable() {
@@ -220,6 +214,7 @@ func TestComposerConverter(t *testing.T) {
 			}
 			if "" != comp.String() {
 				t.Errorf("%T", msg)
+				testt.Logf(t, "%T>%s", comp, comp.String())
 			}
 		})
 
@@ -330,7 +325,7 @@ func fixTimestamps(t *testing.T, msgs ...Composer) {
 		case *lineMessenger:
 			m.Base.Time = ts
 		case *kvMsg:
-			m.skipMetadata = true
+			m.Base.SkipMetadata = true
 			m.Base.Time = ts
 		case *GroupComposer:
 			fixTimestamps(t, m.Messages()...)
@@ -482,6 +477,7 @@ func TestConverter(t *testing.T) {
 	}
 	for _, tt := range cases {
 		t.Run(tt.Name, func(t *testing.T) {
+			tt.Expected.Option(OptionSkipAllMetadata)
 			for convMethod, got := range map[string]Composer{
 				"Converter":       Convert(tt.Input),
 				"BuilderProducer": NewBuilder(nil).CovertProducer(func() any { return tt.Input }).Message(),
@@ -490,12 +486,13 @@ func TestConverter(t *testing.T) {
 				"BuilderComposer": NewBuilder(nil).Composer(Convert(tt.Input)).Message(),
 			} {
 				t.Run(convMethod, func(t *testing.T) {
+					got.Option(OptionSkipAllMetadata)
 					check.Equal(t, got.Loggable(), tt.Expected.Loggable())
 					check.Equal(t, got.String(), tt.Expected.String())
 					check.True(t, got.Structured() == tt.IsStructured)
 					check.True(t, got.Loggable() == !tt.Unloggable)
 					testt.Logf(t, "got<%T>:%q", got, got)
-					testt.Logf(t, "had:%q", tt.Expected)
+					testt.Logf(t, "had<%T>:%q", tt.Expected, tt.Expected)
 				})
 			}
 		})

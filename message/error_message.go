@@ -18,7 +18,7 @@ type errorComposerWrap struct {
 func WrapError(err error, m any) Composer {
 	return &errorComposerWrap{
 		err:      err,
-		Composer: Convert(m),
+		Composer: MakeProducer(func() Composer { return Convert(m) }),
 	}
 }
 

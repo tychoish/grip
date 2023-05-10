@@ -115,10 +115,11 @@ func MakeProducer[T any, F ~func() T](fp F) Composer {
 ////////////////////////////////////////////////////////////////////////
 
 type composerProducerMessage struct {
-	cp     ComposerProducer
-	cached Composer
-	level  level.Priority
-	exec   sync.Once
+	cp      ComposerProducer
+	cached  Composer
+	level   level.Priority
+	exec    sync.Once
+	lazyOps []func(Composer)
 }
 
 func (cp *composerProducerMessage) resolve() {
@@ -128,14 +129,19 @@ func (cp *composerProducerMessage) resolve() {
 		}
 
 		cp.cached = cp.cp()
-		cp.cached.SetPriority(cp.level)
+		for _, op := range cp.lazyOps {
+			op(cp.cached)
+		}
+		cp.lazyOps = nil
 	})
 }
 
 func (cp *composerProducerMessage) SetPriority(p level.Priority) {
 	cp.level = p
 	if cp.cached != nil {
-		cp.cached.SetPriority(cp.level)
+		cp.cached.SetPriority(p)
+	} else {
+		cp.lazyOps = append(cp.lazyOps, func(c Composer) { c.SetPriority(cp.level) })
 	}
 }
 
@@ -152,4 +158,20 @@ func (cp *composerProducerMessage) Priority() level.Priority { return cp.level }
 func (cp *composerProducerMessage) Structured() bool         { cp.resolve(); return cp.cached.Structured() }
 func (cp *composerProducerMessage) String() string           { cp.resolve(); return cp.cached.String() }
 func (cp *composerProducerMessage) Raw() any                 { cp.resolve(); return cp.cached.Raw() }
-func (cp *composerProducerMessage) Annotate(k string, v any) { cp.resolve(); cp.cached.Annotate(k, v) }
+
+func (cp *composerProducerMessage) Annotate(k string, v any) {
+	if cp.cached != nil {
+		cp.cached.Annotate(k, v)
+	} else {
+		cp.lazyOps = append(cp.lazyOps, func(c Composer) { c.Annotate(k, v) })
+	}
+}
+
+func (cp *composerProducerMessage) Option(opts ...Option) {
+	if cp.cached != nil {
+		cp.cached.Option(opts...)
+	} else {
+		cp.lazyOps = append(cp.lazyOps, func(c Composer) { c.Option(opts...) })
+	}
+
+}

@@ -6,14 +6,18 @@ import (
 	"github.com/tychoish/grip/level"
 )
 
-// Composer defines an interface with a "String()" method that
-// returns the message in string format. Objects that implement this
-// interface, in combination to the Compose[*] operations, the
-// String() method is only caled if the priority of the method is
-// greater than the threshold priority. This makes it possible to
-// defer building log messages (that may be somewhat expensive to
-// generate) until it's certain that we're going to be outputting the
-// message.
+// Composer defines an interface with a String() method that returns
+// the message in string format, as well as a Raw() method that may
+// provide a structured form of the message. Objects that implement
+// this interface, the String() method is only caled if the priority
+// of the method is greater than the threshold priority. This makes it
+// possible to defer building log messages (that may be somewhat
+// expensive to generate) until it's certain that they will be
+// consumed.
+//
+// Most implementations will only implement String() and Raw() and
+// rely on the message.Base type which can be composed and provides
+// basic implementations for types.
 type Composer interface {
 	// Returns the content of the message as a string for use in
 	// line-printing logging engines.
@@ -49,7 +53,35 @@ type Composer interface {
 	// setting the level, or set the level to an invalid level,
 	// the message is not loggable.
 	SetPriority(level.Priority)
+
+	// AttachMetadata is used by send.Sender implementations and
+	// send.Formater implementations to control the output format
+	// and processing of messages. These options may be defined in
+	// other packages, and implementations are under no obligation
+	// to respect them. In the case where two options that
+	// contradict eachother, the last one should win.
+	Option(...Option)
 }
+
+type Option string
+
+const (
+	// OptionSkipAllMetadata tells the message to avoid annotating
+	// any metadata to a message.
+	OptionSkipAllMetadata Option = "skip-metadata"
+	// OptionSkipCollect tells the message, typically for Raw()
+	// calls to *not* call the message/Base.Collect method which
+	// annotates fields about the host system and level.
+	OptionSkipCollect Option = "skip-collect"
+	// OptionIncludeAllMetadata enables the inclusion of metadata
+	// in the output messaage. This is typically the default in
+	// most implementations.
+	OptionIncludeAllMetadata Option = "include-metadata"
+	// OptionDoBaseCollect enables the Base implementation to
+	// collect some basic information. This is typically the
+	// default in most implementations.
+	OptionDoBaseCollect Option = "do-base-collect"
+)
 
 // Convert produces a composer interface for arbitrary input.
 func Convert[T any](input T) Composer {
@@ -73,7 +105,9 @@ func Convert[T any](input T) Composer {
 	case []KV:
 		return MakeKVs(message)
 	case nil:
-		return MakeKV()
+		m := MakeKV()
+		m.Option(OptionSkipAllMetadata)
+		return m
 	case map[string]any:
 		return MakeFields(Fields(message))
 	case []byte:
@@ -130,7 +164,9 @@ func Convert[T any](input T) Composer {
 func convertSlice[T any](in []T) Composer {
 	switch len(in) {
 	case 0:
-		return MakeKV()
+		m := MakeKV()
+		m.Option(OptionSkipAllMetadata)
+		return m
 	case 1:
 		return Convert(in[0])
 	default:
@@ -144,7 +180,9 @@ func convertSlice[T any](in []T) Composer {
 
 func buildFromSlice(vals []any) Composer {
 	if len(vals) == 0 {
-		return MakeKV()
+		m := MakeKV()
+		m.Option(OptionSkipAllMetadata)
+		return m
 	}
 
 	// check to see that the even numbered items are strings, if

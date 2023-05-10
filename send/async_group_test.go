@@ -16,7 +16,8 @@ func NewString(l level.Priority, in string) message.Composer {
 	return m
 }
 func NewSimpleString(l level.Priority, in string) message.Composer {
-	m := message.MakeSimpleString(in)
+	m := message.MakeString(in)
+	m.Option(message.OptionSkipAllMetadata)
 	m.SetPriority(l)
 	return m
 }

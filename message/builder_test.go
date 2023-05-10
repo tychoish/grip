@@ -9,6 +9,7 @@ import (
 
 	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/fun/assert/check"
+	"github.com/tychoish/fun/testt"
 )
 
 func mockSender(t *testing.T, expected int) func(Composer) {
@@ -34,7 +35,7 @@ func mockSenderMessage(t *testing.T, expected string) func(Composer) {
 		t.Helper()
 		count.Add(1)
 		value.Set(c.String())
-		t.Logf("%d> %T", count.Load(), c)
+		testt.Logf(t, "%d> %T", count.Load(), c)
 	}
 }
 
