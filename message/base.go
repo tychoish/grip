@@ -27,10 +27,10 @@ func init() {
 // structured logging applications.
 type Base struct {
 	Level            level.Priority `bson:"level,omitempty" json:"level,omitempty" yaml:"level,omitempty"`
+	Pid              int            `bson:"pid,omitempty" json:"pid,omitempty" yaml:"pid,omitempty"`
+	Process          string         `bson:"proc,omitempty" json:"proc,omitempty" yaml:"proc,omitempty"`
 	Host             string         `bson:"host,omitempty" json:"host,omitempty" yaml:"host,omitempty"`
 	Time             time.Time      `bson:"ts,omitempty" json:"ts,omitempty" yaml:"ts,omitempty"`
-	Process          string         `bson:"proc,omitempty" json:"proc,omitempty" yaml:"proc,omitempty"`
-	Pid              int            `bson:"pid,omitempty" json:"pid,omitempty" yaml:"pid,omitempty"`
 	Context          Fields         `bson:"data,omitempty" json:"data,omitempty" yaml:"data,omitempty"`
 	SkipCollection   bool           `bson:"-" json:"-" yaml:"-"`
 	SkipMetadata     bool           `bson:"-" json:"-" yaml:"-"`
