@@ -20,6 +20,7 @@ import (
 // the message.
 type Builder struct {
 	send        func(Composer)
+	convert     ConverterFunc
 	composer    Composer
 	catcher     erc.Collector
 	sendAsGroup bool
@@ -28,7 +29,9 @@ type Builder struct {
 
 // NewBuilder constructs the chainable builder type, and initializes
 // the error tracking and establishes a connection to the sender.
-func NewBuilder(send func(Composer)) *Builder { return &Builder{send: send} }
+func NewBuilder(send func(Composer), convert ConverterFunc) *Builder {
+	return &Builder{send: send, convert: convert}
+}
 
 // Send finalizes the chain and delivers the message. Send resolves
 // the built message using the Message method.

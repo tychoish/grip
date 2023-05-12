@@ -14,12 +14,18 @@ func (wi *wrappedImpl) Unwrap() Composer { return wi.parent }
 // preserving the parent composer. The Unwrap() function unwinds a
 // stack of composers, flattening it into a single group composer.
 func Wrap(parent Composer, msg any) Composer {
-	if parent == nil {
+	switch {
+	case parent == nil && msg == nil:
+		return MakeKV()
+	case msg == nil:
+		return parent
+	case parent == nil:
 		return Convert(msg)
-	}
-	return &wrappedImpl{
-		parent:   parent,
-		Composer: Convert(msg),
+	default:
+		return &wrappedImpl{
+			parent:   parent,
+			Composer: Convert(msg),
+		}
 	}
 }
 

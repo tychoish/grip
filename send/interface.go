@@ -62,12 +62,6 @@ type Sender interface {
 	SetFormatter(MessageFormatter)
 	Formatter() MessageFormatter
 
-	// SetConverter allows users to inject a custom converter into
-	// the sender to be used by the logging infrastructure to make
-	// message.Composer objects from arbitrary input types.
-	SetConverter(CustomMessageConverter)
-	Converter() MessageConverter
-
 	// If the logging sender holds any resources that require desecration
 	// they should be cleaned up in the Close() method. Close() is called
 	// by the SetSender() method before changing loggers. Sender implementations
@@ -85,13 +79,6 @@ type ErrorHandler func(error, message.Composer)
 // possible to modify the logging format without needing to implement
 // new Sender interfaces.
 type MessageFormatter func(message.Composer) (string, error)
-
-// CustomMessageConverter is a function that users can inject into
-// their sender that the grip.Logger will use to convert arbitrary
-// input types into message objects. If the second value is false, the
-// output message will not be used and the logger will fall back to
-// using `message.Convert`. Implementing a custom converter is optional.
-type CustomMessageConverter func(any) (message.Composer, bool)
 
 // MessageConverter defines the converter provided by the sender to
 // higher level interfaces (e.g. grip.Logger) that will always produce

@@ -14,6 +14,7 @@ type fieldMessage struct {
 	fields        Fields
 	cachedOutput  string
 	metadataAdded bool
+	message       string
 	Base
 }
 
@@ -90,30 +91,53 @@ func (m *fieldMessage) String() string {
 	if m.cachedOutput == "" {
 		m.addMetadatIfNeeded()
 
-		out := make([]string, 0, len(m.fields))
-		for k, v := range m.fields {
-			if _, ok := skippedFields[k]; ok {
-				continue
-			}
+		out := makeSimpleFieldsString(m.fields, true)
 
-			switch val := v.(type) {
-			case fmt.Stringer, string:
-				out = append(out, fmt.Sprintf("%s='%s'", k, val))
-			default:
-				out = append(out, fmt.Sprintf("%s='%v'", k, v))
+		if _, ok := m.fields[FieldsMsgName]; ok {
+			if m.message == "" {
+				m.message = fmt.Sprint(m.fields[FieldsMsgName])
+			} else {
+				m.message = strings.Join([]string{m.message, fmt.Sprint(m.fields[FieldsMsgName])}, " ")
+				m.fields[FieldsMsgName] = m.message
 			}
+		} else if _, ok := m.fields[FieldsMsgName]; !ok {
+			m.fields[FieldsMsgName] = m.message
 		}
 
-		sort.Strings(out)
-		if _, ok := m.fields[FieldsMsgName]; ok {
-			out = append([]string{
-				fmt.Sprintf("%s='%v'", FieldsMsgName, m.fields[FieldsMsgName]),
-			}, out...)
+		if m.message != "" && !m.Base.MessageIsSpecial {
+			m.message = fmt.Sprintf("%s='%v'", FieldsMsgName, m.message)
+		}
+
+		if m.message != "" {
+			out = append([]string{m.message}, out...)
+			m.message = ""
 		}
 
 		m.cachedOutput = strings.Join(out, " ")
 	}
+
 	return m.cachedOutput
+}
+
+func makeSimpleFieldsString(f Fields, doSkips bool) []string {
+	out := make([]string, 0, len(f))
+	for k, v := range f {
+		if doSkips {
+			if _, ok := skippedFields[k]; ok {
+				continue
+			}
+		}
+
+		switch val := v.(type) {
+		case fmt.Stringer, string:
+			out = append(out, fmt.Sprintf("%s='%s'", k, val))
+		default:
+			out = append(out, fmt.Sprintf("%s='%v'", k, v))
+		}
+	}
+
+	sort.Strings(out)
+	return out
 }
 
 func (m *fieldMessage) addMetadatIfNeeded() {
@@ -141,4 +165,5 @@ func (m *fieldMessage) Raw() any {
 	m.addMetadatIfNeeded()
 	return m.fields
 }
+
 func (m *fieldMessage) Annotate(key string, value any) { m.fields[key] = value }

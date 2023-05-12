@@ -12,6 +12,15 @@ import (
 	"github.com/tychoish/fun/testt"
 )
 
+func testConverter(t *testing.T, shouldCall bool) ConverterFunc {
+	t.Helper()
+
+	return func(m any) (Composer, bool) {
+		t.Helper()
+		return Convert(m), false
+	}
+}
+
 func mockSender(t *testing.T, expected int) func(Composer) {
 	t.Helper()
 	count := &atomic.Int64{}
@@ -41,72 +50,72 @@ func mockSenderMessage(t *testing.T, expected string) func(Composer) {
 
 func TestBuilder(t *testing.T) {
 	t.Run("Nil", func(t *testing.T) {
-		b := NewBuilder(nil)
+		b := NewBuilder(nil, nil)
 		b.Send()
 		check.Error(t, b.catcher.Resolve())
 	})
 	t.Run("ErrorsBecomeMessages", func(t *testing.T) {
-		b := NewBuilder(mockSenderMessage(t, "kip"))
+		b := NewBuilder(mockSenderMessage(t, "kip"), testConverter(t, true))
 		b.catcher.Add(errors.New("kip"))
 		b.Send()
 	})
 	t.Run("ErrorsAreAnnotated", func(t *testing.T) {
-		b := NewBuilder(mockSenderMessage(t, "bad cat: kip")).String("bad cat").SetGroup(true)
+		b := NewBuilder(mockSenderMessage(t, "bad cat error='kip'"), testConverter(t, true)).String("bad cat").SetGroup(true)
 		b.catcher.Add(errors.New("kip"))
 		b.Send()
 	})
 	t.Run("SetLevelInvalidIsAnError", func(t *testing.T) {
-		NewBuilder(mockSender(t, 1)).String("msg").Level(0).Send()
-		NewBuilder(mockSender(t, 1)).String("msg").Level(200).Send()
-		NewBuilder(mockSender(t, 1)).Level(0).Send()
-		NewBuilder(mockSender(t, 1)).Level(200).Send()
+		NewBuilder(mockSender(t, 1), testConverter(t, true)).String("msg").Level(0).Send()
+		NewBuilder(mockSender(t, 1), testConverter(t, true)).String("msg").Level(200).Send()
+		NewBuilder(mockSender(t, 1), testConverter(t, true)).Level(0).Send()
+		NewBuilder(mockSender(t, 1), testConverter(t, true)).Level(200).Send()
 	})
 	t.Run("SingleString", func(t *testing.T) {
-		NewBuilder(mockSender(t, 1)).String("hello world").Send()
+		NewBuilder(mockSender(t, 1), testConverter(t, true)).String("hello world").Send()
 	})
 	t.Run("Double", func(t *testing.T) {
-		NewBuilder(mockSender(t, 2)).String("hello").String("world").Send()
+		NewBuilder(mockSender(t, 2), testConverter(t, true)).String("hello").String("world").Send()
 	})
 	t.Run("DoubleGroup", func(t *testing.T) {
-		NewBuilder(mockSender(t, 1)).String("hello").String("world").Group().Send()
+		NewBuilder(mockSender(t, 1), testConverter(t, true)).String("hello").String("world").Group().Send()
 	})
 	t.Run("DoubleGroupCallsAreSequential", func(t *testing.T) {
-		NewBuilder(mockSender(t, 2)).String("hello").String("world").Group().Ungroup().Send()
-		NewBuilder(mockSender(t, 2)).String("hello").String("world").Group().Group().Ungroup().Send()
-		NewBuilder(mockSender(t, 1)).String("hello").String("world").Ungroup().Group().Send()
-		NewBuilder(mockSender(t, 1)).String("hello").String("world").Ungroup().Group().Group().Send()
+		NewBuilder(mockSender(t, 2), testConverter(t, true)).String("hello").String("world").Group().Ungroup().Send()
+		NewBuilder(mockSender(t, 2), testConverter(t, true)).String("hello").String("world").Group().Group().Ungroup().Send()
+		NewBuilder(mockSender(t, 1), testConverter(t, true)).String("hello").String("world").Ungroup().Group().Send()
+		NewBuilder(mockSender(t, 1), testConverter(t, true)).String("hello").String("world").Ungroup().Group().Group().Send()
 	})
 	t.Run("SetGroup", func(t *testing.T) {
-		NewBuilder(mockSender(t, 2)).String("hello").String("world").Group().SetGroup(false).Send()
-		NewBuilder(mockSender(t, 1)).String("hello").String("world").Ungroup().SetGroup(true).Send()
+		NewBuilder(mockSender(t, 2), testConverter(t, true)).String("hello").String("world").Group().SetGroup(false).Send()
+		NewBuilder(mockSender(t, 1), testConverter(t, true)).String("hello").String("world").Ungroup().SetGroup(true).Send()
 	})
 
 	t.Run("Values", func(t *testing.T) {
 		t.Run("SingleStringValue", func(t *testing.T) {
-			NewBuilder(mockSenderMessage(t, "hello world")).String("hello world").Send()
+			NewBuilder(mockSenderMessage(t, "1hello world"), testConverter(t, true)).String("1hello world").Send()
 		})
 		t.Run("SingleFormat", func(t *testing.T) {
-			NewBuilder(mockSenderMessage(t, "hello 543 world")).F("hello %d world", 543).Send()
+			NewBuilder(mockSenderMessage(t, "hello 543 world"), testConverter(t, true)).F("hello %d world", 543).Send()
 		})
 		t.Run("SingleLines", func(t *testing.T) {
-			NewBuilder(mockSenderMessage(t, "hello world 543")).Ln("hello", "world", 543).Send()
+			NewBuilder(mockSenderMessage(t, "hello world 543"), testConverter(t, true)).Ln("hello", "world", 543).Send()
 		})
 		t.Run("SingleError", func(t *testing.T) {
-			NewBuilder(mockSenderMessage(t, "kip: EOF")).Error(fmt.Errorf("kip: %w", io.EOF)).Send()
+			NewBuilder(mockSenderMessage(t, "kip: EOF"), testConverter(t, true)).Error(fmt.Errorf("kip: %w", io.EOF)).Send()
 		})
 		t.Run("SingleStringSlice", func(t *testing.T) {
-			NewBuilder(mockSenderMessage(t, "hello world 543")).Strings([]string{"hello", "world", "543"}).Send()
+			NewBuilder(mockSenderMessage(t, "hello world 543"), testConverter(t, true)).Strings([]string{"hello", "world", "543"}).Send()
 		})
 		t.Run("FromMap", func(t *testing.T) {
-			NewBuilder(mockSenderMessage(t, "hello='world'")).StringMap(map[string]string{"hello": "world"}).Send()
+			NewBuilder(mockSenderMessage(t, "hello='world'"), testConverter(t, true)).StringMap(map[string]string{"hello": "world"}).Send()
 		})
 	})
 	t.Run("Conditional", func(t *testing.T) {
 		t.Run("True", func(t *testing.T) {
-			NewBuilder(mockSenderMessage(t, "hi kip")).String("hi kip").When(true).Send()
+			NewBuilder(mockSenderMessage(t, "hi kip"), testConverter(t, true)).String("hi kip").When(true).Send()
 		})
 		t.Run("False", func(t *testing.T) {
-			NewBuilder(mockSender(t, 1)).String("hello").When(false).Group().Send()
+			NewBuilder(mockSender(t, 1), testConverter(t, true)).String("hello").When(false).Group().Send()
 		})
 
 	})

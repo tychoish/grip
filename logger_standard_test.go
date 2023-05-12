@@ -1,6 +1,7 @@
 package grip
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/tychoish/fun/assert"
@@ -43,10 +44,10 @@ func setupFixtures(t *testing.T) *LoggingMethodSuite {
 		m.SetOption(message.OptionSkipCollect)
 	}
 
-	SetGlobalLogger(NewLogger(s.stdSender))
+	std.SetSender(s.stdSender)
 	s.logger = NewLogger(s.loggingSender)
 	t.Cleanup(func() {
-		SetGlobalLogger(NewLogger(s.defaultSender))
+		std.SetSender(s.defaultSender)
 	})
 
 	return s
@@ -139,24 +140,26 @@ func TestBasicMethod(t *testing.T) {
 			}
 
 			for _, msg := range inputs {
-				loggers[0](msg)
-				loggers[1](msg)
+				t.Run(fmt.Sprintf("%T", msg), func(t *testing.T) {
+					loggers[0](msg)
+					loggers[1](msg)
 
-				if !s.loggingSender.HasMessage() {
-					t.Error("value should be true")
-				}
-				if !s.stdSender.HasMessage() {
-					t.Error("value should be true")
-				}
+					if !s.loggingSender.HasMessage() {
+						t.Error("value should be true")
+					}
+					if !s.stdSender.HasMessage() {
+						t.Error("value should be true")
+					}
 
-				lgrMsg := s.loggingSender.GetMessage()
-				stdMsg := s.stdSender.GetMessage()
+					lgrMsg := s.loggingSender.GetMessage()
+					stdMsg := s.stdSender.GetMessage()
 
-				if lgrMsg.Rendered != stdMsg.Rendered {
-					t.Log("rendered", lgrMsg.Rendered)
-					t.Log("standard", stdMsg.Rendered)
-					t.Error("values should be equal")
-				}
+					if lgrMsg.Rendered != stdMsg.Rendered {
+						t.Log("rendered", lgrMsg.Rendered)
+						t.Log("standard", stdMsg.Rendered)
+						t.Error("values should be equal")
+					}
+				})
 			}
 		})
 	}

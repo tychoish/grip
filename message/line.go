@@ -9,6 +9,8 @@ type lineMessenger struct {
 	lines   []any
 	Base    `bson:"meta" json:"meta" yaml:"meta"`
 	Message string `bson:"msg" json:"msg" yaml:"msg"`
+
+	fm *fieldMessage
 }
 
 // MakeLines returns a message Composer roughly equivalent to
@@ -44,25 +46,35 @@ func (l *lineMessenger) Loggable() bool {
 		}
 	}
 
-	return false
+	return len(l.Base.Context) > 0 || (l.fm != nil && l.fm.Loggable())
 }
 
 func (l *lineMessenger) String() string {
-	if l.Message == "" {
-		l.Message = strings.Trim(fmt.Sprintln(l.lines...), "\n ")
+	l.resolve()
+	if l.fm != nil {
+		return l.fm.String()
+	} else if len(l.Base.Context) > 0 {
+		l.setupField()
+		return l.fm.String()
 	}
 
 	return l.Message
 }
 
 func (l *lineMessenger) Raw() any {
-	m := l.String()
+	l.resolve()
+	if l.fm != nil {
+		return l.fm.Raw()
+	} else if len(l.Base.Context) > 0 {
+		l.setupField()
+		return l.fm.Raw()
+	}
 
 	if l.SkipMetadata {
 		return struct {
 			Msg string `bson:"msg" json:"msg" yaml:"msg"`
 		}{
-			Msg: m,
+			Msg: l.Message,
 		}
 	}
 
@@ -71,4 +83,34 @@ func (l *lineMessenger) Raw() any {
 	}
 
 	return l
+}
+
+func (l *lineMessenger) resolve() {
+	if l.Message == "" {
+		l.Message = strings.Trim(fmt.Sprintln(l.lines...), "\n ")
+	}
+}
+
+func (l *lineMessenger) setupField() {
+	l.fm = &fieldMessage{
+		fields:  l.Base.Context,
+		Base:    l.Base,
+		message: l.Message,
+	}
+}
+
+func (l *lineMessenger) Annotate(k string, v any) {
+	if l.fm == nil {
+		l.Base.Annotate(k, v)
+		return
+	}
+	l.fm.Annotate(k, v)
+}
+
+func (l *lineMessenger) SetOption(opts ...Option) {
+	if l.fm == nil {
+		l.Base.SetOption(opts...)
+		return
+	}
+	l.fm.SetOption(opts...)
 }

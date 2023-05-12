@@ -31,7 +31,7 @@ const killOverrideVarName = "__GRIP_EXIT_OVERRIDE"
 // This operation also attempts to close the underlying log sender.
 func LogStackTraceAndExit(opDetails ...string) {
 	if p := recover(); p != nil {
-		logAndExit(p, grip.NewLogger(grip.Sender()), message.MakeFields(getMessage(opDetails)))
+		logAndExit(p, grip.Clone(), message.MakeFields(getMessage(opDetails)))
 	}
 }
 
@@ -48,7 +48,7 @@ func LogStackTraceAndExit(opDetails ...string) {
 //	defer recovery.LogStackTraceAndContinue("operation")
 func LogStackTraceAndContinue(opDetails ...string) {
 	if p := recover(); p != nil {
-		logAndContinue(p, grip.NewLogger(grip.Sender()), message.MakeFields(getMessage(opDetails)))
+		logAndContinue(p, grip.Clone(), message.MakeFields(getMessage(opDetails)))
 	}
 }
 
@@ -74,7 +74,7 @@ func HandlePanicWithError(p any, err error, opDetails ...string) error {
 		perr := panicError(p)
 		catcher.Add(perr)
 
-		handleWithError(perr, err, grip.NewLogger(grip.Sender()), message.MakeFields(getMessage(opDetails)))
+		handleWithError(perr, err, grip.Clone(), message.MakeFields(getMessage(opDetails)))
 	}
 
 	return catcher.Resolve()
@@ -89,8 +89,7 @@ func HandlePanicWithError(p any, err error, opDetails ...string) error {
 // with the stack trace and panic information.
 func AnnotateMessageWithStackTraceAndContinue(m any) {
 	if p := recover(); p != nil {
-		convert := grip.Sender().Converter()
-		logAndContinue(p, grip.NewLogger(grip.Sender()), convert(m))
+		logAndContinue(p, grip.Clone(), grip.Convert(m))
 	}
 }
 
@@ -99,8 +98,7 @@ func AnnotateMessageWithStackTraceAndContinue(m any) {
 // grip.Journaler interface to receive the log message.
 func SendStackTraceAndContinue(logger grip.Logger, m any) {
 	if p := recover(); p != nil {
-		convert := grip.Sender().Converter()
-		logAndContinue(p, logger, convert(m))
+		logAndContinue(p, logger, grip.Convert(m))
 	}
 }
 
@@ -112,8 +110,7 @@ func SendStackTraceAndContinue(logger grip.Logger, m any) {
 // with the stack trace and panic information.
 func AnnotateMessageWithStackTraceAndExit(m any) {
 	if p := recover(); p != nil {
-		convert := grip.Sender().Converter()
-		logAndExit(p, grip.NewLogger(grip.Sender()), convert(m))
+		logAndExit(p, grip.Clone(), grip.Convert(m))
 	}
 }
 
@@ -122,8 +119,7 @@ func AnnotateMessageWithStackTraceAndExit(m any) {
 // grip.Journaler interface.
 func SendStackTraceMessageAndExit(logger grip.Logger, m any) {
 	if p := recover(); p != nil {
-		convert := grip.Sender().Converter()
-		logAndExit(p, logger, convert(m))
+		logAndExit(p, logger, grip.Convert(m))
 	}
 }
 
@@ -142,10 +138,8 @@ func AnnotateMessageWithPanicError(p any, err error, m any) error {
 	if p != nil {
 		perr := panicError(p)
 		catcher.Add(perr)
-		sender := grip.Sender()
-		convert := sender.Converter()
 
-		handleWithError(perr, err, grip.NewLogger(sender), convert(m))
+		handleWithError(perr, err, grip.Clone(), grip.Convert(m))
 	}
 
 	return catcher.Resolve()
@@ -161,9 +155,8 @@ func SendMessageWithPanicError(p any, err error, logger grip.Logger, m any) erro
 	if p != nil {
 		perr := panicError(p)
 		catcher.Add(perr)
-		convert := grip.Sender().Converter()
 
-		handleWithError(perr, err, logger, convert(m))
+		handleWithError(perr, err, logger, grip.Convert(m))
 	}
 
 	return catcher.Resolve()

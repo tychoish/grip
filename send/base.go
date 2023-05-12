@@ -24,7 +24,6 @@ type Base struct {
 	// they set via the SetErrorHandler/SetFormatter injectors.
 	errHandler adt.Atomic[ErrorHandler]
 	formatter  adt.Atomic[MessageFormatter]
-	converter  adt.Atomic[CustomMessageConverter]
 
 	// internal methods to support close ops. close as
 	close  adt.Once[error]
@@ -106,26 +105,6 @@ func (b *Base) ErrorHandler() ErrorHandler {
 		if fn := b.errHandler.Get(); fn != nil {
 			fn(err, m)
 		}
-	}
-}
-
-// SetConverter allows senders/implementors to inject a custom method
-// for converting arbitrary logging payloads to messages. In general
-// these custom converters are wrappers around `message.Convert`.
-func (b *Base) SetConverter(mc CustomMessageConverter) {
-	b.converter.Set(mc)
-}
-
-// Converter returns a message converter, typically, either the one set by
-// SetConverter or `message.Converter` by default.
-func (b *Base) Converter() MessageConverter {
-	return func(in any) message.Composer {
-		if converter := b.converter.Get(); converter != nil {
-			if out, ok := converter(in); ok {
-				return out
-			}
-		}
-		return message.Convert(in)
 	}
 }
 

@@ -312,13 +312,13 @@ func TestLogger(t *testing.T) {
 
 	})
 	t.Run("StandardName", func(t *testing.T) {
-		check.Equal(t, "grip", std.impl.Name())
+		check.Equal(t, "grip", std.impl.Get().Name())
 		prev := os.Args[0]
 		defer func() { os.Args[0] = prev }()
 		os.Args[0] = "merlin"
 
 		setupDefault()
-		check.Equal(t, "merlin", std.impl.Name())
+		check.Equal(t, "merlin", std.impl.Get().Name())
 	})
 
 }
@@ -362,8 +362,8 @@ func TestSendFatalExits(t *testing.T) {
 
 	t.Run("RespectsPriority", func(t *testing.T) {
 		grip := NewLogger(send.MakeStdOutput())
-		grip.impl.SetErrorHandler(send.ErrorHandlerFromSender(std.Sender()))
-		grip.impl.SetPriority(level.Warning)
+		grip.impl.Get().SetErrorHandler(send.ErrorHandlerFromSender(std.Sender()))
+		grip.impl.Get().SetPriority(level.Warning)
 		// shouldn't fail
 		grip.sendFatal(level.Debug, message.Convert("hello world"))
 		grip.sendFatal(0, message.Convert("hello world"))

@@ -19,9 +19,9 @@ func setupFixture(t *testing.T) *send.InternalSender {
 		t.Fatal(err)
 	}
 
-	grip.SetGlobalLogger(grip.NewLogger(out))
+	grip.SetSender(out)
 	t.Cleanup(func() {
-		grip.SetGlobalLogger(grip.NewLogger(sender))
+		grip.SetSender(sender)
 		if err := os.Setenv(killOverrideVarName, ""); err != nil {
 			t.Error(err)
 		}
@@ -82,7 +82,7 @@ func TestPanicsCausesLogsWithExitHandler(t *testing.T) {
 	if sender.HasMessage() {
 		t.Error("should be false")
 	}
-	grip.SetGlobalLogger(grip.NewLogger(sender))
+	grip.SetSender(sender)
 	func() {
 		defer LogStackTraceAndExit("exit op")
 		panic("sorry buddy")
@@ -110,7 +110,7 @@ func TestPanicCausesLogsWithErrorHandler(t *testing.T) {
 	if sender.HasMessage() {
 		t.Error("should be false")
 	}
-	grip.SetGlobalLogger(grip.NewLogger(sender))
+	grip.SetSender(sender)
 	func() {
 		// shouldn't panic
 

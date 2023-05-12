@@ -33,6 +33,7 @@
 //	Notice
 //	Info
 //	Debug
+//	Trace
 //
 // These helpers also include Log* helpers to parameterize the level, as
 // well as the Send method for default logging (or when the level is
@@ -44,6 +45,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -70,23 +72,39 @@ func setupDefault() {
 //
 // Package level functions mirror all methods on the Logger type to
 // access a "global" Logger instance in the grip package.
-type Logger struct{ impl send.Sender }
+type Logger struct {
+	impl  *adt.Atomic[sender]
+	convf *adt.Atomic[message.ConverterFunc]
+}
 
 // NewLogger builds a new logging interface from a sender implementation.
-func NewLogger(s send.Sender) Logger { return Logger{impl: s} }
+func NewLogger(s send.Sender) Logger {
+	var c message.ConverterFunc
+	return MakeLogger(s, c)
+}
 
-// SetGlobalJournaler allows you to override the standard logger,
-// that is used by calls in the grip package. This call is not thread
-// safe relative to other logging calls, or the GetGlobalJournaler
-// call, although all journaling methods are safe: as a result be sure
-// to only call this method during package and process initialization.
-func SetGlobalLogger(l Logger) { std = l }
+// minimallist wrapper to make the atomic not panic because of the interface
+type sender struct{ send.Sender }
+
+// MakeLogger constructs a new sender with the specified converter function.
+func MakeLogger(s send.Sender, c message.ConverterFunc) Logger {
+	return Logger{
+		impl:  adt.NewAtomic(sender{s}),
+		convf: adt.NewAtomic(c),
+	}
+
+}
 
 func composerf(tmpl string, args []any) message.Composer { return message.MakeFormat(tmpl, args...) }
 func composerln(args []any) message.Composer             { return message.MakeLines(args...) }
 
-func (g Logger) Sender() send.Sender                         { return g.impl }
-func (g Logger) Build() *message.Builder                     { return message.NewBuilder(g.impl.Send) }
+// Clone creates a new Logger with the same message sender and
+// converter; however they are fully independent loggers.
+func (g Logger) Clone() Logger                               { return MakeLogger(g.Sender(), g.convf.Get()) }
+func (g Logger) SetConverter(m message.ConverterFunc)        { g.convf.Set(m) }
+func (g Logger) Build() *message.Builder                     { return message.NewBuilder(g.Sender().Send, g.convf.Get()) }
+func (g Logger) Sender() send.Sender                         { return g.impl.Get().Sender }
+func (g Logger) SetSender(s send.Sender)                     { g.impl.Set(sender{s}) }
 func (g Logger) Log(l level.Priority, m any)                 { g.send(l, m) }
 func (g Logger) Logf(l level.Priority, msg string, a ...any) { g.send(l, composerf(msg, a)) }
 func (g Logger) Logln(l level.Priority, a ...any)            { g.send(l, composerln(a)) }
@@ -130,8 +148,11 @@ func (g Logger) Tracef(m string, a ...any)                   { g.send(level.Trac
 func (g Logger) Traceln(a ...any)                            { g.send(level.Trace, composerln(a)) }
 func (g Logger) TraceWhen(c bool, m any)                     { g.send(level.Trace, g.makeWhen(c, m)) }
 
+func Clone() Logger                                     { return std.Clone() }
 func Sender() send.Sender                               { return std.Sender() }
 func Build() *message.Builder                           { return std.Build() }
+func Convert(m any) message.Composer                    { return std.Convert(m) }
+func SetSender(s send.Sender)                           { std.SetSender(s) }
 func Log(l level.Priority, msg any)                     { std.Log(l, msg) }
 func Logf(l level.Priority, msg string, a ...any)       { std.Logf(l, msg, a...) }
 func Logln(l level.Priority, a ...any)                  { std.Logln(l, a...) }
@@ -182,38 +203,59 @@ func TraceWhen(conditional bool, m any)                 { std.TraceWhen(conditio
 // method implementation
 
 func (g Logger) send(l level.Priority, in any) {
-	m := g.impl.Converter()(in)
+	m := g.Convert(in)
 	m.SetPriority(l)
-	g.impl.Send(m)
+	g.impl.Get().Send(m)
+}
+
+// Convert runs the custom converter if set, falling back to
+// message.Convert if indicated by the custom converter or if the
+// custom converter is not set.
+func (g Logger) Convert(m any) message.Composer {
+	cc := g.convf.Get()
+	switch {
+	case cc != nil:
+		out, ok := cc(m)
+		if ok {
+			return out
+		}
+		fallthrough
+	default:
+		return message.Convert(m)
+	}
 }
 
 func (g Logger) makeWhen(cond bool, m any) message.Composer {
-	return message.When(cond, message.MakeProducer(func() message.Composer { return g.impl.Converter()(m) }))
+	return message.When(cond, message.MakeProducer(func() message.Composer { return g.Convert(m) }))
 }
 
 // For sending logging messages, in most cases, use the
 // Journaler.sender.Send() method, but we have a couple of methods to
 // use for the Panic/Fatal helpers.
 func (g Logger) sendPanic(l level.Priority, in any) {
-	m := g.impl.Converter()(in)
+	m := g.Convert(in)
 	m.SetPriority(l)
+
+	s := g.impl.Get()
 
 	// the Send method in the Sender interface will perform this
 	// check but to add fatal methods we need to do this here.
-	if send.ShouldLog(g.impl, m) {
-		g.impl.Send(m)
+	if send.ShouldLog(s, m) {
+		s.Send(m)
 		panic(m.String())
 	}
 }
 
 func (g Logger) sendFatal(l level.Priority, in any) {
-	m := g.impl.Converter()(in)
+	m := g.Convert(in)
 	m.SetPriority(l)
+
+	s := g.impl.Get()
 
 	// the Send method in the Sender interface will perform this
 	// check but to add fatal methods we need to do this here.
-	if send.ShouldLog(g.impl, m) {
-		g.impl.Send(m)
+	if send.ShouldLog(s, m) {
+		s.Send(m)
 		os.Exit(1)
 	}
 }

@@ -2,13 +2,11 @@ package message
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 )
 
 type errorComposerWrap struct {
-	err    error
-	cached string
+	err error
 	Composer
 	populate sync.Once
 }
@@ -17,8 +15,12 @@ type errorComposerWrap struct {
 // argument into a composer in the same manner as the front end logging methods.
 func WrapError(err error, m any) Composer {
 	return &errorComposerWrap{
-		err:      err,
-		Composer: MakeProducer(func() Composer { return Convert(m) }),
+		err: err,
+		Composer: MakeProducer(func() Composer {
+			c := Convert(m)
+			c.SetOption(OptionMessageIsNotStructuredField)
+			return c
+		}),
 	}
 }
 
@@ -29,13 +31,12 @@ func WrapErrorf(err error, msg string, args ...any) Composer {
 }
 
 func (m *errorComposerWrap) String() string {
-	if m.cached == "" {
-		m.cached = fmt.Sprintf("%s: %v", m.Composer, m.err)
-	}
+	m.populate.Do(func() { m.Composer.Annotate("error", m.err) })
 
-	return m.cached
+	return m.Composer.String()
 }
 
+func (*errorComposerWrap) Structured() bool           { return true }
 func (m *errorComposerWrap) Error() string            { return m.String() }
 func (m *errorComposerWrap) Unwrap() Composer         { return m.Composer }
 func (m *errorComposerWrap) Is(err error) bool        { return errors.Is(m.err, err) }

@@ -21,8 +21,8 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		MakeBytes([]byte(testMsg)):                                   testMsg,
 		MakeError(errors.New(testMsg)):                               testMsg,
 		MakeFormat(string(testMsg[0])+"%s", testMsg[1:]):             testMsg,
-		WrapError(errors.New("hello"), "world"):                      "world: hello",
-		WrapErrorf(errors.New("hello"), "world"):                     "world: hello",
+		WrapError(errors.New("hello"), "world"):                      "world error='hello'",
+		WrapErrorf(errors.New("hello"), "world"):                     "world error='hello'",
 		MakeLines(testMsg, ""):                                       testMsg,
 		MakeLines(testMsg):                                           testMsg,
 		BuildGroupComposer(MakeString(testMsg)):                      testMsg,
@@ -37,58 +37,50 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 	}
 
 	for msg, output := range cases {
-		if msg == nil {
-			t.Error("value should not be nill")
-		}
-
-		if _, ok := msg.(Composer); !ok {
-			t.Errorf("message %T should implement composer", msg)
-		}
-		if !msg.Loggable() {
-			t.Errorf("value should be true [%T]", msg)
-		}
-		if msg.Raw() == nil {
-			t.Error("value should not be nill")
-		}
-
-		if strings.HasPrefix(output, "[") {
-			output = strings.Trim(output, "[]")
-			if !strings.Contains(msg.String(), output) {
-				t.Logf("%T: %s (%s)", msg, msg.String(), output)
-				t.Error("value should be true")
+		t.Run(fmt.Sprintf("$%T", msg), func(t *testing.T) {
+			if msg == nil {
+				t.Error("value should not be nill")
 			}
 
-		} else {
-			// run the string test to make sure it doesn't change:
-			if msg.String() != output {
-				t.Errorf("%T [%s ==> %s]", msg, msg, output)
+			if _, ok := msg.(Composer); !ok {
+				t.Errorf("message %T should implement composer", msg)
 			}
-			if msg.String() != output {
-				t.Errorf("%T [%s ==> %s]", msg, msg, output)
+			if !msg.Loggable() {
+				t.Errorf("value should be true [%T]", msg)
 			}
-		}
+			if msg.Raw() == nil {
+				t.Error("value should not be nill")
+			}
 
-		if msg.Priority() != level.Invalid {
-			if level.Error != msg.Priority() {
-				t.Error("elements should be equal")
-			}
-			previous := msg.Priority()
-			msg.SetPriority(msg.Priority())
+			if strings.HasPrefix(output, "[") {
+				output = strings.Trim(output, "[]")
+				if !strings.Contains(msg.String(), output) {
+					t.Logf("%T: %s (%s)", msg, msg.String(), output)
+					t.Error("value should be true")
+				}
 
-			if previous != msg.Priority() {
-				t.Error(previous, ">", msg.Priority())
+			} else {
+				// run the string test to make sure it doesn't change:
+				if str := msg.String(); str != output {
+					t.Errorf("%T [%s != %s]", msg, str, output)
+				}
+				if str := msg.String(); str != output {
+					t.Errorf("%T [%s != %s]", msg, str, output)
+				}
 			}
-		}
 
-		// check message annotation functionality
-		switch msg.(type) {
-		case *GroupComposer:
-			continue
-		default:
-			msg.Annotate("k1", "foo")
-			msg.Annotate("k1", "foo")
-			msg.Annotate("k2", "foo")
-		}
+			if msg.Priority() != level.Invalid {
+				if level.Error != msg.Priority() {
+					t.Error("elements should be equal")
+				}
+				previous := msg.Priority()
+				msg.SetPriority(msg.Priority())
+
+				if previous != msg.Priority() {
+					t.Error(previous, ">", msg.Priority())
+				}
+			}
+		})
 	}
 }
 
@@ -470,7 +462,7 @@ func TestConverter(t *testing.T) {
 		{
 			Name:         "BuilderFields",
 			Input:        Fields{"hello": 2001, "world": 42},
-			Expected:     NewBuilder(func(Composer) {}).Fields(Fields{"hello": 2001, "world": 42}).Message(),
+			Expected:     NewBuilder(func(Composer) {}, testConverter(t, true)).Fields(Fields{"hello": 2001, "world": 42}).Message(),
 			IsStructured: true,
 		},
 	}
@@ -479,10 +471,10 @@ func TestConverter(t *testing.T) {
 			tt.Expected.SetOption(OptionSkipAllMetadata)
 			for convMethod, got := range map[string]Composer{
 				"Converter":       Convert(tt.Input),
-				"BuilderProducer": NewBuilder(nil).CovertProducer(func() any { return tt.Input }).Message(),
-				"AddToBuilder":    AddProducerToBuilder(NewBuilder(nil), func() Composer { return Convert(tt.Input) }).Message(),
-				"Builder":         NewBuilder(nil).Any(tt.Input).Message(),
-				"BuilderComposer": NewBuilder(nil).Composer(Convert(tt.Input)).Message(),
+				"BuilderProducer": NewBuilder(nil, testConverter(t, true)).CovertProducer(func() any { return tt.Input }).Message(),
+				"AddToBuilder":    AddProducerToBuilder(NewBuilder(nil, testConverter(t, true)), func() Composer { return Convert(tt.Input) }).Message(),
+				"Builder":         NewBuilder(nil, testConverter(t, true)).Any(tt.Input).Message(),
+				"BuilderComposer": NewBuilder(nil, testConverter(t, true)).Composer(Convert(tt.Input)).Message(),
 			} {
 				t.Run(convMethod, func(t *testing.T) {
 					got.SetOption(OptionSkipAllMetadata)
