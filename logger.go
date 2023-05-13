@@ -68,29 +68,30 @@ func setupDefault() {
 	std = NewLogger(sender)
 }
 
+// minimallist wrapper to make the atomic not panic because of the interface
+type sender struct{ send.Sender }
+
+type converter struct{ message.Converter }
+
 // Logger provides the public interface of the grip Logger.
 //
 // Package level functions mirror all methods on the Logger type to
 // access a "global" Logger instance in the grip package.
 type Logger struct {
-	impl  *adt.Atomic[sender]
-	convf *adt.Atomic[message.ConverterFunc]
+	impl *adt.Atomic[sender]
+	conv *adt.Atomic[converter]
 }
 
 // NewLogger builds a new logging interface from a sender implementation.
 func NewLogger(s send.Sender) Logger {
-	var c message.ConverterFunc
-	return MakeLogger(s, c)
+	return MakeLogger(s, message.DefaultConverter())
 }
 
-// minimallist wrapper to make the atomic not panic because of the interface
-type sender struct{ send.Sender }
-
 // MakeLogger constructs a new sender with the specified converter function.
-func MakeLogger(s send.Sender, c message.ConverterFunc) Logger {
+func MakeLogger(s send.Sender, c message.Converter) Logger {
 	return Logger{
-		impl:  adt.NewAtomic(sender{s}),
-		convf: adt.NewAtomic(c),
+		impl: adt.NewAtomic(sender{s}),
+		conv: adt.NewAtomic(converter{c}),
 	}
 
 }
@@ -100,11 +101,12 @@ func composerln(args []any) message.Composer             { return message.MakeLi
 
 // Clone creates a new Logger with the same message sender and
 // converter; however they are fully independent loggers.
-func (g Logger) Clone() Logger                               { return MakeLogger(g.Sender(), g.convf.Get()) }
-func (g Logger) SetConverter(m message.ConverterFunc)        { g.convf.Set(m) }
-func (g Logger) Build() *message.Builder                     { return message.NewBuilder(g.Sender().Send, g.convf.Get()) }
+func (g Logger) Clone() Logger                               { return MakeLogger(g.Sender(), g.conv.Get()) }
+func (g Logger) Build() *message.Builder                     { return message.NewBuilder(g.Sender().Send, g.conv.Get()) }
 func (g Logger) Sender() send.Sender                         { return g.impl.Get().Sender }
+func (g Logger) Convert(m any) message.Composer              { return g.conv.Get().Convert(m) }
 func (g Logger) SetSender(s send.Sender)                     { g.impl.Set(sender{s}) }
+func (g Logger) SetConverter(m message.Converter)            { g.conv.Set(converter{m}) }
 func (g Logger) Log(l level.Priority, m any)                 { g.send(l, m) }
 func (g Logger) Logf(l level.Priority, msg string, a ...any) { g.send(l, composerf(msg, a)) }
 func (g Logger) Logln(l level.Priority, a ...any)            { g.send(l, composerln(a)) }
@@ -153,6 +155,7 @@ func Sender() send.Sender                               { return std.Sender() }
 func Build() *message.Builder                           { return std.Build() }
 func Convert(m any) message.Composer                    { return std.Convert(m) }
 func SetSender(s send.Sender)                           { std.SetSender(s) }
+func SetConverter(c message.Converter)                  { std.SetConverter(c) }
 func Log(l level.Priority, msg any)                     { std.Log(l, msg) }
 func Logf(l level.Priority, msg string, a ...any)       { std.Logf(l, msg, a...) }
 func Logln(l level.Priority, a ...any)                  { std.Logln(l, a...) }
@@ -211,19 +214,6 @@ func (g Logger) send(l level.Priority, in any) {
 // Convert runs the custom converter if set, falling back to
 // message.Convert if indicated by the custom converter or if the
 // custom converter is not set.
-func (g Logger) Convert(m any) message.Composer {
-	cc := g.convf.Get()
-	switch {
-	case cc != nil:
-		out, ok := cc(m)
-		if ok {
-			return out
-		}
-		fallthrough
-	default:
-		return message.Convert(m)
-	}
-}
 
 func (g Logger) makeWhen(cond bool, m any) message.Composer {
 	return message.When(cond, message.MakeProducer(func() message.Composer { return g.Convert(m) }))

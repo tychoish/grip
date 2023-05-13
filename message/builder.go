@@ -20,7 +20,7 @@ import (
 // the message.
 type Builder struct {
 	send        func(Composer)
-	convert     ConverterFunc
+	converter   Converter
 	composer    Composer
 	catcher     erc.Collector
 	sendAsGroup bool
@@ -29,8 +29,8 @@ type Builder struct {
 
 // NewBuilder constructs the chainable builder type, and initializes
 // the error tracking and establishes a connection to the sender.
-func NewBuilder(send func(Composer), convert ConverterFunc) *Builder {
-	return &Builder{send: send, convert: convert}
+func NewBuilder(send func(Composer), convert Converter) *Builder {
+	return &Builder{send: send, converter: convert}
 }
 
 // Send finalizes the chain and delivers the message. Send resolves
@@ -122,7 +122,7 @@ func (b *Builder) Level(l level.Priority) *Builder {
 // methods.
 func (b *Builder) When(cond bool) *Builder                      { b.composer = When(cond, b.composer); return b }
 func (b *Builder) Composer(c Composer) *Builder                 { return b.set(c) }
-func (b *Builder) Any(msg any) *Builder                         { return b.set(Convert(msg)) }
+func (b *Builder) Any(msg any) *Builder                         { return b.set(b.converter.Convert(msg)) }
 func (b *Builder) F(tmpl string, a ...any) *Builder             { return b.set(MakeFormat(tmpl, a...)) }
 func (b *Builder) Ln(args ...any) *Builder                      { return b.set(MakeLines(args...)) }
 func (b *Builder) Error(err error) *Builder                     { return b.set(MakeError(err)) }
@@ -133,7 +133,7 @@ func (b *Builder) FieldsProducer(f func() Fields) *Builder      { return b.set(M
 func (b *Builder) ComposerProducer(f ComposerProducer) *Builder { return b.set(MakeProducer(f)) }
 func (b *Builder) ErrorProducer(f ErrorProducer) *Builder       { return b.set(MakeProducer(f)) }
 func (b *Builder) KVProducer(f KVProducer) *Builder             { return b.set(MakeProducer(f)) }
-func (b *Builder) CovertProducer(f func() any) *Builder         { return AddProducerToBuilder(b, f) }
+func (b *Builder) ConvertProducer(f func() any) *Builder        { return AddProducerToBuilder(b, f) }
 func (b *Builder) StringMap(f map[string]string) *Builder       { return b.Fields(FieldsFromMap(f)) }
 func (b *Builder) AnyMap(f map[string]any) *Builder             { return b.Fields(f) }
 func (b *Builder) KV(kvs ...KV) *Builder                        { return b.KVs(kvs) }
@@ -142,7 +142,7 @@ func (b *Builder) Group() *Builder                              { b.sendAsGroup 
 func (b *Builder) Ungroup() *Builder                            { b.sendAsGroup = false; return b }
 
 func AddProducerToBuilder[T any, F ~func() T](b *Builder, fn F) *Builder {
-	return b.Composer(MakeProducer(fn))
+	return b.Composer(converterProducer(b.converter, fn))
 }
 
 // Fields, creates a new fields message if no message has been

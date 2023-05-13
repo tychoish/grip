@@ -1,6 +1,17 @@
 package message
 
-import "fmt"
+import (
+	"fmt"
+)
+
+// Converter is an interface for converting arbitrary types to
+// Composers. Like the http.Handler interface, the primary form of
+// implementing the interface is by by ConverterFunc itself, which
+// implements Converter.
+//
+// The DefaultConverter function produces a wrapper around the Convert
+// function which produces all logging messages.
+type Converter interface{ Convert(any) Composer }
 
 // ConverterFunc is a function that users can inject into
 // their sender that the grip.Logger will use to convert arbitrary
@@ -9,9 +20,35 @@ import "fmt"
 // using message.Convert.
 type ConverterFunc func(any) (Composer, bool)
 
+func (cf ConverterFunc) Convert(m any) Composer {
+	switch {
+	case cf != nil:
+		out, ok := cf(m)
+		if ok {
+			return out
+		}
+		fallthrough
+	default:
+		return Convert(m)
+	}
+}
+
+// DefaultConverter is a Converter implementation around the Convert
+// function.
+func DefaultConverter() Converter { return defaultConverter{} }
+
+type defaultConverter struct{}
+
+func (defaultConverter) Convert(m any) Composer { return Convert(m) }
+
 // Convert produces a composer interface for arbitrary input.
 //
-// The result is almost never (typed nil values may pass thorugh)
+// The result is almost never (typed nil values may pass through)
+// Convert.
+//
+// Use this directly in your implementation of the Converter
+// interface. The DefaultConverter implementation provides a wrapper
+// around this implementation. The ConverterFunc is
 func Convert[T any](input T) Composer {
 	switch message := any(input).(type) {
 	case Composer:

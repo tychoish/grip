@@ -106,10 +106,14 @@ type ErrorProducer func() error
 // below the logging threshold, then the function will never be
 // called.
 func MakeProducer[T any, F ~func() T](fp F) Composer {
+	return converterProducer(defaultConverter{}, fp)
+}
+
+func converterProducer[T any, F ~func() T](c Converter, fp F) Composer {
 	if fp == nil {
 		return MakeKV()
 	}
-	return &composerProducerMessage{cp: func() Composer { return Convert(fp()) }}
+	return &composerProducerMessage{cp: func() Composer { return c.Convert(fp()) }}
 }
 
 ////////////////////////////////////////////////////////////////////////
