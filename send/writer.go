@@ -30,8 +30,10 @@ type writerSenderImpl struct {
 // If you do not use the `MakeWriter
 type WriterSender interface {
 	Sender
-	adt.AtomicValue[level.Priority]
 	io.WriteCloser
+	// the Get/Set methods on the WriterSender control the
+	// priority of messages sent to the sender.
+	adt.AtomicValue[level.Priority]
 }
 
 // MakeWriter wraps another sender and also provides an io.Writer.
