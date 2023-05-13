@@ -7,7 +7,7 @@ require (
 	github.com/tychoish/birch v0.2.3-0.20230413052020-46068f63d7bb
 	github.com/tychoish/birch/x/ftdc v0.0.0-20230413052020-46068f63d7bb
 	github.com/tychoish/fun v0.9.3
-	github.com/tychoish/grip v0.3.1
+	github.com/tychoish/grip v0.3.2
 )
 
 require (

@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/google/go-github v17.0.0+incompatible
-	github.com/tychoish/grip v0.3.1
+	github.com/tychoish/grip v0.3.2
 	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2
 )
 
