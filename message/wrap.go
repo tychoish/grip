@@ -60,7 +60,7 @@ func (wi *wrappedImpl) Raw() any {
 }
 
 func IsMulti(comp Composer) bool {
-	switch c := comp.(type) {
+	switch comp.(type) {
 	case *wrappedImpl:
 		return true
 	case *GroupComposer:

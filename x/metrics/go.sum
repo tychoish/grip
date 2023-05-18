@@ -14,6 +14,7 @@ github.com/tklauser/numcpus v0.6.0/go.mod h1:FEZLMke0lhOUG6w2JadTzp0a+Nl8PF/GFkQ
 github.com/tychoish/birch/x/ftdc v0.0.0-20230413052020-46068f63d7bb h1:JR4j9XakBckXBH9DB1lE8BZ1gKb7y4f8Gw8g3TtPHtM=
 github.com/tychoish/birch/x/ftdc v0.0.0-20230413052020-46068f63d7bb/go.mod h1:SRDvs3W1BrVdppcRAjFRAJ04WHz49dGmJTy08BP2UuU=
 github.com/tychoish/fun v0.9.4 h1:4cShoqHpD+9VCUX4dUnhxyEaYs79f/RMiENDLHHFnfI=
+github.com/tychoish/fun v0.9.4/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
 github.com/tychoish/grip v0.3.2 h1:AYNMAMF8wI6RleeBNoWre1UTVcHDbSpsRSyvpctgTZY=
 github.com/tychoish/grip v0.3.2/go.mod h1:1gJ0fx9LXmuhxQMf47Qli1rJXjsWZPezau14CGvq6Hs=
 github.com/yusufpapurcu/wmi v1.2.2 h1:KBNDSne4vP5mbSWnJbO+51IMOXJB67QiYCSBrubbPRg=

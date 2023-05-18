@@ -1,3 +1,4 @@
 github.com/tychoish/fun v0.9.4 h1:4cShoqHpD+9VCUX4dUnhxyEaYs79f/RMiENDLHHFnfI=
+github.com/tychoish/fun v0.9.4/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
 github.com/tychoish/grip v0.3.2 h1:AYNMAMF8wI6RleeBNoWre1UTVcHDbSpsRSyvpctgTZY=
 github.com/tychoish/grip v0.3.2/go.mod h1:1gJ0fx9LXmuhxQMf47Qli1rJXjsWZPezau14CGvq6Hs=
