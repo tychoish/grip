@@ -4,5 +4,5 @@ go 1.20
 
 require (
 	github.com/tychoish/fun v0.9.4
-	github.com/tychoish/grip v0.3.2
+	github.com/tychoish/grip v0.3.3
 )
