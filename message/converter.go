@@ -2,6 +2,8 @@ package message
 
 import (
 	"fmt"
+
+	"github.com/tychoish/fun"
 )
 
 // Converter is an interface for converting arbitrary types to
@@ -65,13 +67,12 @@ func Convert[T any](input T) Composer {
 		return MakeError(message)
 	case Fields:
 		return MakeFields(message)
-	case KVs:
-		return MakeKVs(message)
-	case []KV:
-		return MakeKVs(message)
+	case fun.Pairs[string, any]:
+		return MakeKV(message...)
+	case fun.Pair[string, any]:
+		return MakeKV(message)
 	case nil:
 		m := MakeKV()
-		m.SetOption(OptionSkipAllMetadata)
 		return m
 	case map[string]any:
 		return MakeFields(Fields(message))
@@ -117,7 +118,7 @@ func Convert[T any](input T) Composer {
 		return convertSlice(message)
 	case [][]any:
 		return convertSlice(message)
-	case []KVs:
+	case []fun.Pairs[string, any]:
 		return convertSlice(message)
 	case []Marshaler:
 		return convertSlice(message)
@@ -136,7 +137,6 @@ func convertSlice[T any](in []T) Composer {
 	switch len(in) {
 	case 0:
 		m := MakeKV()
-		m.SetOption(OptionSkipAllMetadata)
 		return m
 	case 1:
 		return Convert(in[0])
@@ -152,7 +152,6 @@ func convertSlice[T any](in []T) Composer {
 func buildFromSlice(vals []any) Composer {
 	if len(vals) == 0 {
 		m := MakeKV()
-		m.SetOption(OptionSkipAllMetadata)
 		return m
 	}
 
@@ -163,7 +162,7 @@ func buildFromSlice(vals []any) Composer {
 		switch vals[i].(type) {
 		case string:
 			continue
-		case Composer, ComposerProducer, ErrorProducer, Fields, KVs, []KV:
+		case Composer, ComposerProducer, ErrorProducer, Fields, fun.Pairs[string, any]:
 			return convertSlice(vals)
 		case []Composer, []ComposerProducer, []ErrorProducer, []Fields:
 			return convertSlice(vals)
@@ -176,13 +175,11 @@ func buildFromSlice(vals []any) Composer {
 		return MakeLines(vals...)
 	}
 
-	fields := make(KVs, 0, len(vals)/2)
+	fields := make(fun.Pairs[string, any], 0, len(vals)/2)
+
 	for i := 0; i < len(vals); i += 2 {
-		fields = append(fields, KV{
-			Key:   fmt.Sprint(vals[i]),
-			Value: vals[i+1],
-		})
+		fields = append(fields, fun.MakePair(fmt.Sprint(vals[i]), vals[i+1]))
 	}
 
-	return MakeKVs(fields)
+	return MakeKV(fields...)
 }

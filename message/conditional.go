@@ -41,22 +41,17 @@ func WhenMsg(cond bool, m string) Composer {
 }
 
 func (c *conditional) resolve() Composer {
-	if c.resolved != nil {
-		return c.resolved
-	}
-	if c.constructor != nil {
+	switch {
+	case c.constructor != nil:
 		c.resolved = c.constructor()
 		c.constructor = nil
-	}
-
-	if c.resolved == nil {
-		return nil
+	case c.resolved != nil:
+		return c.resolved
 	}
 
 	for _, op := range c.lazyOpts {
 		op(c.resolved)
 	}
-
 	c.lazyOpts = nil
 
 	return c.resolved
@@ -96,7 +91,6 @@ func (c *conditional) SetPriority(p level.Priority) {
 	} else {
 		c.resolved.SetPriority(p)
 	}
-
 }
 
 func (c *conditional) SetOption(opts ...Option) {

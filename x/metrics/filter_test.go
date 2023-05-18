@@ -11,9 +11,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tychoish/birch"
+	"github.com/tychoish/birch/x/ftdc/util"
 	"github.com/tychoish/grip/send"
 )
 
+func init() {
+	util.RegisterGlobalMarshaler(func(in any) ([]byte, error) {
+		return birch.DC.Interface(in).MarshalBSON()
+	})
+}
 func TestCollectOptions(t *testing.T) {
 	t.Run("DefaultValid", func(t *testing.T) {
 		dco := DefaultCollectionOptions()
@@ -52,12 +59,15 @@ func TestSchemaComposer(t *testing.T) {
 }
 
 type bufCloser struct {
+	mtx sync.Mutex
 	bytes.Buffer
 	isClosed bool
 }
 
-func (b *bufCloser) Write(in []byte) (int, error) { return b.Buffer.Write(in) }
-func (b *bufCloser) Close() error                 { b.isClosed = true; return nil }
+func (b *bufCloser) withLock() func() { b.mtx.Lock(); return b.mtx.Unlock }
+
+func (b *bufCloser) Write(in []byte) (int, error) { defer b.withLock()(); return b.Buffer.Write(in) }
+func (b *bufCloser) Close() error                 { defer b.withLock()(); b.isClosed = true; return nil }
 
 func TestFilter(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -102,7 +112,7 @@ func TestFilter(t *testing.T) {
 		bufs := map[string]*bufCloser{}
 
 		opts := DefaultCollectionOptions()
-		opts.FlushInterval = 10 * time.Millisecond
+		opts.FlushInterval = 100 * time.Millisecond
 		opts.SampleCount = 10
 		opts.BlockCount = 10
 		opts.CaptureStructured = false
@@ -125,6 +135,7 @@ func TestFilter(t *testing.T) {
 			filter.Send(CollectGoStatsTotals())
 			filter.Send(CollectProcessInfoSelf())
 			filter.Send(CollectSystemInfo())
+			time.Sleep(5 * time.Millisecond)
 		}
 
 		if n := sender.Len(); n != 60 {

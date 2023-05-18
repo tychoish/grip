@@ -4,35 +4,27 @@
 package message
 
 type bytesMessage struct {
-	data []byte
-	Base
+	Message []byte `bson:"msg" json:"msg" yaml:"msg"`
+	Base    `bson:"meta,omitempty" json:"meta,omitempty" yaml:"meta,omitempty"`
 }
 
 // MakeBytes provides a basic message consisting of a single line.
 func MakeBytes(b []byte) Composer {
-	return &bytesMessage{data: b}
+	return &bytesMessage{Message: b}
 }
 
-func (s *bytesMessage) String() string { return string(s.data) }
-func (s *bytesMessage) Loggable() bool { return len(s.data) > 0 }
+func (s *bytesMessage) String() string { return string(s.Message) }
+func (s *bytesMessage) Loggable() bool { return len(s.Message) > 0 }
 
 func (s *bytesMessage) Raw() any {
-	out := struct {
-		Meta    *Base  `bson:"meta,omitempty" json:"meta,omitempty" yaml:"meta,omitempty"`
-		Message string `bson:"msg" json:"msg" yaml:"msg"`
-	}{
-		Message: string(s.data),
-	}
-
-	if s.SkipMetadata {
-		return out
-	}
-
-	if !s.SkipCollection {
+	if s.IncludeMetadata {
 		s.Collect()
+		return s
 	}
 
-	out.Meta = &s.Base
-
-	return out
+	return struct {
+		Message []byte `bson:"msg" json:"msg" yaml:"msg"`
+	}{
+		Message: s.Message,
+	}
 }

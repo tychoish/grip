@@ -131,7 +131,11 @@ func CollectBasicGoStats() message.Composer {
 	})
 }
 
-// GoRuntimeInfo provides
+var _ message.Composer = &GoRuntimeInfo{}
+var _ birch.DocumentMarshaler = &GoRuntimeInfo{}
+
+// GoRuntimeInfo provides a structured format for data about the
+// current go runtime. Also implements the message composer interface.
 type GoRuntimeInfo struct {
 	Message string `bson:"msg" json:"msg" yaml:"msg"`
 	Payload struct {
@@ -163,7 +167,9 @@ type GoRuntimeInfo struct {
 // The data reported for the runtime event metrics (e.g. mallocs,
 // frees, gcs, and cgo calls,) are totals collected since the
 // beginning on the runtime.
-func CollectGoStatsTotals() message.Composer {
+//
+// GoRuntimeInfo also implements the message.Composer interface.
+func CollectGoStatsTotals() *GoRuntimeInfo {
 	s := &GoRuntimeInfo{}
 	s.build()
 
@@ -173,7 +179,9 @@ func CollectGoStatsTotals() message.Composer {
 // MakeGoStatsTotals has the same semantics as CollectGoStatsTotals,
 // but additionally allows you to set a message string to annotate the
 // data.
-func MakeGoStatsTotals(msg string) message.Composer {
+//
+// GoRuntimeInfo also implements the message.Composer interface.
+func MakeGoStatsTotals(msg string) *GoRuntimeInfo {
 	s := &GoRuntimeInfo{}
 	s.Message = msg
 	s.build()
@@ -191,7 +199,9 @@ func MakeGoStatsTotals(msg string) message.Composer {
 //
 // Values are cached between calls, to produce the deltas. For the
 // best results, collect these messages on a regular interval.
-func CollectGoStatsDeltas() message.Composer {
+//
+// GoRuntimeInfo also implements the message.Composer interface.
+func CollectGoStatsDeltas() *GoRuntimeInfo {
 	s := &GoRuntimeInfo{useDeltas: true}
 	s.build()
 
@@ -201,7 +211,9 @@ func CollectGoStatsDeltas() message.Composer {
 // MakeGoStatsDeltas has the same semantics as CollectGoStatsDeltas,
 // but additionally allows you to set a message string to annotate the
 // data.
-func MakeGoStatsDeltas(msg string) message.Composer {
+//
+// GoRuntimeInfo also implements the message.Composer interface.
+func MakeGoStatsDeltas(msg string) *GoRuntimeInfo {
 	s := &GoRuntimeInfo{useDeltas: true}
 	s.Message = msg
 	s.build()
@@ -219,7 +231,7 @@ func MakeGoStatsDeltas(msg string) message.Composer {
 // calculated using integer division.
 //
 // For the best results, collect these messages on a regular interval.
-func CollectGoStatsRates() message.Composer {
+func CollectGoStatsRates() *GoRuntimeInfo {
 	s := &GoRuntimeInfo{useRates: true}
 	s.build()
 
@@ -229,7 +241,7 @@ func CollectGoStatsRates() message.Composer {
 // MakeGoStatsRates has the same semantics as CollectGoStatsRates,
 // but additionally allows you to set a message string to annotate the
 // data.
-func MakeGoStatsRates(msg string) message.Composer {
+func MakeGoStatsRates(msg string) *GoRuntimeInfo {
 	s := &GoRuntimeInfo{useRates: true}
 	s.Message = msg
 	s.build()
@@ -280,20 +292,17 @@ func (*GoRuntimeInfo) Schema() string   { return "runtime.0" }
 // Raw is part of the Composer interface and returns the GoRuntimeInfo
 // object itself.
 func (s *GoRuntimeInfo) Raw() any {
-	if s.SkipMetadata {
-		return s.Payload
-	}
-	if !s.SkipCollection {
-		s.Collect()
-	}
-	return s
-}
-func (s *GoRuntimeInfo) String() string {
-	if !s.SkipCollection {
-		s.Collect()
+	s.Collect()
+
+	if s.IncludeMetadata {
+		return s
 	}
 
+	return s.Payload
+}
+func (s *GoRuntimeInfo) String() string {
 	if s.rendered == "" {
+		s.Collect()
 		s.rendered = renderStatsString(s.Message, s.Payload)
 	}
 

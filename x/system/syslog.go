@@ -34,7 +34,7 @@ func MakeSyslogSender(network, raddr string) send.Sender {
 
 	s.SetFormatter(send.MakeDefaultFormatter())
 	s.SetErrorHandler(send.ErrorHandlerFromSender(s.fallback))
-
+	s.reset()
 	return s
 }
 

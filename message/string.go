@@ -11,20 +11,8 @@ func MakeString(m string) Composer {
 	return &stringMessage{Message: m}
 }
 
-func (s *stringMessage) String() string {
-	if s.fm != nil {
-		return s.fm.String()
-	}
-
-	if len(s.Base.Context) > 0 {
-		s.setupField()
-		return s.fm.String()
-	}
-
-	return s.Message
-}
-
 func (s *stringMessage) setupField() {
+	s.Collect()
 	s.fm = &fieldMessage{
 		fields:  s.Base.Context,
 		Base:    s.Base,
@@ -33,7 +21,44 @@ func (s *stringMessage) setupField() {
 }
 
 func (s *stringMessage) Loggable() bool {
-	return s.Message != "" || len(s.Base.Context) > 0 || (s.fm != nil && s.fm.Loggable())
+	switch {
+	case (s.fm != nil && s.fm.Loggable()):
+		return true
+	case len(s.Base.Context) > 0:
+		return true
+	case s.Message != "":
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *stringMessage) String() string {
+	switch {
+	case s.fm != nil:
+		return s.fm.String()
+	case len(s.Base.Context) > 0:
+		s.setupField()
+		return s.fm.String()
+	default:
+		return s.Message
+	}
+}
+
+func (s *stringMessage) Raw() any {
+	switch {
+	case s.fm != nil:
+		return s.fm.Raw
+	case len(s.Base.Context) > 0:
+		s.setupField()
+		return s.fm.Raw()
+	default:
+		return struct {
+			Message string `bson:"msg" json:"msg" yaml:"msg"`
+		}{
+			Message: s.Message,
+		}
+	}
 }
 
 func (s *stringMessage) Annotate(k string, v any) {
@@ -50,25 +75,4 @@ func (s *stringMessage) SetOption(opts ...Option) {
 		return
 	}
 	s.fm.SetOption(opts...)
-}
-
-func (s *stringMessage) Raw() any {
-	if s.fm != nil {
-		return s.fm.Raw()
-	}
-
-	if len(s.Base.Context) > 0 {
-		s.setupField()
-		return s.fm.String()
-	}
-
-	if s.SkipMetadata {
-		return stringMessage{Message: s.Message}
-	}
-
-	if !s.SkipCollection {
-		s.Collect()
-	}
-
-	return s
 }

@@ -3,6 +3,7 @@ package zap
 import (
 	"fmt"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -64,7 +65,7 @@ func (s *shim) Send(m message.Composer) {
 			fields = append(fields, zap.Error(data))
 		case []error:
 			fields = append(fields, zap.Errors("errors", data))
-		case message.KVs:
+		case fun.Pairs[string, any]:
 			for idx := range data {
 				fields = append(fields, zap.Any(data[idx].Key, data[idx].Value))
 			}

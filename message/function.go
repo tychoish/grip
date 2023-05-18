@@ -34,17 +34,18 @@ package message
 import (
 	"sync"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/grip/level"
 )
 
-// KVProducer allows callers to delay generation of KV lists (as
+// PairProducer allows callers to delay generation of KV lists (as
 // structured log payloads) until the log message needs to be sent
 // (e.g. the .String() or .Raw() methods are called on the Composer
 // interface.) While all implementations of composer provide this
 // ability to do lazy evaluation of log messages, you can use this and
 // other producer types to implement logging as functions rather than
 // as implementations the Composer interface itself.
-type KVProducer func() KVs
+type PairProducer func() fun.Pairs[string, any]
 
 // FieldsProducer is a function that returns a structured message body
 // as a way of writing simple Composer implementations in the form

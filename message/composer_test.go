@@ -276,14 +276,15 @@ func TestSlice(t *testing.T) {
 			output: MakeLines("hello", "world", "3000"),
 		},
 		{
-			name:   "PairsStrings",
-			input:  []any{"hello", "world", "val", "3000"},
-			output: MakeKV(KV{"hello", "world"}, KV{"val", "3000"}),
+			name:  "PairsStrings",
+			input: []any{"hello", "world", "val", "3000"},
+			output: MakeKV(fun.MakePair[string, any]("hello", "world"),
+				fun.MakePair[string, any]("val", "3000")),
 		},
 		{
 			name:   "PairsMixed",
 			input:  []any{"hello", "world", "val", 3000},
-			output: MakeKV(KV{"hello", "world"}, KV{"val", 3000}),
+			output: MakeKV(fun.MakePair[string, any]("hello", "world"), fun.MakePair[string, any]("val", 3000)),
 		},
 		{
 			name:   "KeyNotString",
@@ -315,8 +316,7 @@ func fixTimestamps(t *testing.T, msgs ...Composer) {
 			m.Base.Time = ts
 		case *lineMessenger:
 			m.Base.Time = ts
-		case *kvMsg:
-			m.Base.SkipMetadata = true
+		case *PairBuilder:
 			m.Base.Time = ts
 		case *GroupComposer:
 			fixTimestamps(t, m.Messages()...)
@@ -439,18 +439,6 @@ func TestConverter(t *testing.T) {
 			IsStructured: false,
 		},
 		{
-			Name:         "KVsFromSlice",
-			Input:        KVs{{"hello", 2001}, {"world", 42}},
-			Expected:     MakeKV(KV{"hello", 2001}, KV{"world", 42}),
-			IsStructured: true,
-		},
-		{
-			Name:         "KVFromSlice",
-			Input:        []KV{{"hello", 2001}, {"world", 42}},
-			Expected:     MakeKV(KV{"hello", 2001}, KV{"world", 42}),
-			IsStructured: true,
-		},
-		{
 			Name:  "GroupFields",
 			Input: []Fields{{"hello": 2001}, {"world": 42}},
 			Expected: BuildGroupComposer(
@@ -468,7 +456,8 @@ func TestConverter(t *testing.T) {
 	}
 	for _, tt := range cases {
 		t.Run(tt.Name, func(t *testing.T) {
-			tt.Expected.SetOption(OptionSkipAllMetadata)
+			tt.Expected.SetOption(OptionSkipCollectInfo)
+			tt.Expected.SetOption(OptionSkipMetadata)
 			for convMethod, got := range map[string]Composer{
 				"Converter":       Convert(tt.Input),
 				"BuilderProducer": NewBuilder(nil, testConverter(t, true)).ConvertProducer(func() any { return tt.Input }).Message(),
@@ -477,7 +466,8 @@ func TestConverter(t *testing.T) {
 				"BuilderComposer": NewBuilder(nil, testConverter(t, true)).Composer(Convert(tt.Input)).Message(),
 			} {
 				t.Run(convMethod, func(t *testing.T) {
-					got.SetOption(OptionSkipAllMetadata)
+					got.SetOption(OptionSkipCollectInfo)
+					got.SetOption(OptionSkipMetadata)
 					check.Equal(t, got.Loggable(), tt.Expected.Loggable())
 					check.Equal(t, got.String(), tt.Expected.String())
 					check.True(t, got.Structured() == tt.IsStructured)

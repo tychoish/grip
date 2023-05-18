@@ -5,7 +5,7 @@ import (
 )
 
 func TestCollectWorksWithUnsetPids(t *testing.T) {
-	base := &Base{}
+	base := &Base{CollectInfo: true}
 	if !base.IsZero() {
 		t.Fatal("base must be zero on init")
 	}

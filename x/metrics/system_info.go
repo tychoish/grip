@@ -144,20 +144,20 @@ func (*SystemInfo) Schema() string   { return "sysinfo.0" }
 
 // Raw always returns the SystemInfo object.
 func (s *SystemInfo) Raw() any {
-	if s.SkipMetadata {
-		return s.Payload
+	s.Collect()
+
+	if s.IncludeMetadata {
+		return s
 	}
 
-	if !s.SkipCollection {
-		s.Collect()
-	}
-	return s
+	return s.Payload
 }
 
 // String returns a string representation of the message, lazily
 // rendering the message, and caching it privately.
 func (s *SystemInfo) String() string {
 	if s.rendered == "" {
+		s.Collect()
 		s.rendered = renderStatsString(s.Message, s.Payload)
 	}
 

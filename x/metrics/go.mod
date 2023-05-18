@@ -2,6 +2,10 @@ module github.com/tychoish/grip/x/metrics
 
 go 1.19
 
+replace github.com/tychoish/birch => ../../../birch
+
+replace github.com/tychoish/birch/ftdc => ../../../birch/ftdc
+
 require (
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/tychoish/birch v0.2.3-0.20230413052020-46068f63d7bb

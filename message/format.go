@@ -33,6 +33,7 @@ func (f *formatMessenger) setupField() {
 func (f *formatMessenger) setupMessage() {
 	if f.Message == "" {
 		f.Message = fmt.Sprintf(f.base, f.args...)
+		f.Collect()
 	}
 }
 
@@ -82,13 +83,9 @@ func (f *formatMessenger) Raw() any {
 		return f.fm.Raw()
 	}
 
-	if f.SkipMetadata {
-		return stringMessage{Message: f.Message}
+	if f.IncludeMetadata {
+		return f
 	}
 
-	if !f.SkipCollection {
-		f.Collect()
-	}
-
-	return f
+	return stringMessage{Message: f.Message}
 }

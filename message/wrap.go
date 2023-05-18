@@ -1,10 +1,15 @@
 package message
 
-import "github.com/tychoish/fun"
+import (
+	"fmt"
+
+	"github.com/tychoish/fun"
+)
 
 type wrappedImpl struct {
 	parent Composer
 	Composer
+	cached string
 }
 
 func (wi *wrappedImpl) Unwrap() Composer { return wi.parent }
@@ -26,6 +31,44 @@ func Wrap(parent Composer, msg any) Composer {
 			parent:   parent,
 			Composer: Convert(msg),
 		}
+	}
+}
+
+func (wi *wrappedImpl) String() string {
+	if wi.cached != "" {
+		return wi.cached
+	}
+
+	wi.cached = wi.Composer.String()
+	if wi.parent != nil {
+		wi.cached = fmt.Sprintf("%s\n%s", wi.cached, wi.parent.String())
+	}
+
+	return wi.cached
+}
+
+func (wi *wrappedImpl) Raw() any {
+	msgs := Unwind(wi)
+	switch len(msgs) {
+	case 0:
+		return nil
+	case 1:
+		return msgs[0].Raw()
+	default:
+		return msgs
+	}
+}
+
+func IsMulti(comp Composer) bool {
+	switch c := comp.(type) {
+	case *wrappedImpl:
+		return true
+	case *GroupComposer:
+		return true
+	case interface{ Unwrap() Composer }:
+		return true
+	default:
+		return false
 	}
 }
 

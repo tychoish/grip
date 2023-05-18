@@ -32,22 +32,22 @@ type Base struct {
 	Host             string         `bson:"host,omitempty" json:"host,omitempty" yaml:"host,omitempty"`
 	Time             time.Time      `bson:"ts,omitempty" json:"ts,omitempty" yaml:"ts,omitempty"`
 	Context          Fields         `bson:"data,omitempty" json:"data,omitempty" yaml:"data,omitempty"`
-	SkipCollection   bool           `bson:"-" json:"-" yaml:"-"`
-	SkipMetadata     bool           `bson:"-" json:"-" yaml:"-"`
+	CollectInfo      bool           `bson:"-" json:"-" yaml:"-"`
+	IncludeMetadata  bool           `bson:"-" json:"-" yaml:"-"`
 	MessageIsSpecial bool           `bson:"-" json:"-" yaml:"-"`
 }
 
 func (b *Base) SetOption(opts ...Option) {
 	for _, opt := range opts {
 		switch opt {
-		case OptionSkipAllMetadata:
-			b.SkipMetadata = true
-		case OptionSkipCollect:
-			b.SkipCollection = true
-		case OptionDoBaseCollect:
-			b.SkipCollection = false
-		case OptionIncludeAllMetadata:
-			b.SkipMetadata = false
+		case OptionIncludeMetadata:
+			b.IncludeMetadata = true
+		case OptionSkipMetadata:
+			b.IncludeMetadata = false
+		case OptionCollectInfo:
+			b.CollectInfo = true
+		case OptionSkipCollectInfo:
+			b.CollectInfo = false
 		case OptionMessageIsNotStructuredField:
 			b.MessageIsSpecial = true
 		}
@@ -63,7 +63,7 @@ func (b *Base) IsZero() bool {
 // Collect records the time, process name, and hostname. Useful in the
 // context of a Raw() method.
 func (b *Base) Collect() {
-	if b.Pid > 0 || b.SkipCollection {
+	if b.Pid > 0 || !b.CollectInfo {
 		return
 	}
 

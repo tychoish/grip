@@ -61,24 +61,34 @@ type Composer interface {
 	SetOption(...Option)
 }
 
+// Options control the behavior and output of a message, specifically
+// the String and Raw methods. Implementations are responsible for
+// compliance with the options. The `Base` type provides basic support
+// for setting and exposing these options to implementations.
 type Option string
 
 const (
-	// OptionSkipAllMetadata tells the message to avoid annotating
-	// any metadata to a message.
-	OptionSkipAllMetadata Option = "skip-metadata"
-	// OptionSkipCollect tells the message, typically for Raw()
-	// calls to *not* call the message/Base.Collect method which
-	// annotates fields about the host system and level.
-	OptionSkipCollect Option = "skip-collect"
-	// OptionIncludeAllMetadata enables the inclusion of metadata
+	// OptionIncludeMetadata tells the message to annotate itself
+	// basic metadata metadata to a message.
+	OptionIncludeMetadata Option = "include-metadata"
+	// OptionSkipMetadata disables the inclusion of metadata
 	// in the output messaage. This is typically the default in
 	// most implementations.
-	OptionIncludeAllMetadata Option = "include-metadata"
-	// OptionDoBaseCollect enables the Base implementation to
-	// collect some basic information. This is typically the
-	// default in most implementations.
-	OptionDoBaseCollect Option = "do-base-collect"
-	// OptionMessageIsNotStructuredField
+	OptionSkipMetadata Option = "skip-metadata"
+	// OptionCollectInfo enables collecting extra data
+	// (implemented by the Base type) including hostname, process
+	// name, and time. While this information is cached and not
+	// difficult to collect, it may increase the message payload
+	// with unneeded data.
+	OptionCollectInfo Option = "collect-info"
+	// OptionSkipCollect tells the message, typically for Raw()
+	// calls to *not* call the message/Base.Collect method which
+	// annotates fields about the host system and level. This is
+	// typically the default.
+	OptionSkipCollectInfo Option = "skip-collect-info"
+	// OptionMessageIsNotStructuredField indicates to the
+	// implementor that the Message field name in Fields-typed
+	// messages (defined by the message.FieldsMsgName constant)
+	// should *not* be handdled specially.
 	OptionMessageIsNotStructuredField Option = "message-is-not-structured"
 )

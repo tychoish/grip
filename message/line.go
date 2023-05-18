@@ -19,7 +19,7 @@ func MakeLines(args ...any) Composer {
 	m := &lineMessenger{}
 	m.lines = make([]any, 0, len(args))
 	for _, arg := range args {
-		if arg != nil {
+		if arg != nil && arg != "" {
 			m.lines = append(m.lines, arg)
 		}
 	}
@@ -40,58 +40,61 @@ func newLinesFromStrings(args []string) Composer {
 }
 
 func (l *lineMessenger) Loggable() bool {
-	for idx := range l.lines {
-		if l.lines[idx] != "" {
-			return true
-		}
+	switch {
+	case (l.fm != nil && l.fm.Loggable()):
+		return true
+	case len(l.Base.Context) > 0:
+		return true
+	case len(l.lines) > 0:
+		return true
+	default:
+		return false
 	}
-
-	return len(l.Base.Context) > 0 || (l.fm != nil && l.fm.Loggable())
 }
 
 func (l *lineMessenger) String() string {
-	l.resolve()
-	if l.fm != nil {
+	switch {
+	case l.fm != nil:
 		return l.fm.String()
-	} else if len(l.Base.Context) > 0 {
+	case len(l.Base.Context) > 0:
 		l.setupField()
 		return l.fm.String()
+	case l.Message == "":
+		l.resolve()
 	}
 
 	return l.Message
 }
 
 func (l *lineMessenger) Raw() any {
-	l.resolve()
-	if l.fm != nil {
+	switch {
+	case l.fm != nil:
 		return l.fm.Raw()
-	} else if len(l.Base.Context) > 0 {
+	case len(l.Base.Context) > 0:
 		l.setupField()
 		return l.fm.Raw()
-	}
-
-	if l.SkipMetadata {
+	case l.IncludeMetadata:
+		l.resolve()
+		return l
+	default:
+		l.resolve()
 		return struct {
 			Msg string `bson:"msg" json:"msg" yaml:"msg"`
 		}{
 			Msg: l.Message,
 		}
 	}
-
-	if !l.SkipCollection {
-		l.Collect()
-	}
-
-	return l
 }
 
 func (l *lineMessenger) resolve() {
 	if l.Message == "" {
-		l.Message = strings.Trim(fmt.Sprintln(l.lines...), "\n ")
+		l.Message = strings.TrimSpace(fmt.Sprintln(l.lines...))
+		l.Collect()
 	}
 }
 
 func (l *lineMessenger) setupField() {
+	l.resolve()
 	l.fm = &fieldMessage{
 		fields:  l.Base.Context,
 		Base:    l.Base,

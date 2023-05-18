@@ -10,17 +10,20 @@ func TestFieldsLevelMutability(t *testing.T) {
 	m := Fields{"message": "hello world"}
 	c := Convert(m)
 	c.SetPriority(level.Error)
+	c.SetOption(OptionIncludeMetadata)
 
 	r := c.Raw().(Fields)
 	if level.Error != c.Priority() {
 		t.Error("elements shold be equal")
 	}
+
 	if level.Error != r["meta"].(*Base).Level {
 		t.Error("elements shold be equal")
 	}
 
 	c = Convert(m)
 	c.SetPriority(level.Info)
+	c.SetOption(OptionIncludeMetadata)
 
 	r = c.Raw().(Fields)
 	if level.Info != c.Priority() {

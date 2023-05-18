@@ -36,21 +36,20 @@ func (e *errorMessage) Unwrap() error  { return e.err }
 
 func (e *errorMessage) Raw() any {
 	_ = e.String()
+	e.Collect() // noop based on option
 
-	if e.SkipMetadata {
-		return struct {
-			Error  string `bson:"error" json:"error" yaml:"error"`
-			Fields `bson:",omitempty" json:",omitempty" yaml:",omitempty"`
-		}{
-			Error:  e.ErrorValue,
-			Fields: e.Base.Context,
-		}
-	}
-	if !e.SkipCollection {
-		e.Collect()
+	if e.IncludeMetadata {
+		return e
 	}
 
-	return e
+	return struct {
+		Error  string `bson:"error" json:"error" yaml:"error"`
+		Fields `bson:",omitempty" json:",omitempty" yaml:",omitempty"`
+	}{
+		Error:  e.ErrorValue,
+		Fields: e.Base.Context,
+	}
+
 }
 
 func (e *errorMessage) Error() string     { return e.String() }

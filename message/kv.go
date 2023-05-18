@@ -1,102 +1,83 @@
 package message
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"strings"
+
+	"github.com/tychoish/fun"
+	"github.com/tychoish/grip/level"
 )
 
-// KV represents an arbitrary key value pair for use in structured
-// logging. Like the Fields type, but without the map type and it's
-// restrictions (e.g. unique keys, random ordering in iteration,) and
-// allows some Sender implementations to implement fast-path
-// processing of these messages.
-type KV struct {
-	Key   string
-	Value any
-}
-
-// KVs represents a collection of KV pairs, and is convertable to a
-// Fields implementation, (e.g. a map). It implements MarshalJSON and
-// UnmarshalJSON, via the map conversion.
-type KVs []KV
-
-func (kvs KVs) ToFields() Fields {
-	out := make(Fields, len(kvs))
-	for _, kv := range kvs {
-		out[kv.Key] = kv.Value
-	}
-	return out
-}
-
-func (kvs KVs) MarshalJSON() ([]byte, error) { return json.Marshal(kvs.ToFields()) }
-func (kvs *KVs) UnmarshalJSON(in []byte) error {
-	f := Fields{}
-	if err := json.Unmarshal(in, &f); err != nil {
-		return err
-	}
-	new := make(KVs, 0, len(f))
-	for k, v := range f {
-		new = append(new, KV{Key: k, Value: v})
-	}
-	*kvs = new
-	return nil
-}
-
-type kvMsg struct {
-	fields       KVs
+// PairBuilder is a chainable interface for building a KV/fun.Pair
+// message. These are very similar to Fields messages, however their
+// keys are ordered, duplicate keys can be defined, and
+type PairBuilder struct {
+	kvs          fun.Pairs[string, any]
+	cachedSize   int
 	cachedOutput string
 	hasMetadata  bool
 	Base
 }
 
-// MakeKVs constructs a new Composer using KV pairs.
-func MakeKVs(kvs KVs) Composer { return &kvMsg{fields: kvs} }
+// BuildPair creates a wrapper around a composer that allows for a
+// chainable pair message building interface.
+func BuildPair() *PairBuilder { return &PairBuilder{} }
 
-// MakeKV constructs a new Composer using KV pairs.
-func MakeKV(kvs ...KV) Composer { return MakeKVs(kvs) }
+// Composer returns the builder as a composer-type
+func (p *PairBuilder) Composer() Composer                            { return p }
+func (p *PairBuilder) Pair(key string, value any) *PairBuilder       { p.kvs.Add(key, value); return p }
+func (p *PairBuilder) AddPair(in fun.Pair[string, any]) *PairBuilder { p.kvs.AddPair(in); return p }
+func (p *PairBuilder) Option(f Option) *PairBuilder                  { p.SetOption(f); return p }
+func (p *PairBuilder) Level(l level.Priority) *PairBuilder           { p.SetPriority(l); return p }
+func (p *PairBuilder) Fields(f Fields) *PairBuilder                  { p.kvs.ConsumeMap(f); return p }
 
-func (m *kvMsg) Annotate(key string, value any) {
-	m.cachedOutput = ""
-	m.fields = append(m.fields, KV{Key: key, Value: value})
+func (p *PairBuilder) extender(in fun.Pairs[string, any])              { p.kvs = p.kvs.Append(in...) }
+func (p *PairBuilder) Extend(in fun.Pairs[string, any]) *PairBuilder   { p.extender(in); return p }
+func (p *PairBuilder) Append(in ...fun.Pair[string, any]) *PairBuilder { return p.Extend(in) }
+
+func (p *PairBuilder) Iterator(ctx context.Context, iter fun.Iterator[fun.Pair[string, any]]) *PairBuilder {
+	p.kvs.Consume(ctx, iter)
+	return p
 }
 
-func (m *kvMsg) Loggable() bool   { return len(m.fields) > 0 }
-func (m *kvMsg) Structured() bool { return true }
-func (m *kvMsg) Raw() any {
-	if m.SkipMetadata {
-		return m.fields
-	}
+// MakeKV constructs a new Composer using KV (fun.Pair[string, any]).
+func MakeKV(kvs ...fun.Pair[string, any]) Composer { return BuildPair().Append(kvs...) }
+func KV(k string, v any) fun.Pair[string, any]     { return fun.MakePair(k, v) }
 
-	if !m.SkipCollection {
-		m.Collect()
-	}
-
-	if !m.hasMetadata {
-		m.fields = append(m.fields, KV{Key: "meta", Value: &m.Base})
-		m.hasMetadata = true
-	}
-
-	return m.fields
+func (p *PairBuilder) Annotate(key string, value any) {
+	p.cachedOutput = ""
+	p.kvs = append(p.kvs, fun.MakePair(key, value))
 }
-func (m *kvMsg) String() string {
-	if m.cachedOutput != "" {
-		return m.cachedOutput
+
+func (p *PairBuilder) Loggable() bool   { return len(p.kvs) > 0 }
+func (p *PairBuilder) Structured() bool { return true }
+func (p *PairBuilder) Raw() any {
+	p.Collect()
+
+	if p.IncludeMetadata && !p.hasMetadata {
+		p.kvs = append(p.kvs, fun.MakePair[string, any]("meta", &p.Base))
+		p.hasMetadata = true
 	}
 
-	if !m.SkipCollection && !m.SkipMetadata {
-		m.Collect()
+	return p.kvs
+}
+func (p *PairBuilder) String() string {
+	if p.cachedOutput != "" && len(p.kvs) != p.cachedSize {
+		return p.cachedOutput
 	}
 
-	if !m.SkipMetadata && !m.hasMetadata {
-		m.fields = append(m.fields, KV{Key: "meta", Value: &m.Base})
-		m.hasMetadata = true
+	p.Collect()
+
+	if p.IncludeMetadata && !p.hasMetadata {
+		p.kvs = append(p.kvs, fun.MakePair[string, any]("meta", &p.Base))
+		p.hasMetadata = true
 	}
 
-	out := make([]string, len(m.fields))
+	out := make([]string, len(p.kvs))
 	var seenMetadata bool
-	for idx, kv := range m.fields {
-		if kv.Key == "meta" && (seenMetadata || m.SkipMetadata) {
+	for idx, kv := range p.kvs {
+		if kv.Key == "meta" && (seenMetadata || !p.IncludeMetadata) {
 			seenMetadata = true
 			continue
 		}
@@ -109,12 +90,13 @@ func (m *kvMsg) String() string {
 		}
 
 		if kv.Key == "meta" {
-			m.hasMetadata = true
+			p.hasMetadata = true
 			seenMetadata = true
 		}
 	}
 
-	m.cachedOutput = strings.Join(out, " ")
+	p.cachedOutput = strings.Join(out, " ")
+	p.cachedSize = len(p.kvs)
 
-	return m.cachedOutput
+	return p.cachedOutput
 }
