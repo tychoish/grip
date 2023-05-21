@@ -35,6 +35,9 @@ func (p *PairBuilder) Fields(f Fields) *PairBuilder                  { p.kvs.Con
 func (p *PairBuilder) extender(in fun.Pairs[string, any])              { p.kvs = p.kvs.Append(in...) }
 func (p *PairBuilder) Extend(in fun.Pairs[string, any]) *PairBuilder   { p.extender(in); return p }
 func (p *PairBuilder) Append(in ...fun.Pair[string, any]) *PairBuilder { return p.Extend(in) }
+func (p *PairBuilder) PairWhen(cond bool, k string, v any) *PairBuilder {
+	return fun.WhenDo(cond, func() *PairBuilder { return p.Pair(k, v) })
+}
 
 func (p *PairBuilder) Iterator(ctx context.Context, iter fun.Iterator[fun.Pair[string, any]]) *PairBuilder {
 	p.kvs.Consume(ctx, iter)
@@ -42,16 +45,11 @@ func (p *PairBuilder) Iterator(ctx context.Context, iter fun.Iterator[fun.Pair[s
 }
 
 // MakeKV constructs a new Composer using KV (fun.Pair[string, any]).
-func MakeKV(kvs ...fun.Pair[string, any]) Composer { return BuildPair().Append(kvs...) }
-func KV(k string, v any) fun.Pair[string, any]     { return fun.MakePair(k, v) }
-
-func (p *PairBuilder) Annotate(key string, value any) {
-	p.cachedOutput = ""
-	p.kvs = append(p.kvs, fun.MakePair(key, value))
-}
-
-func (p *PairBuilder) Loggable() bool   { return len(p.kvs) > 0 }
-func (p *PairBuilder) Structured() bool { return true }
+func MakeKV(kvs ...fun.Pair[string, any]) Composer    { return BuildPair().Append(kvs...) }
+func KV(k string, v any) fun.Pair[string, any]        { return fun.MakePair(k, v) }
+func (p *PairBuilder) Annotate(key string, value any) { p.kvs.Add(key, value) }
+func (p *PairBuilder) Loggable() bool                 { return len(p.kvs) > 0 }
+func (p *PairBuilder) Structured() bool               { return true }
 func (p *PairBuilder) Raw() any {
 	p.Collect()
 
@@ -62,8 +60,9 @@ func (p *PairBuilder) Raw() any {
 
 	return p.kvs
 }
+
 func (p *PairBuilder) String() string {
-	if p.cachedOutput != "" && len(p.kvs) != p.cachedSize {
+	if p.cachedOutput != "" && len(p.kvs) == p.cachedSize {
 		return p.cachedOutput
 	}
 

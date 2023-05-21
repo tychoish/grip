@@ -130,18 +130,30 @@ func (b *Builder) ConvertProducer(f func() any) *Builder        { return AddProd
 func (b *Builder) FieldsProducer(f func() Fields) *Builder      { return b.set(MakeProducer(f)) }
 func (b *Builder) ComposerProducer(f ComposerProducer) *Builder { return b.set(MakeProducer(f)) }
 func (b *Builder) ErrorProducer(f ErrorProducer) *Builder       { return b.set(MakeProducer(f)) }
-func (b *Builder) KVProducer(f PairProducer) *Builder           { return b.set(MakeProducer(f)) }
+func (b *Builder) PairProducer(f PairProducer) *Builder         { return b.set(MakeProducer(f)) }
 func (b *Builder) AnyMap(f map[string]any) *Builder             { return b.Fields(f) }
 func (b *Builder) StringMap(f map[string]string) *Builder       { return b.Fields(FieldsFromMap(f)) }
 func (b *Builder) Annotate(key string, val any) *Builder        { return b.Pair(key, val) }
 func (b *Builder) Pair(k string, v any) *Builder                { return b.Pairs(fun.MakePair(k, v)) }
 func (b *Builder) Group() *Builder                              { return b.SetGroup(true) }
 func (b *Builder) Ungroup() *Builder                            { return b.SetGroup(false) }
+func (b *Builder) P() *BuilderP                                 { return b.PairBuilder() }
 
-// PairBuilder creates a new PairBuilder message and adds it to the
-// builder, returning the pair builder. The original message builder
-// does need will need to be sent at some point.
-func (b *Builder) PairBuilder() *PairBuilder { o := BuildPair(); b.set(o); return o }
+// PairBuilder creates a new PairBuilder, in a special builder
+// wrapper, that makes it possible to access the original builder and
+// send the message, as needed.
+func (b *Builder) PairBuilder() *BuilderP {
+	return setMsgOn(b, &BuilderP{outer: b, PairBuilder: BuildPair()})
+}
+
+type BuilderP struct {
+	*PairBuilder
+	outer *Builder
+}
+
+func (b *BuilderP) Send()             { b.outer.Send() }
+func (b *BuilderP) Message() Composer { return b.PairBuilder }
+func (b *BuilderP) Builder() *Builder { return b.outer }
 
 func AddProducerToBuilder[T any, F ~func() T](b *Builder, fn F) *Builder {
 	return b.Composer(converterProducer(b.converter, fn))
@@ -180,19 +192,14 @@ func (b *Builder) Pairs(kvs ...fun.Pair[string, any]) *Builder {
 	return b
 }
 
-// Annotate adds key-value pairs to the composer. Most message types
-// add this to the underlying structured data that's part of messages
-// payloads, and Fields-based messages handle append these annotations
-// directly to the main body of their message. Some sender/message
-// formating handlers and message types may not render annotations in
-// all cases.
+func setMsgOn[T Composer](b *Builder, msg T) T { b.setMsg(msg); return msg }
+func (b *Builder) set(msg Composer) *Builder   { b.setMsg(msg); return b }
 
-func (b *Builder) set(msg Composer) *Builder {
+func (b *Builder) setMsg(msg Composer) {
 	if b.composer == nil {
 		b.composer = msg
-		return b
+		return
 	}
 
 	b.composer = Wrap(b.composer, msg)
-	return b
 }
