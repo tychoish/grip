@@ -40,7 +40,9 @@ func (p *PairBuilder) PairWhen(cond bool, k string, v any) *PairBuilder {
 }
 
 func (p *PairBuilder) Iterator(ctx context.Context, iter fun.Iterator[fun.Pair[string, any]]) *PairBuilder {
-	p.kvs.Consume(ctx, iter)
+	// TODO this is probably safe, but soon we can add this error
+	// to the input iterator after fun v0.10
+	_ = p.kvs.Consume(ctx, iter)
 	return p
 }
 
