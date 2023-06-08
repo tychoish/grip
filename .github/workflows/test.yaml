@@ -2,29 +2,50 @@ name: test
 on: [push]
 
 jobs:
-  unittest:
+  unittests:
     runs-on: ubuntu-latest
+    timeout-minutes: 4
+    strategy:
+      fail-fast: false
     steps:
-      - uses: actions/checkout@v1
       - uses: actions/setup-go@v3
         with:
-          go-version: "1.20"
-      - uses: actions/cache@v1
+          go-version: "1.19"
+      - uses: actions/checkout@v3
+      - uses: technote-space/get-diff-action@v6
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          PATTERNS: |
+            **/**.go
+            "!test/"
+            go.mod
+            go.sum
       - name: grip tests
         run: go test -race ./...
       - name: grip/x tests
         run: |
           find ./x -name "go.mod" | xargs dirname | xargs go test -race
+
   lint:
+    name: golangci-lint
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v2
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
         with:
+          go-version: '1.20'
+      - uses: technote-space/get-diff-action@v6
+        with:
+          PATTERNS: |
+            **/**.go
+            go.mod
+            go.sum
+      - uses: golangci/golangci-lint-action@v3
+        with:
+          # Required: the version of golangci-lint is required and
+          # must be specified with patch version: we always use the
+          # latest patch version.
           version: v1.51.2
+          args: --timeout 5m
+          github-token: ${{ secrets.github_token }}
+        if: env.GIT_DIFF
