@@ -2,7 +2,7 @@ package system
 
 import (
 	"github.com/coreos/go-systemd/journal"
-	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -54,7 +54,7 @@ func (s *systemdJournal) Send(m message.Composer) {
 		return
 	}
 
-	if err := fun.Check(func() {
+	if err := ers.Check(func() {
 		outstr, err := s.Formatter()(m)
 		if err != nil {
 			s.ErrorHandler()(err, m)

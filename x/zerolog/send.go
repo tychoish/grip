@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 
 	"github.com/rs/zerolog"
-	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/risky"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -81,14 +82,14 @@ func (s *shim) Send(m message.Composer) {
 		event.EmbedObject(data)
 	case zerolog.LogArrayMarshaler:
 		event.Array("payload", data)
-	case fun.Pairs[string, any]:
+	case *dt.Pairs[string, any]:
 		// opted to call event.Fields many times rather than
 		// build a new slice. probably.
 		pair := make([]any, 2)
-		for _, kv := range data {
+		risky.Observe(data.Iterator(), func(kv dt.Pair[string, any]) {
 			pair[0], pair[1] = kv.Key, kv.Value
 			event.Fields(pair)
-		}
+		})
 	case message.Fields:
 		event.Fields(data)
 	case map[string]any:

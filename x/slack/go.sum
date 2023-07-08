@@ -1,6 +1,6 @@
 github.com/bluele/slack v0.0.0-20180528010058-b4b4d354a079 h1:dm7wU6Dyf+rVGryOAB8/J/I+pYT/9AdG8dstD3kdMWU=
 github.com/bluele/slack v0.0.0-20180528010058-b4b4d354a079/go.mod h1:W679Ri2W93VLD8cVpEY/zLH1ow4zhJcCyjzrKxfM3QM=
-github.com/tychoish/fun v0.9.4 h1:4cShoqHpD+9VCUX4dUnhxyEaYs79f/RMiENDLHHFnfI=
-github.com/tychoish/fun v0.9.4/go.mod h1:84A+BwGecz23UotmbB4mtvVS5ZcsZpspecduxpwF/XM=
-github.com/tychoish/grip v0.3.3 h1:IyOkGJ95BpCVGiNCeCveOPSsC95KJRmJjMREl0QBOHc=
-github.com/tychoish/grip v0.3.3/go.mod h1:G54kSTvvUnYksPYrrrep+yXI/a0O2yGk4ia1/V6iSo4=
+github.com/tychoish/fun v0.10.0 h1:RT2Do5euyJqZls25NfnRxDaHJCARnP4p95e7Zwl9HyM=
+github.com/tychoish/fun v0.10.0/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=
+github.com/tychoish/grip v0.3.4 h1:L50E1q6WvUssZITxudh+z7S7il9tifYf1wNXgx9ziRo=
+github.com/tychoish/grip v0.3.4/go.mod h1:uIWUQlfPGQXpvXVuZUsXFtqLNcudOGiflUOYOcg6hCY=

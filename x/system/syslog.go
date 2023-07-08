@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/syslog"
 
-	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -78,7 +78,7 @@ func (s *syslogger) Send(m message.Composer) {
 	if !send.ShouldLog(s, m) {
 		return
 	}
-	if err := fun.Check(func() {
+	if err := ers.Check(func() {
 		outstr, err := s.Formatter()(m)
 		if err != nil {
 			s.ErrorHandler()(err, m)

@@ -3,7 +3,8 @@ package zap
 import (
 	"fmt"
 
-	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/risky"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -65,10 +66,10 @@ func (s *shim) Send(m message.Composer) {
 			fields = append(fields, zap.Error(data))
 		case []error:
 			fields = append(fields, zap.Errors("errors", data))
-		case fun.Pairs[string, any]:
-			for idx := range data {
-				fields = append(fields, zap.Any(data[idx].Key, data[idx].Value))
-			}
+		case *dt.Pairs[string, any]:
+			risky.Observe(data.Iterator(), func(kv dt.Pair[string, any]) {
+				fields = append(fields, zap.Any(kv.Key, kv.Value))
+			})
 		case message.Fields:
 			fields = append(fields, convertMapTypes(data)...)
 		case map[string]any:

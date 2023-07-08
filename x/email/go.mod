@@ -2,6 +2,6 @@ module github.com/tychoish/grip/x/email
 
 go 1.19
 
-require github.com/tychoish/grip v0.3.3
+require github.com/tychoish/grip v0.3.4
 
-require github.com/tychoish/fun v0.9.4 // indirect
+require github.com/tychoish/fun v0.10.0 // indirect

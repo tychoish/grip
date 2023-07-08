@@ -4,10 +4,10 @@ go 1.19
 
 require (
 	github.com/shirou/gopsutil v3.21.11+incompatible
-	github.com/tychoish/birch v0.2.3-0.20230413052020-46068f63d7bb
-	github.com/tychoish/birch/x/ftdc v0.0.0-20230413052020-46068f63d7bb
-	github.com/tychoish/fun v0.9.4
-	github.com/tychoish/grip v0.3.3
+	github.com/tychoish/birch v0.2.3-0.20230708015614-95fbb4a40ea4
+	github.com/tychoish/birch/x/ftdc v0.0.0-20230708040754-3580810793c8
+	github.com/tychoish/fun v0.10.0
+	github.com/tychoish/grip v0.3.4
 )
 
 require (
