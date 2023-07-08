@@ -19,6 +19,11 @@ func init() {
 	hostnameCache = &adt.Once[string]{}
 	pidCache = &adt.Once[int]{}
 	procCache = &adt.Once[string]{}
+
+	hostnameCache.Set(func() string { out, _ := os.Hostname(); return out })
+	procCache.Set(func() string { return filepath.Base(os.Args[0]) })
+	pidCache.Set(func() int { return os.Getpid() })
+
 }
 
 // Base provides a simple embedable implementation of some common
@@ -66,11 +71,11 @@ func (b *Base) Collect() {
 	if b.Pid > 0 || !b.CollectInfo {
 		return
 	}
-
-	b.Host = hostnameCache.Do(func() string { out, _ := os.Hostname(); return out })
-	b.Process = procCache.Do(func() string { return filepath.Base(os.Args[0]) })
-	b.Pid = pidCache.Do(func() int { return os.Getpid() })
 	b.Time = time.Now()
+
+	b.Host = hostnameCache.Resolve()
+	b.Process = procCache.Resolve()
+	b.Pid = pidCache.Resolve()
 }
 
 // Priority returns the configured priority of the message.

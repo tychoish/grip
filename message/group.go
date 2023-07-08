@@ -1,13 +1,12 @@
 package message
 
 import (
-	"context"
 	"math"
 	"strings"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/adt"
-	"github.com/tychoish/fun/seq"
+	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/risky"
 	"github.com/tychoish/grip/level"
 )
 
@@ -19,7 +18,7 @@ import (
 // provides the additional Messages() method to access the composer
 // objects as a slice.
 type GroupComposer struct {
-	messages *adt.Synchronized[*seq.List[Composer]]
+	messages *adt.Synchronized[*dt.List[Composer]]
 	cache    *adt.Atomic[string]
 }
 
@@ -33,11 +32,11 @@ func BuildGroupComposer(msgs ...Composer) *GroupComposer {
 // Composers.
 func MakeGroupComposer(msgs []Composer) *GroupComposer {
 	gc := &GroupComposer{
-		messages: adt.NewSynchronized(&seq.List[Composer]{}),
+		messages: adt.NewSynchronized(&dt.List[Composer]{}),
 		cache:    adt.NewAtomic(""),
 	}
 
-	gc.messages.With(func(list *seq.List[Composer]) { list.Append(msgs...) })
+	gc.messages.With(func(list *dt.List[Composer]) { list.Append(msgs...) })
 
 	return gc
 }
@@ -48,16 +47,17 @@ func (g *GroupComposer) String() string {
 	if cache := g.cache.Get(); cache != "" {
 		return cache
 	}
-	g.messages.With(func(list *seq.List[Composer]) {
+	g.messages.With(func(list *dt.List[Composer]) {
 		if cache := g.cache.Get(); cache != "" {
 			return
 		}
 
 		out := make([]string, 0, list.Len())
-		iter := seq.ListValues(list.Iterator())
+		prod := list.Producer()
+
 		for {
-			val, err := fun.IterateOneBlocking(iter)
-			if err != nil {
+			val, ok := prod.CheckBlock()
+			if !ok {
 				break
 			}
 			if val != nil && val.Loggable() {
@@ -74,13 +74,13 @@ func (g *GroupComposer) String() string {
 // the constituent composers.
 func (g *GroupComposer) Raw() any {
 	var out []any
-	g.messages.With(func(list *seq.List[Composer]) {
+	g.messages.With(func(list *dt.List[Composer]) {
 		out = make([]any, 0, list.Len())
 
-		iter := seq.ListValues(list.Iterator())
+		iter := list.Producer()
 		for {
-			m, err := fun.IterateOneBlocking(iter)
-			if err != nil {
+			m, ok := iter.CheckBlock()
+			if !ok {
 				break
 			}
 
@@ -96,11 +96,11 @@ func (g *GroupComposer) Raw() any {
 func (g *GroupComposer) Loggable() bool {
 	var isLoggable bool
 
-	g.messages.With(func(list *seq.List[Composer]) {
-		iter := seq.ListValues(list.Iterator())
+	g.messages.With(func(list *dt.List[Composer]) {
+		prod := list.Producer()
 		for {
-			m, err := fun.IterateOneBlocking(iter)
-			if err != nil {
+			m, ok := prod.CheckBlock()
+			if !ok {
 				break
 			}
 			if m.Loggable() {
@@ -115,11 +115,11 @@ func (g *GroupComposer) Loggable() bool {
 
 func (g *GroupComposer) Structured() bool {
 	var isStructured bool
-	g.messages.With(func(list *seq.List[Composer]) {
-		iter := seq.ListValues(list.Iterator())
+	g.messages.With(func(list *dt.List[Composer]) {
+		prod := list.Producer()
 		for {
-			m, err := fun.IterateOneBlocking(iter)
-			if err != nil {
+			m, ok := prod.CheckBlock()
+			if !ok {
 				break
 			}
 			isStructured = m.Structured()
@@ -136,11 +136,11 @@ func (g *GroupComposer) Structured() bool {
 func (g *GroupComposer) Priority() level.Priority {
 	var highest level.Priority
 
-	g.messages.With(func(list *seq.List[Composer]) {
-		iter := seq.ListValues(list.Iterator())
+	g.messages.With(func(list *dt.List[Composer]) {
+		prod := list.Producer()
 		for {
-			m, err := fun.IterateOneBlocking(iter)
-			if err != nil {
+			m, ok := prod.CheckBlock()
+			if !ok {
 				break
 			}
 			pri := m.Priority()
@@ -160,12 +160,10 @@ func (g *GroupComposer) Priority() level.Priority {
 // if the existing level is unset (or otherwise invalid), and will
 // *not* unset the level of a constituent composer.
 func (g *GroupComposer) SetPriority(l level.Priority) {
-	g.messages.With(func(list *seq.List[Composer]) {
-		_ = fun.WorkerFunc(func(ctx context.Context) error {
-			return fun.Observe(ctx, seq.ListValues(list.Iterator()), func(m Composer) {
-				m.SetPriority(l)
-			})
-		}).Block()
+	g.messages.With(func(list *dt.List[Composer]) {
+		risky.Observe(list.Iterator(), func(m Composer) {
+			m.SetPriority(l)
+		})
 	})
 
 	return
@@ -174,16 +172,8 @@ func (g *GroupComposer) SetPriority(l level.Priority) {
 // Messages returns a the underlying collection of messages.
 func (g *GroupComposer) Messages() []Composer {
 	var out []Composer
-	g.messages.With(func(list *seq.List[Composer]) {
-		iter := seq.ListValues(list.Iterator())
-		out = make([]Composer, 0, list.Len())
-		for {
-			val, err := fun.IterateOneBlocking(iter)
-			if err != nil {
-				break
-			}
-			out = append(out, val)
-		}
+	g.messages.With(func(list *dt.List[Composer]) {
+		out = risky.Slice(list.Iterator())
 	})
 
 	return out
@@ -192,7 +182,7 @@ func (g *GroupComposer) Messages() []Composer {
 func (g *GroupComposer) Unwrap() Composer {
 	var out Composer
 
-	g.messages.With(func(list *seq.List[Composer]) {
+	g.messages.With(func(list *dt.List[Composer]) {
 		switch list.Len() {
 		case 0:
 			return
@@ -204,17 +194,17 @@ func (g *GroupComposer) Unwrap() Composer {
 				Composer: list.Back().Value(),
 			}
 		default:
-			iter := seq.ListValues(list.Iterator())
-			val, err := fun.IterateOneBlocking(iter)
-			if err != nil {
+			prod := list.Producer()
+			val, ok := prod.CheckBlock()
+			if !ok {
 				return
 			}
 
 			wrapped := &wrappedImpl{parent: val}
 
 			for {
-				val, err := fun.IterateOneBlocking(iter)
-				if err != nil {
+				val, ok := prod.CheckBlock()
+				if !ok {
 					break
 				}
 				wrapped.Composer = val
@@ -229,7 +219,7 @@ func (g *GroupComposer) Unwrap() Composer {
 // Extend makes it possible to add a group of messages to an existing
 // group composer.
 func (g *GroupComposer) Extend(msg []Composer) {
-	g.messages.With(func(list *seq.List[Composer]) {
+	g.messages.With(func(list *dt.List[Composer]) {
 		g.cache.Set("")
 		list.Append(msg...)
 	})
@@ -244,21 +234,17 @@ func (g *GroupComposer) Append(msgs ...Composer) { g.Extend(msgs) }
 // Annotate calls the Annotate method of every non-nil component
 // Composer.
 func (g *GroupComposer) Annotate(k string, v any) {
-	g.messages.With(func(list *seq.List[Composer]) {
-		_ = fun.WorkerFunc(func(ctx context.Context) error {
-			return fun.Observe(ctx, seq.ListValues(list.Iterator()), func(m Composer) {
-				m.Annotate(k, v)
-			})
-		}).Block()
+	g.messages.With(func(list *dt.List[Composer]) {
+		risky.Observe(list.Iterator(), func(m Composer) {
+			m.Annotate(k, v)
+		})
 	})
 }
 
 func (g *GroupComposer) SetOption(opts ...Option) {
-	g.messages.With(func(list *seq.List[Composer]) {
-		_ = fun.WorkerFunc(func(ctx context.Context) error {
-			return fun.Observe(ctx, seq.ListValues(list.Iterator()), func(m Composer) {
-				m.SetOption(opts...)
-			})
-		}).Block()
+	g.messages.With(func(list *dt.List[Composer]) {
+		risky.Observe(list.Iterator(), func(m Composer) {
+			m.SetOption(opts...)
+		})
 	})
 }

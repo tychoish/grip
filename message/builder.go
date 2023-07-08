@@ -3,7 +3,7 @@ package message
 import (
 	"errors"
 
-	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/level"
 )
@@ -55,7 +55,7 @@ func (b *Builder) Send() {
 		return
 	}
 
-	msgs := fun.Unwind(m)
+	msgs := dt.Unwind(m)
 	for _, msg := range msgs {
 		if len(b.opts) > 0 {
 			msg.SetOption(b.opts...)
@@ -134,7 +134,7 @@ func (b *Builder) PairProducer(f PairProducer) *Builder         { return b.set(M
 func (b *Builder) AnyMap(f map[string]any) *Builder             { return b.Fields(f) }
 func (b *Builder) StringMap(f map[string]string) *Builder       { return b.Fields(FieldsFromMap(f)) }
 func (b *Builder) Annotate(key string, val any) *Builder        { return b.Pair(key, val) }
-func (b *Builder) Pair(k string, v any) *Builder                { return b.Pairs(fun.MakePair(k, v)) }
+func (b *Builder) Pair(k string, v any) *Builder                { return b.Pairs(dt.MakePair(k, v)) }
 func (b *Builder) Group() *Builder                              { return b.SetGroup(true) }
 func (b *Builder) Ungroup() *Builder                            { return b.SetGroup(false) }
 func (b *Builder) P() *BuilderP                                 { return b.PairBuilder() }
@@ -180,7 +180,7 @@ func (b *Builder) Fields(f Fields) *Builder {
 // defined, and otherwise annotates the existing message with the
 // content of the input set. This is the same semantics as the Fields
 // method.
-func (b *Builder) Pairs(kvs ...fun.Pair[string, any]) *Builder {
+func (b *Builder) Pairs(kvs ...dt.Pair[string, any]) *Builder {
 	if b.composer == nil {
 		b.composer = MakeKV(kvs...)
 		return b

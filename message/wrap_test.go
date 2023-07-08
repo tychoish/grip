@@ -3,8 +3,7 @@ package message
 import (
 	"testing"
 
-	"github.com/tychoish/fun"
-	"github.com/tychoish/fun/seq"
+	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/grip/level"
 )
 
@@ -18,7 +17,7 @@ func sizeOfGroup(t *testing.T, comp Composer) int {
 
 	var num int
 
-	gc.messages.With(func(list *seq.List[Composer]) {
+	gc.messages.With(func(list *dt.List[Composer]) {
 		num = list.Len()
 	})
 
@@ -31,17 +30,17 @@ func TestWrap(t *testing.T) {
 			comp := MakeString("hello")
 			comp = Wrap(comp, MakeString("world"))
 
-			if !fun.IsWrapped(comp) {
+			if !IsMulti(comp) {
 				t.Fatal("wrapped message not detected")
 			}
 		})
 		t.Run("NilParent", func(t *testing.T) {
-			if fun.IsWrapped(Wrap(nil, MakeString("hello"))) {
+			if IsMulti(Wrap(nil, MakeString("hello"))) {
 				t.Fatal("nil parent wrapped messagese aren't wrapped")
 			}
 		})
 		t.Run(" goUnwrapped", func(t *testing.T) {
-			if fun.IsWrapped(MakeString("hello")) {
+			if IsMulti(MakeString("hello")) {
 				t.Fatal("unwrapped messages should not be detected")
 			}
 		})
@@ -52,6 +51,8 @@ func TestWrap(t *testing.T) {
 		comp = Wrap(comp, MakeString("world"))
 
 		if sizeOfGroup(t, MakeGroupComposer(Unwind(comp))) != 2 {
+			t.Log(MakeGroupComposer(Unwind(comp)))
+			t.Log(comp)
 			t.Fatal("wrap message does not unwrap correctly")
 
 		}
@@ -80,12 +81,14 @@ func TestWrap(t *testing.T) {
 	t.Run("MultiWrap", func(t *testing.T) {
 		comp := MakeString("hello")
 		comp = Wrap(comp, Wrap(MakeString("world"), "earthling"))
+		t.Log(comp)
 
+		ucomp := Unwind(comp)
 		comp = MakeGroupComposer(Unwind(comp))
 
 		if size := sizeOfGroup(t, comp); size != 2 {
 			t.Log(comp)
-			t.Fatalf("incorrect number of messages: %d", size)
+			t.Errorf("incorrect number of messages: %d", size)
 		}
 
 		msgs := comp.(*GroupComposer).Messages()
@@ -94,14 +97,15 @@ func TestWrap(t *testing.T) {
 			set[m.String()] = struct{}{}
 		}
 		if len(set) != len(msgs) {
+			t.Log(comp)
+			t.Log(ucomp)
+			t.Log(set)
+			t.Log(msgs)
 			t.Fatal("non-unique messages", len(set), len(msgs))
 		}
 	})
 	t.Run("Nil", func(t *testing.T) {
-		out := fun.Unwind[Composer](nil)
-		if out == nil {
-			t.Fatal("must produce slice")
-		}
+		out := Unwind(nil)
 
 		if len(out) != 1 {
 			t.Fatal("nil messages are weird but shouldn't be dropped")

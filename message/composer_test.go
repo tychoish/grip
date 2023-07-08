@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/assert/check"
+	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/testt"
 	"github.com/tychoish/grip/level"
 )
@@ -244,8 +244,8 @@ func TestErrors(t *testing.T) {
 					t.Errorf("%T should implement error, but doesn't", cmp)
 				}
 				switch {
-				case fun.IsWrapped(cmp):
-				case fun.IsWrapped(cmp.(error)):
+				case IsMulti(cmp):
+				case errors.Unwrap(cmp.(error)) != nil:
 				default:
 					t.Errorf("should be wrapped error or wrapped composer: %T", cmp)
 				}
@@ -278,13 +278,13 @@ func TestSlice(t *testing.T) {
 		{
 			name:  "PairsStrings",
 			input: []any{"hello", "world", "val", "3000"},
-			output: MakeKV(fun.MakePair[string, any]("hello", "world"),
-				fun.MakePair[string, any]("val", "3000")),
+			output: MakeKV(dt.MakePair[string, any]("hello", "world"),
+				dt.MakePair[string, any]("val", "3000")),
 		},
 		{
 			name:   "PairsMixed",
 			input:  []any{"hello", "world", "val", 3000},
-			output: MakeKV(fun.MakePair[string, any]("hello", "world"), fun.MakePair[string, any]("val", 3000)),
+			output: MakeKV(dt.MakePair[string, any]("hello", "world"), dt.MakePair[string, any]("val", 3000)),
 		},
 		{
 			name:   "KeyNotString",

@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/assert/check"
+	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -301,8 +301,7 @@ func TestWrapping(t *testing.T) {
 		"Writer":      MakeWriter(base),
 	} {
 		t.Run(name, func(t *testing.T) {
-			us := fun.Unwrap(sender)
-			check.True(t, fun.IsWrapped(sender))
+			us := dt.Unwrap(sender)
 			check.True(t, us != nil)
 			check.True(t, us == base)
 		})

@@ -43,19 +43,20 @@ var ErrAlreadyClosed = errors.New("sender already closed")
 // an error rooted in ErrAlreadyClosed.
 func (b *Base) Close() error {
 	if swapped := b.closed.CompareAndSwap(false, true); !swapped {
-		return erc.Merge(fmt.Errorf("sender %q is already closed: %w", b.Name(), ErrAlreadyClosed), b.doClose())
+		return erc.Join(fmt.Errorf("sender %q is already closed: %w", b.Name(), ErrAlreadyClosed), b.doClose())
 	}
 
 	return b.doClose()
 }
 
 func (b *Base) doClose() error {
-	return b.close.Do(func() error {
+	b.close.Set(func() error {
 		if closer := b.closer.Get(); closer != nil {
 			return closer()
 		}
 		return nil
 	})
+	return b.close.Resolve()
 }
 
 // Name returns the name of the Sender.

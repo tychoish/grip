@@ -2,8 +2,6 @@ package message
 
 import (
 	"fmt"
-
-	"github.com/tychoish/fun"
 )
 
 type wrappedImpl struct {
@@ -79,7 +77,21 @@ func IsMulti(comp Composer) bool {
 func Unwind(comp Composer) []Composer {
 	switch c := comp.(type) {
 	case *wrappedImpl:
-		return fun.Unwind(comp)
+		var out []Composer
+		out = append(out, c.Composer)
+
+		var last Composer
+		last = c.parent
+		for {
+			next, ok := last.(*wrappedImpl)
+			if !ok {
+				out = append(out, last)
+				break
+			}
+			out = append(out, next.Composer)
+			last = next.parent
+		}
+		return out
 	case *GroupComposer:
 		return c.Messages()
 	default:

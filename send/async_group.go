@@ -7,6 +7,7 @@ import (
 
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/erc"
+	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/fun/pubsub"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -39,7 +40,7 @@ func MakeAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Send
 		baseCtx: ctx,
 		// unlimited number of senders, bufferSize is
 		// constrained buy the buffer size in the broker.
-		senders: fun.Must(pubsub.NewDeque[Sender](pubsub.DequeOptions{Unlimited: true})),
+		senders: ft.Must(pubsub.NewDeque[Sender](pubsub.DequeOptions{Unlimited: true})),
 		broker: pubsub.NewBroker[message.Composer](ctx, pubsub.BrokerOptions{
 			BufferSize:       bufferSize,
 			ParallelDispatch: true,
@@ -47,7 +48,7 @@ func MakeAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Send
 		}),
 	}
 	for idx := range senders {
-		fun.InvariantMust(s.senders.PushBack(senders[idx]), "populate senders")
+		fun.Invariant.Must(s.senders.PushBack(senders[idx]), "populate senders")
 	}
 
 	shutdown := make(chan struct{})
@@ -68,7 +69,7 @@ func MakeAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Send
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				catcher.Add(fun.Observe(ctx, s.senders.Iterator(), func(sender Sender) {
+				catcher.Add(s.senders.Iterator().Observe(ctx, func(sender Sender) {
 					catcher.Add(sender.Close())
 				}))
 
@@ -110,7 +111,7 @@ func (s *asyncGroupSender) startSenderWorker(newSender Sender) {
 func (s *asyncGroupSender) SetPriority(p level.Priority) {
 	s.Base.SetPriority(p)
 
-	fun.InvariantMust(fun.Observe(s.ctx, s.senders.Iterator(), func(sender Sender) {
+	fun.Invariant.Must(s.senders.Iterator().Observe(s.ctx, func(sender Sender) {
 		sender.SetPriority(p)
 	}))
 }
@@ -118,15 +119,14 @@ func (s *asyncGroupSender) SetPriority(p level.Priority) {
 func (s *asyncGroupSender) SetErrorHandler(erh ErrorHandler) {
 	s.Base.SetErrorHandler(erh)
 
-	fun.InvariantMust(fun.Observe(s.ctx, s.senders.Iterator(), func(sender Sender) {
+	fun.Invariant.Must(s.senders.Iterator().Observe(s.ctx, func(sender Sender) {
 		sender.SetErrorHandler(erh)
 	}))
 }
 
 func (s *asyncGroupSender) SetFormatter(fmtr MessageFormatter) {
 	s.Base.SetFormatter(fmtr)
-
-	fun.InvariantMust(fun.Observe(s.ctx, s.senders.Iterator(), func(sender Sender) {
+	fun.Invariant.Must(s.senders.Iterator().Observe(s.ctx, func(sender Sender) {
 		sender.SetFormatter(fmtr)
 	}))
 }
@@ -141,7 +141,7 @@ func (s *asyncGroupSender) Send(m message.Composer) {
 func (s *asyncGroupSender) Flush(ctx context.Context) error {
 	catcher := &erc.Collector{}
 
-	catcher.Add(fun.Observe(ctx, s.senders.Iterator(), func(sender Sender) {
+	fun.Invariant.Must(s.senders.Iterator().Observe(s.ctx, func(sender Sender) {
 		catcher.Add(sender.Flush(ctx))
 	}))
 
