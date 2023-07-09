@@ -10,13 +10,13 @@ import (
 
 func TestFunctionMessage(t *testing.T) {
 	t.Run("SetPriority", func(t *testing.T) {
-		p := MakeProducer(func() Composer { return MakeString("works") })
+		p := MakeFuture(func() Composer { return MakeString("works") })
 		p.SetPriority(level.Error)
 		assert.True(t, p.Priority() == level.Error)
-		assert.True(t, p.(*composerProducerMessage).cached == nil)
+		assert.True(t, p.(*composerFutureMessage).cached == nil)
 		check.True(t, p.Loggable()) // calse resolve
-		assert.True(t, p.(*composerProducerMessage).cached != nil)
-		assert.Equal(t, level.Error, p.(*composerProducerMessage).cached.Priority())
+		assert.True(t, p.(*composerFutureMessage).cached != nil)
+		assert.Equal(t, level.Error, p.(*composerFutureMessage).cached.Priority())
 
 		check.Equal(t, "works", p.String())
 	})

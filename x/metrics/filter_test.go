@@ -13,6 +13,7 @@ import (
 
 	"github.com/tychoish/birch"
 	"github.com/tychoish/birch/x/ftdc/util"
+	a "github.com/tychoish/fun/adt"
 	"github.com/tychoish/grip/send"
 )
 
@@ -58,29 +59,27 @@ func TestSchemaComposer(t *testing.T) {
 	}
 }
 
-type bufCloser struct {
+type buf struct {
 	mtx sync.Mutex
 	bytes.Buffer
 	isClosed bool
 }
 
-func (b *bufCloser) withLock() func() { b.mtx.Lock(); return b.mtx.Unlock }
-
-func (b *bufCloser) Write(in []byte) (int, error) { defer b.withLock()(); return b.Buffer.Write(in) }
-func (b *bufCloser) Close() error                 { defer b.withLock()(); b.isClosed = true; return nil }
+func (b *buf) Write(in []byte) (int, error) { defer a.With(a.Lock(&b.mtx)); return b.Buffer.Write(in) }
+func (b *buf) Close() error                 { defer a.With(a.Lock(&b.mtx)); b.isClosed = true; return nil }
 
 func TestFilter(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	t.Run("CollectionBasicEndToEnd", func(t *testing.T) {
-		buf := &bufCloser{}
+		b := &buf{}
 		opts := DefaultCollectionOptions()
 		opts.FlushInterval = 10 * time.Millisecond
 		opts.SampleCount = 10
 		opts.BlockCount = 10
 		opts.CaptureStructured = false
 		opts.WriterConstructor = func(f string) (io.WriteCloser, error) {
-			return buf, nil
+			return b, nil
 		}
 
 		sender := send.MakeInternal()
@@ -97,19 +96,19 @@ func TestFilter(t *testing.T) {
 			t.Fatal("should have one collector")
 		}
 
-		if buf.Buffer.Len() == 0 {
+		if b.Buffer.Len() == 0 {
 			t.Fatal("buffer should have content")
 		}
 		if err := filter.Close(); err != nil {
 			t.Fatal(err)
 		}
-		if !buf.isClosed {
+		if !b.isClosed {
 			t.Fatal("buffer should be closed")
 		}
 	})
 	t.Run("MultiStreamCollector", func(t *testing.T) {
 		mtx := &sync.Mutex{}
-		bufs := map[string]*bufCloser{}
+		bufs := map[string]*buf{}
 
 		opts := DefaultCollectionOptions()
 		opts.FlushInterval = 100 * time.Millisecond
@@ -124,7 +123,7 @@ func TestFilter(t *testing.T) {
 				return out, nil
 			}
 
-			out = &bufCloser{}
+			out = &buf{}
 			bufs[f] = out
 			return out, nil
 		}
@@ -166,7 +165,7 @@ func TestFilter(t *testing.T) {
 	})
 	t.Run("Rotation", func(t *testing.T) {
 		mtx := &sync.Mutex{}
-		bufs := map[string]*bufCloser{}
+		bufs := map[string]*buf{}
 
 		opts := DefaultCollectionOptions()
 		opts.FlushInterval = 10 * time.Millisecond
@@ -182,7 +181,7 @@ func TestFilter(t *testing.T) {
 				return out, nil
 			}
 
-			out = &bufCloser{}
+			out = &buf{}
 			bufs[f] = out
 			return out, nil
 		}

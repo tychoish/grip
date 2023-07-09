@@ -216,7 +216,7 @@ func (g Logger) send(l level.Priority, in any) {
 // custom converter is not set.
 
 func (g Logger) makeWhen(cond bool, m any) message.Composer {
-	return message.When(cond, message.MakeProducer(func() message.Composer { return g.Convert(m) }))
+	return message.When(cond, message.MakeFuture(func() message.Composer { return g.Convert(m) }))
 }
 
 // For sending logging messages, in most cases, use the

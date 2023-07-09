@@ -94,9 +94,12 @@ func MakeStandard(s Sender) *log.Logger { return log.New(MakeWriter(s), "", 0) }
 func FromStandard(logger *log.Logger) Sender { return WrapWriter(logger.Writer()) }
 
 func ShouldLog(s Sender, m message.Composer) bool {
-	if m == nil || s == nil || !m.Loggable() {
+	if m == nil || s == nil {
 		return false
 	}
 	mp := m.Priority()
-	return mp != level.Invalid && mp >= s.Priority()
+	if mp == level.Invalid || mp < s.Priority() {
+		return false
+	}
+	return m.Loggable()
 }

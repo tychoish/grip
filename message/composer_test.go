@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/assert/check"
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/testt"
@@ -17,23 +18,23 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 	const testMsg = "hello"
 	// map objects to output
 	cases := map[Composer]string{
-		MakeString(testMsg):                                          testMsg,
-		MakeBytes([]byte(testMsg)):                                   testMsg,
-		MakeError(errors.New(testMsg)):                               testMsg,
-		MakeFormat(string(testMsg[0])+"%s", testMsg[1:]):             testMsg,
-		WrapError(errors.New("hello"), "world"):                      "world error='hello'",
-		WrapErrorf(errors.New("hello"), "world"):                     "world error='hello'",
-		MakeLines(testMsg, ""):                                       testMsg,
-		MakeLines(testMsg):                                           testMsg,
-		BuildGroupComposer(MakeString(testMsg)):                      testMsg,
-		MakeGroupComposer([]Composer{MakeString(testMsg)}):           testMsg,
-		MakeFields(Fields{"test": testMsg}):                          fmt.Sprintf("[test='%s']", testMsg),
-		When(true, testMsg):                                          testMsg,
-		Whenf(true, testMsg):                                         testMsg,
-		Whenln(true, testMsg):                                        testMsg,
-		Whenln(true, testMsg):                                        testMsg,
-		MakeProducer(func() Composer { return MakeString(testMsg) }): testMsg,
-		MakeProducer(func() error { return errors.New(testMsg) }):    testMsg,
+		MakeString(testMsg):                                        testMsg,
+		MakeBytes([]byte(testMsg)):                                 testMsg,
+		MakeError(errors.New(testMsg)):                             testMsg,
+		MakeFormat(string(testMsg[0])+"%s", testMsg[1:]):           testMsg,
+		WrapError(errors.New("hello"), "world"):                    "world error='hello'",
+		WrapErrorf(errors.New("hello"), "world"):                   "world error='hello'",
+		MakeLines(testMsg, ""):                                     testMsg,
+		MakeLines(testMsg):                                         testMsg,
+		BuildGroupComposer(MakeString(testMsg)):                    testMsg,
+		MakeGroupComposer([]Composer{MakeString(testMsg)}):         testMsg,
+		MakeFields(Fields{"test": testMsg}):                        fmt.Sprintf("[test='%s']", testMsg),
+		When(true, testMsg):                                        testMsg,
+		Whenf(true, testMsg):                                       testMsg,
+		Whenln(true, testMsg):                                      testMsg,
+		Whenln(true, testMsg):                                      testMsg,
+		MakeFuture(func() Composer { return MakeString(testMsg) }): testMsg,
+		MakeFuture(func() error { return errors.New(testMsg) }):    testMsg,
 	}
 
 	for msg, output := range cases {
@@ -99,10 +100,10 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 		MakeError(nil),
 		When(false, ""),
 		Whenln(false, "", ""),
-		MakeProducer(func() Composer { return nil }),
-		MakeProducer(func() Fields { return nil }),
-		MakeProducer(func() Fields { return Fields{} }),
-		MakeProducer(func() error { return nil }),
+		MakeFuture(func() Composer { return nil }),
+		MakeFuture(func() Fields { return nil }),
+		MakeFuture(func() Fields { return Fields{} }),
+		MakeFuture(func() error { return nil }),
 	}
 
 	for idx, msg := range cases {
@@ -342,14 +343,14 @@ func TestConverter(t *testing.T) {
 		},
 		{
 			Name:         "ComposerNilFunction",
-			Input:        ComposerProducer(nil),
+			Input:        fun.Future[Composer](nil),
 			Expected:     MakeKV(),
 			IsStructured: true,
 			Unloggable:   true,
 		},
 		{
 			Name:         "NilComposerProducer",
-			Input:        &composerProducerMessage{},
+			Input:        &composerFutureMessage{},
 			Expected:     MakeKV(),
 			IsStructured: true,
 			Unloggable:   true,
@@ -362,13 +363,19 @@ func TestConverter(t *testing.T) {
 		},
 		{
 			Name:         "ComposerProducer",
-			Input:        ComposerProducer(func() Composer { return MakeString("hello world") }),
+			Input:        fun.Future[Composer](func() Composer { return MakeString("hello world") }),
 			Expected:     MakeString("hello world"),
 			IsStructured: false,
 		},
 		{
 			Name:         "ErrorProducer",
-			Input:        ErrorProducer(func() error { return errors.New("hello world") }),
+			Input:        fun.Futurize(func() error { return errors.New("hello world") }),
+			Expected:     MakeError(errors.New("hello world")),
+			IsStructured: false,
+		},
+		{
+			Name:         "StaticErrorProducer",
+			Input:        fun.AsFuture(errors.New("hello world")),
 			Expected:     MakeError(errors.New("hello world")),
 			IsStructured: false,
 		},
@@ -386,7 +393,7 @@ func TestConverter(t *testing.T) {
 		},
 		{
 			Name:         "FieldsProducer",
-			Input:        FieldsProducer(func() Fields { return Fields{"hello": "world"} }),
+			Input:        MakeFuture(func() Fields { return Fields{"hello": "world"} }),
 			Expected:     MakeFields(Fields{"hello": "world"}),
 			IsStructured: true,
 		},
@@ -421,13 +428,13 @@ func TestConverter(t *testing.T) {
 		},
 		{
 			Name:         "SliceComposerProducer",
-			Input:        []ComposerProducer{func() Composer { return MakeString("hello world") }},
+			Input:        []fun.Future[Composer]{func() Composer { return MakeString("hello world") }},
 			Expected:     MakeString("hello world"),
 			IsStructured: false,
 		},
 		{
 			Name:         "EmptySliceComposerProducer",
-			Input:        []ComposerProducer{},
+			Input:        []fun.Future[Composer]{},
 			Expected:     MakeString(""),
 			IsStructured: true,
 			Unloggable:   true,
@@ -460,8 +467,8 @@ func TestConverter(t *testing.T) {
 			tt.Expected.SetOption(OptionSkipMetadata)
 			for convMethod, got := range map[string]Composer{
 				"Converter":       Convert(tt.Input),
-				"BuilderProducer": NewBuilder(nil, testConverter(t, true)).ConvertProducer(func() any { return tt.Input }).Message(),
-				"AddToBuilder":    AddProducerToBuilder(NewBuilder(nil, testConverter(t, true)), func() Composer { return Convert(tt.Input) }).Message(),
+				"BuilderProducer": NewBuilder(nil, testConverter(t, true)).Future().Convert(func() any { return tt.Input }).Builder().Message(),
+				"AddToBuilder":    WithFuture(NewBuilder(nil, testConverter(t, true)), func() Composer { return Convert(tt.Input) }).Message(),
 				"Builder":         NewBuilder(nil, testConverter(t, true)).Any(tt.Input).Message(),
 				"BuilderComposer": NewBuilder(nil, testConverter(t, true)).Composer(Convert(tt.Input)).Message(),
 			} {

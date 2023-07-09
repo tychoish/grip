@@ -16,7 +16,7 @@ type errorComposerWrap struct {
 func WrapError(err error, m any) Composer {
 	return &errorComposerWrap{
 		err: err,
-		Composer: MakeProducer(func() Composer {
+		Composer: MakeFuture(func() Composer {
 			c := Convert(m)
 			c.SetOption(OptionMessageIsNotStructuredField)
 			return c

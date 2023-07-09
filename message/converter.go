@@ -3,6 +3,7 @@ package message
 import (
 	"fmt"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
 )
 
@@ -50,7 +51,8 @@ func (defaultConverter) Convert(m any) Composer { return Convert(m) }
 //
 // Use this directly in your implementation of the Converter
 // interface. The DefaultConverter implementation provides a wrapper
-// around this implementation. The ConverterFunc is
+// around this implementation. The ConverterFunc-based implementations
+// fall back to this implementation
 func Convert[T any](input T) Composer {
 	switch message := any(input).(type) {
 	case Composer:
@@ -78,22 +80,22 @@ func Convert[T any](input T) Composer {
 		return MakeFields(Fields(message))
 	case []byte:
 		return MakeBytes(message)
-	case FieldsProducer:
-		return MakeProducer(message)
+	case fun.Future[Fields]:
+		return MakeFuture(message)
 	case func() Fields:
-		return MakeProducer(message)
-	case ComposerProducer:
-		return MakeProducer(message)
+		return MakeFuture(message)
+	case fun.Future[Composer]:
+		return MakeFuture(message)
 	case func() Composer:
-		return MakeProducer(message)
+		return MakeFuture(message)
 	case func() map[string]any:
-		return MakeProducer(message)
-	case ErrorProducer:
-		return MakeProducer(message)
+		return MakeFuture(message)
+	case fun.Future[error]:
+		return MakeFuture(message)
 	case func() error:
-		return MakeProducer(message)
+		return MakeFuture(message)
 	case Marshaler:
-		return MakeProducer(message.MarshalComposer)
+		return MakeFuture(message.MarshalComposer)
 	case [][]string:
 		return convertSlice(message)
 	case [][]byte:
@@ -102,17 +104,17 @@ func Convert[T any](input T) Composer {
 		return convertSlice(message)
 	case []Fields:
 		return convertSlice(message)
-	case []FieldsProducer:
+	case []fun.Future[Fields]:
 		return convertSlice(message)
 	case []func() Fields:
 		return convertSlice(message)
 	case []func() map[string]any:
 		return convertSlice(message)
-	case []ComposerProducer:
+	case []fun.Future[Composer]:
 		return convertSlice(message)
 	case []func() Composer:
 		return convertSlice(message)
-	case []ErrorProducer:
+	case []fun.Future[error]:
 		return convertSlice(message)
 	case []func() error:
 		return convertSlice(message)
@@ -162,9 +164,9 @@ func buildFromSlice(vals []any) Composer {
 		switch vals[i].(type) {
 		case string:
 			continue
-		case Composer, ComposerProducer, ErrorProducer, Fields, dt.Pairs[string, any]:
+		case Composer, fun.Future[Composer], fun.Future[error], fun.Future[Fields], Fields, dt.Pairs[string, any]:
 			return convertSlice(vals)
-		case []Composer, []ComposerProducer, []ErrorProducer, []Fields:
+		case []Composer, []fun.Future[Composer], []fun.Future[error], []fun.Future[Fields], []error, []Fields, []dt.Pairs[string, any]:
 			return convertSlice(vals)
 		default:
 			return MakeLines(vals...)
