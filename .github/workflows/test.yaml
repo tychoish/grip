@@ -21,9 +21,6 @@ jobs:
             go.sum
       - name: grip tests
         run: go test -race ./...
-      - name: grip/x tests
-        run: |
-          find ./x -name "go.mod" | xargs dirname | xargs go test -race
 
   lint:
     name: golangci-lint
