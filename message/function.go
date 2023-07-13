@@ -52,13 +52,11 @@ type Marshaler interface {
 // called. Changing the priority does not resolve the future. In
 // practice, if the priority of the message is below the logging
 // threshold, then the function will never be called.
-func MakeFuture[T any](fp fun.Future[T]) Composer {
-	return converterFuture(defaultConverter{}, fp)
-}
+func MakeFuture[T any](fp fun.Future[T]) Composer { return converterFuture(defaultConverter{}, fp) }
 
 func converterFuture[T any](c Converter, fp fun.Future[T]) Composer {
 	if fp == nil {
-		return MakeKV()
+		fp = func() (o T) { return }
 	}
 	return &composerFutureMessage{cp: func() Composer { return c.Convert(fp()) }}
 }
