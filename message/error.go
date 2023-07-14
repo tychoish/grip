@@ -35,10 +35,10 @@ func (e *errorMessage) Loggable() bool { return e.err != nil }
 func (e *errorMessage) Unwrap() error  { return e.err }
 
 func (e *errorMessage) Raw() any {
-	_ = e.String()
 	e.Collect() // noop based on option
 
 	if e.IncludeMetadata {
+		_ = e.String()
 		return e
 	}
 
@@ -46,7 +46,7 @@ func (e *errorMessage) Raw() any {
 		Error  string `bson:"error" json:"error" yaml:"error"`
 		Fields `bson:",omitempty" json:",omitempty" yaml:",omitempty"`
 	}{
-		Error:  e.ErrorValue,
+		Error:  e.String(),
 		Fields: e.Base.Context,
 	}
 
