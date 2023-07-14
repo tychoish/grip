@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -41,21 +40,13 @@ type CollectOptions struct {
 	WriterConstructor func(string) (io.WriteCloser, error)
 }
 
-func validateCondition(ec *erc.Collector, cond bool, str string) {
-	if !cond {
-		return
-	}
-
-	ec.Add(errors.New(str))
-}
-
 func (opts CollectOptions) Validate() error {
 	ec := &erc.Collector{}
-	validateCondition(ec, opts.FlushInterval < 10*time.Millisecond, "flush interval must be greater than 10ms")
-	validateCondition(ec, opts.SampleCount < 10, "sample count must be greater than 10")
-	validateCondition(ec, opts.BlockCount < 10, "block count must be greater than 10")
-	validateCondition(ec, opts.OutputFilePrefix == "", "must specify prefix for output files")
-	validateCondition(ec, opts.WriterConstructor == nil, "must specify a constructor ")
+	erc.When(ec, opts.FlushInterval < 10*time.Millisecond, "flush interval must be greater than 10ms")
+	erc.When(ec, opts.SampleCount < 10, "sample count must be greater than 10")
+	erc.When(ec, opts.BlockCount < 10, "block count must be greater than 10")
+	erc.When(ec, opts.OutputFilePrefix == "", "must specify prefix for output files")
+	erc.When(ec, opts.WriterConstructor == nil, "must specify a constructor ")
 	return ec.Resolve()
 }
 

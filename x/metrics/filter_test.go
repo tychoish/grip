@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"log"
@@ -14,6 +13,8 @@ import (
 	"github.com/tychoish/birch"
 	"github.com/tychoish/birch/x/ftdc/util"
 	a "github.com/tychoish/fun/adt"
+	"github.com/tychoish/fun/testt"
+	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/send"
 )
 
@@ -69,9 +70,9 @@ func (b *buf) Write(in []byte) (int, error) { defer a.With(a.Lock(&b.mtx)); retu
 func (b *buf) Close() error                 { defer a.With(a.Lock(&b.mtx)); b.isClosed = true; return nil }
 
 func TestFilter(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	t.Run("CollectionBasicEndToEnd", func(t *testing.T) {
+		t.Parallel()
+		ctx := testt.Context(t)
 		b := &buf{}
 		opts := DefaultCollectionOptions()
 		opts.FlushInterval = 10 * time.Millisecond
@@ -79,34 +80,41 @@ func TestFilter(t *testing.T) {
 		opts.BlockCount = 10
 		opts.CaptureStructured = false
 		opts.WriterConstructor = func(f string) (io.WriteCloser, error) {
+			fmt.Println(f)
 			return b, nil
 		}
 
 		sender := send.MakeInternal()
+		sender.SetErrorHandler(send.ErrorHandlerFromSender(grip.Sender()))
 		filter := NewFilter(ctx, sender, opts)
-		for i := 0; i < 20; i++ {
+		for i := 0; i < 10; i++ {
 			filter.Send(CollectGoStatsTotals())
 		}
 
-		if n := sender.Len(); n != 20 {
-			t.Fatal("there should be one message:", n)
+		if n := sender.Len(); n != 10 {
+			t.Error("there should be one message:", n)
 		}
+		time.Sleep(100 * time.Millisecond)
 		impl := filter.(*metricsFilterImpl)
 		if len(impl.collectors) != 1 {
-			t.Fatal("should have one collector")
+			t.Error("should have one collector")
 		}
 
 		if b.Buffer.Len() == 0 {
-			t.Fatal("buffer should have content")
+			t.Error("buffer should have content", b.Buffer.Len())
 		}
+
 		if err := filter.Close(); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		if !b.isClosed {
-			t.Fatal("buffer should be closed")
+			t.Error("buffer should be closed")
 		}
 	})
 	t.Run("MultiStreamCollector", func(t *testing.T) {
+		t.Parallel()
+		ctx := testt.Context(t)
+
 		mtx := &sync.Mutex{}
 		bufs := map[string]*buf{}
 
@@ -164,6 +172,9 @@ func TestFilter(t *testing.T) {
 		}
 	})
 	t.Run("Rotation", func(t *testing.T) {
+		t.Parallel()
+		ctx := testt.Context(t)
+
 		mtx := &sync.Mutex{}
 		bufs := map[string]*buf{}
 
@@ -202,6 +213,9 @@ func TestFilter(t *testing.T) {
 		}
 	})
 	t.Run("Internals", func(t *testing.T) {
+		t.Parallel()
+		ctx := testt.Context(t)
+
 		t.Run("Constructor", func(t *testing.T) {
 			opts := DefaultCollectionOptions()
 			opts.WriterConstructor = func(f string) (io.WriteCloser, error) { return nil, io.EOF }

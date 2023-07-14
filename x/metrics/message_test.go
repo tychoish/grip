@@ -10,10 +10,13 @@ import (
 )
 
 func TestDataCollecterComposerConstructors(t *testing.T) {
+	t.Parallel()
+
 	const testMsg = "hello"
 	// map objects to output (prefix)
 
 	t.Run("Single", func(t *testing.T) {
+		t.Parallel()
 		for _, test := range []struct {
 			Name       string
 			Msg        message.Composer
@@ -99,6 +102,7 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 				continue
 			}
 			t.Run(test.Name, func(t *testing.T) {
+				t.Parallel()
 				if test.Msg == nil {
 					t.Fatal("message should not be nil")
 				}
@@ -120,6 +124,8 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 	})
 
 	t.Run("Multi", func(t *testing.T) {
+		t.Parallel()
+
 		for _, test := range []struct {
 			Name       string
 			Group      []message.Composer
@@ -143,6 +149,8 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 				continue
 			}
 			t.Run(test.Name, func(t *testing.T) {
+				t.Parallel()
+
 				if len(test.Group) == 0 {
 					t.Fatalf("test group is empty and should not")
 				}
@@ -167,6 +175,8 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 }
 
 func TestProcessTreeDoesNotHaveDuplicates(t *testing.T) {
+	t.Parallel()
+
 	procs := CollectProcessInfoWithChildren(1)
 	seen := make(map[int32]struct{})
 

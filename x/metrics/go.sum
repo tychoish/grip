@@ -11,8 +11,8 @@ github.com/tklauser/go-sysconf v0.3.11 h1:89WgdJhk5SNwJfu+GKyYveZ4IaJ7xAkecBo+Kd
 github.com/tklauser/go-sysconf v0.3.11/go.mod h1:GqXfhXY3kiPa0nAXPDIQIWzJbMCB7AmcWpGR8lSZfqI=
 github.com/tklauser/numcpus v0.6.0 h1:kebhY2Qt+3U6RNK7UqpYNA+tJ23IBEGKkB7JQBfDYms=
 github.com/tklauser/numcpus v0.6.0/go.mod h1:FEZLMke0lhOUG6w2JadTzp0a+Nl8PF/GFkQ5UVIcaL4=
-github.com/tychoish/birch v0.2.3-0.20230708015614-95fbb4a40ea4 h1:gJJ4XMu8Fmq1LS3tRYDOn0cP9+PbdD//PNUb66Dbhsk=
-github.com/tychoish/birch v0.2.3-0.20230708015614-95fbb4a40ea4/go.mod h1:ky++M4bZOdtDBSWv0Z4uQv42EPD1FmFLYp2aBDjhHPM=
+github.com/tychoish/birch v0.2.3-0.20230708044500-bd86569eda49 h1:CoPJzm4Fc+DlXez/64eDJ8NzKlCJAtX7vJfc4cbl62o=
+github.com/tychoish/birch v0.2.3-0.20230708044500-bd86569eda49/go.mod h1:ky++M4bZOdtDBSWv0Z4uQv42EPD1FmFLYp2aBDjhHPM=
 github.com/tychoish/birch/x/ftdc v0.0.0-20230708040754-3580810793c8 h1:nuIISNyfx+nDmHC5m3pIHwafk6NXlY9+O8ELsTEczLU=
 github.com/tychoish/birch/x/ftdc v0.0.0-20230708040754-3580810793c8/go.mod h1:eAkHGxL73BATG+UC2yeIO9vnyitSjfNbImsN4k+Cx/o=
 github.com/tychoish/fun v0.10.0 h1:RT2Do5euyJqZls25NfnRxDaHJCARnP4p95e7Zwl9HyM=

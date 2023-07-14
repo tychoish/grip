@@ -4,11 +4,14 @@ import (
 	"os"
 	"os/exec"
 	"testing"
+	"time"
 
 	"github.com/shirou/gopsutil/process"
+	"github.com/tychoish/fun/testt"
 )
 
 func TestChildren(t *testing.T) {
+	t.Parallel()
 	myPid := int32(os.Getpid())
 	p, err := process.NewProcess(myPid)
 	if p == nil {
@@ -17,14 +20,16 @@ func TestChildren(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	cmd := exec.Command("sleep", "1")
+
+	ctx := testt.Context(t)
+	cmd := exec.CommandContext(ctx, "sleep", "2")
 	if err = cmd.Start(); err != nil {
 		t.Error(err)
 	}
-
+	time.Sleep(100 * time.Millisecond)
 	c, err := p.Children()
 	if c == nil {
-		t.Fatal("child information should not be nil")
+		t.Error("child information should not be nil")
 	}
 	if err != nil {
 		t.Error(err)

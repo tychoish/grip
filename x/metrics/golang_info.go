@@ -172,7 +172,6 @@ type GoRuntimeInfo struct {
 func CollectGoStatsTotals() *GoRuntimeInfo {
 	s := &GoRuntimeInfo{}
 	s.build()
-
 	return s
 }
 
