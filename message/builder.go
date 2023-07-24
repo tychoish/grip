@@ -23,7 +23,7 @@ type Builder struct {
 	send        func(Composer)
 	converter   Converter
 	composer    Composer
-	level       *level.Priority
+	level       fun.Future[level.Priority]
 	catcher     erc.Collector
 	sendAsGroup bool
 	opts        []Option
@@ -71,7 +71,7 @@ func (b *Builder) getMessage() Composer {
 			return WrapError(b.catcher.Resolve(), b.composer)
 		}
 		if b.level != nil {
-			b.composer.SetPriority(*b.level)
+			b.composer.SetPriority(b.level())
 		}
 
 		return b.composer
@@ -110,7 +110,8 @@ func (b *Builder) SetOption(opts ...Option) *Builder { b.opts = append(b.opts, o
 // message via another method, otherwise an error is generated and
 // added to the builder. Additionally an error is added to the builder
 // if the level is not valid.
-func (b *Builder) Level(l level.Priority) *Builder { b.level = &l; return b }
+func (b *Builder) Level(l level.Priority) *Builder                { b.level = fun.AsFuture(l); return b }
+func (b *Builder) Leveler(fn fun.Future[level.Priority]) *Builder { b.level = fn.Once(); return b }
 
 // When makes the message conditional. Pass a statement to this
 // function, that when false will cause the rest of the message to be
@@ -168,7 +169,6 @@ func (b *BuilderFuture) Map(f fun.Future[map[string]any]) *BuilderFuture { retur
 func (b *BuilderFuture) Composer(f fun.Future[Composer]) *BuilderFuture  { return addFuture(b, f) }
 func (b *BuilderFuture) Error(f fun.Future[error]) *BuilderFuture        { return addFuture(b, f) }
 func (b *BuilderFuture) String(f fun.Future[string]) *BuilderFuture      { return addFuture(b, f) }
-
 func (b *BuilderFuture) Pairs(f fun.Future[dt.Pairs[string, any]]) *BuilderFuture {
 	return addFuture(b, f)
 }
