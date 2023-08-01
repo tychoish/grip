@@ -14,5 +14,5 @@ require (
 	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
-	github.com/tychoish/fun v0.10.1 // indirect
+	github.com/tychoish/fun v0.10.2 // indirect
 )

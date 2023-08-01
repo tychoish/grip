@@ -68,7 +68,7 @@ type composerFutureMessage struct {
 	cached  Composer
 	level   level.Priority
 	exec    sync.Once
-	lazyOps []fun.Observer[Composer]
+	lazyOps []fun.Handler[Composer]
 }
 
 func (cp *composerFutureMessage) resolve() {

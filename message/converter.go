@@ -73,20 +73,25 @@ func Convert[T any](input T) Composer {
 		return MakePairs(message)
 	case dt.Pair[string, any]:
 		return MakeKV(message)
+	case []dt.Pair[string, any]:
+		return MakeKV(message...)
 	case nil:
-		m := MakeKV()
-		return m
+		return MakeKV()
 	case map[string]any:
 		return MakeFields(Fields(message))
 	case []byte:
 		return MakeBytes(message)
 	case fun.Future[Fields]:
 		return MakeFuture(message)
+	case fun.Future[*dt.Pairs[string, any]]:
+		return MakeFuture(message)
 	case func() Fields:
 		return MakeFuture(message)
 	case fun.Future[Composer]:
 		return MakeFuture(message)
 	case func() Composer:
+		return MakeFuture(message)
+	case func() *dt.Pairs[string, any]:
 		return MakeFuture(message)
 	case func() map[string]any:
 		return MakeFuture(message)
@@ -120,7 +125,7 @@ func Convert[T any](input T) Composer {
 		return convertSlice(message)
 	case [][]any:
 		return convertSlice(message)
-	case []dt.Pairs[string, any]:
+	case []*dt.Pairs[string, any]:
 		return convertSlice(message)
 	case []Marshaler:
 		return convertSlice(message)
