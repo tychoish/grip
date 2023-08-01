@@ -1,17 +1,46 @@
----
-linters:
-  disable-all: true
-  enable:
-    - errcheck
-    - goimports
-    - govet
-    - ineffassign
-    - misspell
-    - unconvert
-    - unused
-    - staticcheck
-    - nolintlint
+run:
+  deadline: 5m
+  issues-exit-code: 1
+  tests: true
+
+output:
+  format: line-number
+  print-issued-lines: false
+  print-linter-name: true
+  sort-results: false
 
 linters-settings:
   govet:
     check-shadowing: true
+  gci:
+    custom-order: true
+    skip-generated: true
+    sections:
+      - standard
+      - default
+      - Prefix(github.com/tychoish)
+
+linters:
+  disable-all: true
+  enable:
+    - asciicheck
+    - bodyclose
+    - dupword
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - exportloopref
+    - gci
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - noctx
+    - nolintlint
+    - staticcheck
+    - unconvert
+    - unused
+
+
+
