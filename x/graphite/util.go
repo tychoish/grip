@@ -43,7 +43,7 @@ func intPow(val, exp int64) int64 {
 	return result
 }
 
-func (conf *CollectorBakendFileConf) RotatingFilePath() fun.Producer[string] {
+func (conf *CollectorBackendFileConf) RotatingFilePath() fun.Producer[string] {
 	counter := &atomic.Int64{}
 	tmpl := fmt.Sprintf("%%0%dd", conf.CounterPadding)
 	counter.Add(-1)
@@ -66,7 +66,7 @@ func (conf *CollectorBakendFileConf) RotatingFilePath() fun.Producer[string] {
 
 }
 
-func (conf *CollectorBakendFileConf) RotatingFileProducer() fun.Producer[io.WriteCloser] {
+func (conf *CollectorBackendFileConf) RotatingFileProducer() fun.Producer[io.WriteCloser] {
 	getNextFileName := conf.RotatingFilePath().Block
 
 	return fun.Producer[io.WriteCloser](func(ctx context.Context) (io.WriteCloser, error) {

@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tychoish/birch"
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
-	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/fun/risky"
 	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/message"
@@ -42,22 +40,14 @@ const (
 	MetricTypeHistogram MetricType = "histogram"
 )
 
-type MetricOutputFormat string
-
-const (
-	MetricOutputFormatGraphite MetricOutputFormat = "graphite"
-	MetricOutputFormatOpenTSDB MetricOutputFormat = "open-tsdb"
-	MetricOutputFormatJSON     MetricOutputFormat = "ndjson"
-	MetricOutputFormatBSON     MetricOutputFormat = "bson"
-)
-
 type Metric struct {
 	ID      string
 	Type    MetricType
-	Format  MetricOutputFormat
 	labels  dt.Set[dt.Pair[string, string]]
 	labelsf fun.Future[[]byte]
 
+	// pointer to the collector, for rendering interaction.
+	coll *Collector
 	// internal configuration
 	hconf *HistogramConf
 	dur   time.Duration
@@ -124,7 +114,7 @@ func (m *Metric) factory() localMetricValue {
 	}
 }
 
-func (m *Metric) resolve(renderer MetricLabelRenderer, getbuf func() *bytes.Buffer, putbuf func(*bytes.Buffer)) {
+func (m *Metric) resolve() {
 	if m.labelsf != nil {
 		return
 	}
@@ -139,94 +129,13 @@ func (m *Metric) resolve(renderer MetricLabelRenderer, getbuf func() *bytes.Buff
 			return a.Key < b.Key && a.Value < b.Value
 		})
 
-		builder := getbuf()
-		defer putbuf(builder)
-
-		switch m.Format {
-		case MetricOutputFormatBSON:
-			doc := birch.DC.Make(len(ps))
-			ps.Observe(func(label dt.Pair[string, string]) {
-				doc.Append(birch.EC.String(label.Key, label.Value))
-			})
-			return ft.Must(doc.MarshalBSON())
-		case MetricOutputFormatJSON:
-			builder.WriteByte('{')
-			defer builder.WriteByte('}')
-		}
-		ps.Observe(func(label dt.Pair[string, string]) {
-			switch m.Format {
-			case MetricOutputFormatGraphite:
-				builder.WriteString(label.Key)
-				builder.WriteByte('=')
-				builder.WriteString(label.Value)
-				builder.WriteByte(';')
-			case MetricOutputFormatOpenTSDB:
-				builder.WriteString(label.Key)
-				builder.WriteByte('=')
-				builder.WriteString(label.Value)
-				builder.WriteByte(' ')
-			case MetricOutputFormatJSON:
-				if builder.Len() != 1 {
-					builder.WriteByte(',')
-				}
-
-				builder.WriteByte('"')
-				builder.WriteString(label.Key)
-				builder.WriteByte('"')
-				builder.WriteByte(':')
-				builder.WriteString(label.Value)
-			}
-		})
+		builder := m.coll.pool.Get()
+		defer m.coll.pool.Put(builder)
+		m.coll.conf.LabelRenderer(ps, builder)
 		return builder.Bytes()
 	}).Once()
 }
 
 func (m *Metric) RenderTo(key string, value int64, ts time.Time, buf *bytes.Buffer) {
-	ts = ts.Round(time.Millisecond)
-	switch m.Format {
-	case MetricOutputFormatGraphite:
-		buf.WriteString(key)
-		if tags := m.labelsf(); tags != nil {
-			buf.Write(tags)
-		}
-		buf.WriteByte(' ')
-		buf.WriteString(fmt.Sprint(value))
-		buf.WriteByte(' ')
-		buf.WriteString(fmt.Sprint(ts.UTC().UnixMilli()))
-		buf.WriteByte('\n')
-	case MetricOutputFormatOpenTSDB:
-		buf.WriteString("put ")
-		buf.WriteString(key)
-		buf.WriteByte(' ')
-		buf.WriteString(fmt.Sprint(ts.UTC().UnixMilli()))
-		buf.WriteByte(' ')
-		buf.WriteString(fmt.Sprint(value))
-		if tags := m.labelsf(); tags != nil {
-			buf.WriteByte(' ')
-			buf.Write(tags)
-		}
-		buf.WriteByte('\n')
-	case MetricOutputFormatJSON:
-		buf.WriteString(`{"metric":"`)
-		buf.WriteString(key)
-		buf.WriteString(`",`)
-		buf.WriteString(`"value":`)
-		buf.WriteString(fmt.Sprint(value))
-		if tags := m.labelsf(); tags != nil {
-			buf.WriteString(`,"tags":{`)
-			buf.Write(tags)
-			buf.WriteByte('}')
-		}
-		buf.WriteByte('\n')
-	case MetricOutputFormatBSON:
-		doc := birch.DC.Elements(
-			birch.EC.String("metric", key),
-			birch.EC.Time("ts", ts),
-			birch.EC.Int64("value", value),
-		)
-		if tags := m.labelsf(); tags != nil {
-			doc.Append(birch.EC.SubDocumentFromReader("labels", birch.Reader(tags)))
-		}
-		fun.Invariant.Must(ft.IgnoreFirst(doc.WriteTo(buf)))
-	}
+	m.coll.conf.MetricRenderer(key, value, ts, m.labelsf, buf)
 }

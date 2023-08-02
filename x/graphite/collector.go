@@ -16,6 +16,10 @@ import (
 	"github.com/tychoish/fun/pubsub"
 )
 
+type MetricLabelRenderer func(labels []dt.Pair[string, string], output *bytes.Buffer)
+
+type MetricRenderer func(key string, value int64, ts time.Time, labels fun.Future[[]byte], writer *bytes.Buffer)
+
 type Collector struct {
 	local adt.Map[string, *dt.List[*tracked]]
 	loops adt.Map[time.Duration, fun.Handler[*tracked]]
@@ -30,40 +34,6 @@ type Collector struct {
 	cancel context.CancelFunc
 	wg     fun.WaitGroup
 	errs   erc.Collector
-}
-
-type MetricLabelRenderer func(labels []dt.Pair[string, string], output io.Writer)
-
-type EventRenderer func(key string, value int64, ts time.Time, labels fun.Future[[]byte], writer io.Writer) error
-
-type CollectorConf struct {
-	Backends      []CollectorBackend
-	MetricFormat  MetricOutputFormat
-	LabelRenderer MetricLabelRenderer
-	EventRenderer EventRenderer
-	BrokerOptions pubsub.BrokerOptions
-	Buffer        int
-}
-
-func (conf *CollectorConf) Validate() error { return nil }
-
-type CollectorOptionProvider = fun.OptionProvider[*CollectorConf]
-
-func CollectorConfSet(c *CollectorConf) CollectorBakendFileOptionProvider        { return nil }
-func CollectorConfAppendBackends(bs ...CollectorBackend) CollectorOptionProvider { return nil }
-func CollectorConfWithLoggerBackend() CollectorBakendFileOptionProvider          { return nil }
-func CollectorConfWithFileLogger(opts ...CollectorBakendFileOptionProvider) CollectorBakendFileOptionProvider {
-	return nil
-}
-func CollectorConfFileLoggerBackend(opts *CollectorBakendFileConf) CollectorBakendFileOptionProvider {
-	return nil
-}
-func CollectorConfOutputOpenTSB() CollectorBackend  { return nil }
-func CollectorConfOutputGraphite() CollectorBackend { return nil }
-func CollectorConfOutputJSON() CollectorBackend     { return nil }
-func CollectorConfOutputBSON() CollectorBackend     { return nil }
-func CollectorConfWithOutput(labels MetricLabelRenderer, events EventRenderer) CollectorBackend {
-	return nil
 }
 
 func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collector, error) {
@@ -110,7 +80,6 @@ func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collec
 			if c.wg.Num() < len(conf.Backends) && !c.errs.HasErrors() {
 				continue
 			}
-			break
 		case <-ctx.Done():
 			c.errs.Add(ers.Wrap(ctx.Err(), "did not complete startup"))
 		}
@@ -164,7 +133,7 @@ func (c *Collector) distribute(fn MetricPublisher) {
 	case c.broker != nil:
 		c.broker.Publish(c.ctx, fn)
 	case c.publish != nil:
-		c.publish.PushBack(fn)
+		ers.Ignore(c.publish.PushBack(fn))
 	default:
 		fun.Invariant.Failure("configuration issue, publication error")
 	}
@@ -196,7 +165,8 @@ func (c *Collector) getRegisteredTracked(e *Event) *tracked {
 		}
 	}
 
-	e.m.resolve(c.conf.LabelRenderer, c.pool.Get, c.pool.Put)
+	e.m.coll = ft.Default(e.m.coll, c)
+	e.m.resolve()
 	tr := newTracked(e.m)
 	trl.PushBack(tr)
 	c.addBackground(tr)
