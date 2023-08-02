@@ -38,7 +38,7 @@ type CollectorBackendFileConf struct {
 func (conf *CollectorBackendFileConf) Validate() error {
 	ec := &erc.Collector{}
 	erc.When(ec, conf.Megabytes < 1, "must specify at least 1mb rotation size")
-	erc.When(ec, conf.CounterPadding < 1, "must specify at at least 1 didget for counter padding")
+	erc.When(ec, conf.CounterPadding < 1, "must specify at least 1 didget for counter padding")
 	stat, err := os.Stat(conf.Directory)
 	erc.When(ec, os.IsNotExist(err) || stat != nil && !stat.IsDir(), "directory must either not exist or be a directory")
 	erc.When(ec, conf.FilePrefix == "", "must specify a prefix for data files")

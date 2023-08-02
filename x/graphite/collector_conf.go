@@ -101,16 +101,15 @@ func CollectorConfOutputJSON() CollectorOptionProvider {
 	}
 }
 
-func CollectorConfOutputBSON() CollectorOptionProvider {
-	return func(conf *CollectorConf) error {
-		conf.LabelRenderer = RenderLabelsBSON
-		conf.MetricRenderer = RenderMetricBSON
-		return nil
-	}
-}
-
 func CollectorConfWithOutput(lr MetricLabelRenderer, mr MetricRenderer) CollectorOptionProvider {
 	return func(conf *CollectorConf) error {
+		ec := &erc.Collector{}
+		erc.When(ec, lr == nil, "unspecified label renderer")
+		erc.When(ec, mr == nil, "unspecified metric renderer")
+		if ec.HasErrors() {
+			return ec.Resolve()
+		}
+
 		conf.LabelRenderer = lr
 		conf.MetricRenderer = mr
 		return nil
