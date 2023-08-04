@@ -13,3 +13,21 @@
 // The x/metrics package includes basic implementations and
 // integrations with third party libraries.
 package series
+
+import (
+	"github.com/tychoish/grip"
+	"github.com/tychoish/grip/message"
+)
+
+// TODO:
+//   - implement prom formatting/renderer
+//   - implement connection handling for tcp graphite connection
+//   - adapters for current x/metrics package functionality/helpers
+
+func example() { //nolint:unused
+	grip.Info(WithMetrics(message.Fields{"op": "test"},
+		Gauge("new_op").Label("key", "value").Inc(),
+		Histogram("new_op").Label("key", "value").Inc(),
+	))
+	// extractMetrics(fun.Futurize(func() message.Fields { return message.Fields{} }), metricMessageWithComposer)
+}

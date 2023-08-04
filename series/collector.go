@@ -1,4 +1,4 @@
-package graphite
+package series
 
 import (
 	"bytes"
@@ -111,6 +111,8 @@ func (c *Collector) PushEvent(e *Event) {
 
 	tr := c.getRegisteredTracked(e)
 	val := tr.local.Apply(e.op)
+	e.value = val
+	e.resolved = true
 
 	tr.lastMod.Set(e.ts)
 

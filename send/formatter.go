@@ -9,6 +9,17 @@ import (
 	"github.com/tychoish/grip/message"
 )
 
+type withOptionImpl struct {
+	Sender
+	opts []message.Option
+}
+
+func WithOptionSender(s Sender, options ...message.Option) Sender {
+	return &withOptionImpl{Sender: s, opts: options}
+}
+
+func (s withOptionImpl) Send(m message.Composer) { m.SetOption(s.opts...); s.Sender.Send(m) }
+
 const (
 	defaultFormatTmpl = "[p=%s]: %s"
 	callSiteTmpl      = "[p=%s] [%s:%d]: %s"

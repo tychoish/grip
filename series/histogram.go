@@ -1,13 +1,13 @@
-package graphite
+package series
 
 import (
 	"bytes"
 	"fmt"
 	"time"
 
-	"github.com/tychoish/birch/x/ftdc/hdrhist"
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/adt"
+	"github.com/tychoish/fun/dt/hdrhist"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/intish"
 )

@@ -1,4 +1,4 @@
-package graphite
+package series
 
 import (
 	"context"
@@ -49,7 +49,7 @@ func (conf *CollectorBackendFileConf) RotatingFilePath() fun.Producer[string] {
 	counter.Add(-1)
 	maxCounterVal := intPow(10, int64(conf.CounterPadding+1)) - 1
 
-	return fun.BlockingProducer(func() (string, error) {
+	return fun.MakeProducer(func() (string, error) {
 		var path string
 
 		for i := counter.Add(1); i < maxCounterVal; i = counter.Add(1) {

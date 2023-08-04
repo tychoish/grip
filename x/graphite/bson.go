@@ -8,10 +8,11 @@ import (
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/ft"
+	"github.com/tychoish/grip/series"
 )
 
-func CollectorConfOutputBSON() CollectorOptionProvider {
-	return func(conf *CollectorConf) error {
+func CollectorConfOutputBSON() series.CollectorOptionProvider {
+	return func(conf *series.CollectorConf) error {
 		conf.LabelRenderer = RenderLabelsBSON
 		conf.MetricRenderer = RenderMetricBSON
 		return nil

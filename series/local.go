@@ -1,4 +1,4 @@
-package graphite
+package series
 
 import (
 	"bytes"

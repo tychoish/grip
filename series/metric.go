@@ -1,36 +1,15 @@
-package graphite
+package series
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/risky"
-	"github.com/tychoish/grip"
-	"github.com/tychoish/grip/message"
 )
-
-// TODO:
-//   - filtering sender that will log normally, and also propagate the
-//     messages.
-//   - convert metrics into standard composers for non-metrics filter.
-//   - move event code into root package
-//   - implement prom formatting/renderer
-//   - implement connection handling for tcp graphite connection
-//   - adapters for current x/metrics package functionality/helpers
-
-func example() { //nolint:unused
-	grip.Info(WithMetrics(message.Fields{"op": "test"},
-		Gauge("new_op").Label("key", "value").Inc(),
-		Histogram("new_op").Label("key", "value").Inc(),
-	))
-	extractMetrics(fun.Futurize(func() message.Fields { return message.Fields{} }))
-
-}
-
-////////////////////////////////////////////////////////////////////////
 
 type MetricType string
 
@@ -41,12 +20,15 @@ const (
 )
 
 type Metric struct {
-	ID      string
-	Type    MetricType
-	labels  dt.Set[dt.Pair[string, string]]
-	labelsf fun.Future[[]byte]
+	ID     string
+	Type   MetricType
+	labels dt.Set[dt.Pair[string, string]]
 
-	// pointer to the collector, for rendering interaction.
+	labelsf    fun.Future[[]byte]
+	labelCache fun.Future[*dt.Pairs[string, string]]
+	labelstr   fun.Future[string]
+	// pointer to the collector, for rendering
+	// interaction. populated in publish event.
 	coll *Collector
 	// internal configuration
 	hconf *HistogramConf
@@ -69,7 +51,6 @@ func (m *Metric) Annotate(pairs ...dt.Pair[string, string]) *Metric {
 }
 
 func (m *Metric) AddLabels(set *dt.Set[dt.Pair[string, string]]) { m.labels.Populate(set.Iterator()) }
-
 func (m *Metric) Equal(two *Metric) bool {
 	return m.Type == two.Type && m.ID == two.ID && m.labels.Equal(&two.labels)
 }
@@ -77,9 +58,20 @@ func (m *Metric) Equal(two *Metric) bool {
 func (m *Metric) Periodic(dur time.Duration) *Metric { m.dur = dur; return m }
 
 type Event struct {
-	m  *Metric
-	op func(int64) int64
-	ts time.Time
+	m        *Metric
+	value    int64
+	resolved bool
+	op       func(int64) int64
+	ts       time.Time
+}
+
+func (e *Event) String() string {
+	if !e.resolved {
+		return fmt.Sprint("Metric<%s> Event<UNRESOLVED>", e.m.ID)
+	}
+	e.m.resolve()
+
+	return fmt.Sprint("Metric<%s> Labels<%s> Event<%d>", e.m.ID, e.m.labelstr(), e.value)
 }
 
 func (m *Metric) Dec() *Event { return m.Add(-1) }
@@ -115,25 +107,48 @@ func (m *Metric) factory() localMetricValue {
 }
 
 func (m *Metric) resolve() {
-	if m.labelsf != nil {
-		return
+	if m.labelsf == nil {
+		m.labelsf = fun.Futurize(func() []byte {
+			if m.labels.Len() == 0 {
+				return nil
+			}
+
+			builder := m.coll.pool.Get()
+			defer m.coll.pool.Put(builder)
+			m.coll.conf.LabelRenderer(m.labelCache().Slice(), builder)
+			return builder.Bytes()
+		}).Once()
 	}
+	if m.labelCache == nil {
+		m.labelCache = fun.Futurize(func() *dt.Pairs[string, string] {
+			ps := &dt.Pairs[string, string]{}
 
-	m.labelsf = fun.Futurize(func() []byte {
-		if m.labels.Len() == 0 {
-			return nil
-		}
+			fun.Invariant.Must(ps.Consume(context.Background(), m.labels.Iterator()))
 
-		ps := dt.Sliceify(risky.Slice(m.labels.Iterator()))
-		ps.Sort(func(a, b dt.Pair[string, string]) bool {
-			return a.Key < b.Key && a.Value < b.Value
-		})
+			ps.SortQuick(func(a, b dt.Pair[string, string]) bool {
+				return a.Key < b.Key && a.Value < b.Value
+			})
 
-		builder := m.coll.pool.Get()
-		defer m.coll.pool.Put(builder)
-		m.coll.conf.LabelRenderer(ps, builder)
-		return builder.Bytes()
-	}).Once()
+			return ps
+		}).Once()
+	}
+	if m.labelstr == nil {
+		m.labelstr = fun.Futurize(func() string {
+			ps := m.labelCache()
+			buf := m.coll.pool.Get()
+			defer m.coll.pool.Put(buf)
+			risky.Observe(ps.Iterator(), func(p dt.Pair[string, string]) {
+				if buf.Len() > 0 {
+					buf.WriteByte(';')
+				}
+				buf.WriteString(p.Key)
+				buf.WriteByte('=')
+				buf.WriteString(p.Value)
+			})
+
+			return buf.String()
+		}).Once()
+	}
 }
 
 func (m *Metric) RenderTo(key string, value int64, ts time.Time, buf *bytes.Buffer) {
