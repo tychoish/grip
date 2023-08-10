@@ -103,3 +103,10 @@ func ShouldLog(s Sender, m message.Composer) bool {
 	}
 	return m.Loggable()
 }
+
+type noopSender struct{ Base }
+
+// NopSender creates a valid sender implementation where all Send
+// operations are a noop. All other operations are valid.
+func NopSender() Sender                     { return &noopSender{} }
+func (*noopSender) Send(m message.Composer) {}

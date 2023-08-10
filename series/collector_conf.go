@@ -8,11 +8,13 @@ import (
 )
 
 type CollectorConf struct {
-	Backends       []CollectorBackend
-	LabelRenderer  MetricLabelRenderer
-	MetricRenderer MetricRenderer
-	BrokerOptions  pubsub.BrokerOptions
-	Buffer         int
+	Backends      []CollectorBackend
+	BrokerOptions pubsub.BrokerOptions
+	Buffer        int
+
+	LabelRenderer          MetricLabelRenderer
+	MetricRenderer         MetricValueRenderer
+	DefaultHistogramRender MetricHistogramRenderer
 }
 
 func (conf *CollectorConf) Validate() error {
@@ -81,6 +83,7 @@ func CollectorConfOutputOpenTSB() CollectorOptionProvider {
 	return func(conf *CollectorConf) error {
 		conf.LabelRenderer = RenderLabelsOpenTSB
 		conf.MetricRenderer = RenderMetricOpenTSB
+		conf.DefaultHistogramRender = MakeDefaultHistogramMetricRenderer(RenderMetricOpenTSB)
 		return nil
 	}
 }
@@ -89,6 +92,7 @@ func CollectorConfOutputGraphite() CollectorOptionProvider {
 	return func(conf *CollectorConf) error {
 		conf.LabelRenderer = RenderLabelsGraphite
 		conf.MetricRenderer = RenderMetricGraphite
+		conf.DefaultHistogramRender = MakeDefaultHistogramMetricRenderer(RenderMetricGraphite)
 		return nil
 	}
 }
@@ -97,21 +101,31 @@ func CollectorConfOutputJSON() CollectorOptionProvider {
 	return func(conf *CollectorConf) error {
 		conf.LabelRenderer = RenderLabelsJSON
 		conf.MetricRenderer = RenderMetricJSON
+		conf.DefaultHistogramRender = RenderHistogramJSON
 		return nil
 	}
 }
 
-func CollectorConfWithOutput(lr MetricLabelRenderer, mr MetricRenderer) CollectorOptionProvider {
+func CollectorConfWithOutput(
+	lr MetricLabelRenderer,
+	mr MetricValueRenderer,
+	hr MetricHistogramRenderer,
+) CollectorOptionProvider {
 	return func(conf *CollectorConf) error {
 		ec := &erc.Collector{}
+
 		erc.When(ec, lr == nil, "unspecified label renderer")
 		erc.When(ec, mr == nil, "unspecified metric renderer")
-		if ec.HasErrors() {
-			return ec.Resolve()
+		erc.When(ec, hr == nil, "unspecified histogram renderer")
+
+		if err := ec.Resolve(); err != nil {
+			return err
 		}
 
 		conf.LabelRenderer = lr
 		conf.MetricRenderer = mr
+		conf.DefaultHistogramRender = hr
+
 		return nil
 	}
 }

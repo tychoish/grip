@@ -8,12 +8,13 @@ import (
 
 type localMetricValue interface {
 	Apply(func(int64) int64) int64
-	Resolve(*Metric, *bytes.Buffer)
+	Resolve(*bytes.Buffer)
 }
 
 type localDelta struct {
-	delta atomic.Int64
-	total atomic.Int64
+	delta  atomic.Int64
+	total  atomic.Int64
+	metric *Metric
 }
 
 func (lv *localDelta) Apply(op func(int64) int64) int64 {
@@ -27,7 +28,7 @@ func (lv *localDelta) Apply(op func(int64) int64) int64 {
 	}
 }
 
-func (lv *localDelta) Resolve(m *Metric, wr *bytes.Buffer) {
+func (lv *localDelta) Resolve(wr *bytes.Buffer) {
 	var delta int64
 	for {
 		delta = lv.delta.Load()
@@ -36,11 +37,12 @@ func (lv *localDelta) Resolve(m *Metric, wr *bytes.Buffer) {
 		}
 	}
 	lv.total.Add(delta)
-	m.RenderTo(m.ID, delta, time.Now(), wr)
+	lv.metric.coll.MetricRenderer(wr, lv.metric.ID, lv.metric.labelsf, delta, time.Now())
 }
 
 type localGauge struct {
-	value atomic.Int64
+	value  atomic.Int64
+	metric *Metric
 }
 
 func (lg *localGauge) Apply(op func(int64) int64) int64 {
@@ -54,6 +56,6 @@ func (lg *localGauge) Apply(op func(int64) int64) int64 {
 	}
 }
 
-func (lg *localGauge) Resolve(m *Metric, wr *bytes.Buffer) {
-	m.RenderTo(m.ID, lg.value.Load(), time.Now(), wr)
+func (lg *localGauge) Resolve(wr *bytes.Buffer) {
+	lg.metric.coll.MetricRenderer(wr, lg.metric.ID, lg.metric.labelsf, lg.value.Load(), time.Now())
 }

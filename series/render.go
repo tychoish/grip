@@ -7,41 +7,77 @@ import (
 
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/risky"
 )
 
-func RenderLabelsJSON(labels []dt.Pair[string, string], builder *bytes.Buffer) {
-	builder.WriteByte('{')
-	defer builder.WriteByte('}')
-
-	for _, label := range labels {
-		if builder.Len() != 1 {
-			builder.WriteByte(',')
+func RenderLabelsJSON(buf *bytes.Buffer, labels []dt.Pair[string, string], extra ...dt.Pair[string, string]) {
+	buf.WriteByte('{')
+	for _, label := range append(labels, extra...) {
+		if buf.Len() != 1 {
+			buf.WriteByte(',')
 		}
 
-		builder.WriteByte('"')
-		builder.WriteString(label.Key)
-		builder.WriteByte('"')
-		builder.WriteByte(':')
-		builder.WriteString(label.Value)
+		buf.WriteByte('"')
+		buf.WriteString(label.Key)
+		buf.WriteString(`":"`)
+		buf.WriteString(label.Value)
+		buf.WriteByte('"')
 	}
+	buf.WriteByte('}')
 }
 
-func RenderMetricJSON(key string, value int64, ts time.Time, labels fun.Future[[]byte], buf *bytes.Buffer) {
+func RenderMetricJSON(buf *bytes.Buffer, key string, labels fun.Future[[]byte], value int64, ts time.Time) {
 	buf.WriteString(`{"metric":"`)
 	buf.WriteString(key)
-	buf.WriteString(`",`)
+	buf.WriteString(`","ts":`)
+	fmt.Fprint(buf, ts.UTC().UnixMilli())
+	buf.WriteByte(',')
+	if tags := labels(); tags != nil {
+		buf.WriteString(`"tags":{`)
+		buf.Write(tags)
+		buf.WriteString(`},`)
+	}
 	buf.WriteString(`"value":`)
 	buf.WriteString(fmt.Sprint(value))
+	buf.WriteByte('}')
+	buf.WriteByte('\n')
+}
+
+func RenderHistogramJSON(
+	buf *bytes.Buffer,
+	key string,
+	labels fun.Future[[]byte],
+	sample *dt.Pairs[float64, int64],
+	ts time.Time,
+) {
+	buf.WriteString(`{"metric":"`)
+
+	buf.WriteString(key)
+	buf.WriteString(`",`)
 	if tags := labels(); tags != nil {
 		buf.WriteString(`,"tags":{`)
 		buf.Write(tags)
 		buf.WriteByte('}')
+		buf.WriteByte(',')
 	}
+	buf.WriteString(`"value":{`)
+	first := true
+	risky.Observe(sample.Iterator(), func(pair dt.Pair[float64, int64]) {
+		if !first {
+			buf.WriteByte(',')
+		}
+		first = false
+		buf.WriteByte('"')
+		fmt.Fprint(buf, int(pair.Key*100))
+		buf.WriteString(`":`)
+		fmt.Fprint(buf, pair.Value)
+	})
+	buf.WriteString("}}")
 	buf.WriteByte('\n')
 }
 
-func RenderLabelsOpenTSB(labels []dt.Pair[string, string], builder *bytes.Buffer) {
-	for _, label := range labels {
+func RenderLabelsOpenTSB(builder *bytes.Buffer, labels []dt.Pair[string, string], extra ...dt.Pair[string, string]) {
+	for _, label := range append(labels, extra...) {
 		builder.WriteString(label.Key)
 		builder.WriteByte('=')
 		builder.WriteString(label.Value)
@@ -49,7 +85,7 @@ func RenderLabelsOpenTSB(labels []dt.Pair[string, string], builder *bytes.Buffer
 	}
 }
 
-func RenderMetricOpenTSB(key string, value int64, ts time.Time, labels fun.Future[[]byte], buf *bytes.Buffer) {
+func RenderMetricOpenTSB(buf *bytes.Buffer, key string, labels fun.Future[[]byte], value int64, ts time.Time) {
 	buf.WriteString("put ")
 	buf.WriteString(key)
 	buf.WriteByte(' ')
@@ -63,8 +99,8 @@ func RenderMetricOpenTSB(key string, value int64, ts time.Time, labels fun.Futur
 	buf.WriteByte('\n')
 }
 
-func RenderLabelsGraphite(labels []dt.Pair[string, string], builder *bytes.Buffer) {
-	for _, label := range labels {
+func RenderLabelsGraphite(builder *bytes.Buffer, labels []dt.Pair[string, string], extra ...dt.Pair[string, string]) {
+	for _, label := range append(labels, extra...) {
 		builder.WriteString(label.Key)
 		builder.WriteByte('=')
 		builder.WriteString(label.Value)
@@ -72,7 +108,7 @@ func RenderLabelsGraphite(labels []dt.Pair[string, string], builder *bytes.Buffe
 	}
 }
 
-func RenderMetricGraphite(key string, value int64, ts time.Time, labels fun.Future[[]byte], buf *bytes.Buffer) {
+func RenderMetricGraphite(buf *bytes.Buffer, key string, labels fun.Future[[]byte], value int64, ts time.Time) {
 	buf.WriteString(key)
 	if tags := labels(); tags != nil {
 		buf.Write(tags)

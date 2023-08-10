@@ -16,10 +16,20 @@ import (
 	"github.com/tychoish/fun/pubsub"
 )
 
-type MetricLabelRenderer func(labels []dt.Pair[string, string], output *bytes.Buffer)
+// MetricLabelRenderer provides an implementation for an ordered set
+// of labels (tags) for a specific metric series. MetricLabels are
+// rendered and cached in the Collector, and the buffered output, is
+// passed as a future to the MetricRenderer function.
+type MetricLabelRenderer func(output *bytes.Buffer, labels []dt.Pair[string, string], extra ...dt.Pair[string, string])
 
-type MetricRenderer func(key string, value int64, ts time.Time, labels fun.Future[[]byte], writer *bytes.Buffer)
+// MetricValueRenderer takes an event and writes the output to a
+// buffer. This makes it possible to use the metrics system with
+// arbitrary output formats and targets.
+type MetricValueRenderer func(writer *bytes.Buffer, key string, labels fun.Future[[]byte], value int64, ts time.Time)
 
+// Collector maintains the local state of collected metrics: metric
+// series are registered lazily when they are first sent, and the
+// collector tracks the value and is responsible for orchestrating.
 type Collector struct {
 	local adt.Map[string, *dt.List[*tracked]]
 	loops adt.Map[time.Duration, fun.Handler[*tracked]]
@@ -28,7 +38,7 @@ type Collector struct {
 	broker  *pubsub.Broker[MetricPublisher]
 	publish *pubsub.Deque[MetricPublisher]
 
-	conf CollectorConf
+	CollectorConf
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -63,7 +73,7 @@ func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collec
 		return c, nil
 	}
 
-	c.broker = pubsub.NewDequeBroker[MetricPublisher](ctx, c.publish, c.conf.BrokerOptions)
+	c.broker = pubsub.NewDequeBroker[MetricPublisher](ctx, c.publish, c.BrokerOptions)
 	for idx := range conf.Backends {
 		ch := c.broker.Subscribe(ctx)
 		conf.Backends[idx].Worker(fun.ChannelIterator(ch)).
@@ -120,7 +130,7 @@ func (c *Collector) PushEvent(e *Event) {
 		buf := c.pool.Get()
 		defer c.pool.Put(buf)
 
-		e.m.RenderTo(e.m.ID, val, e.ts, buf)
+		c.MetricRenderer(buf, e.m.ID, e.m.labelsf, val, e.ts)
 
 		return ft.IgnoreFirst(wr.Write(buf.Bytes()))
 	})
@@ -175,6 +185,14 @@ func (c *Collector) getRegisteredTracked(e *Event) *tracked {
 	return tr
 }
 
+func lazyDefault[T comparable](input T, fn func() T) T {
+	// TODO: use from ft following next release
+	if ft.IsZero(input) {
+		return fn()
+	}
+	return input
+}
+
 ////////////////////////////////////////////////////////////////////////
 //
 // background metrics collection.
@@ -189,6 +207,9 @@ func (c *Collector) addBackground(tr *tracked) {
 	case tr.meta.Type == MetricTypeHistogram:
 		dur = tr.meta.hconf.Interval
 	default:
+		return
+	}
+	if dur == 0 {
 		return
 	}
 
@@ -232,7 +253,7 @@ func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
 						if err := pipe.Iterator().Observe(ctx, func(tr *tracked) {
 							buf := c.pool.Get()
 
-							tr.local.Resolve(tr.meta, buf)
+							tr.local.Resolve(buf)
 
 							fun.Invariant.Must(c.publish.PushBack(func(wr io.Writer) error {
 								defer c.pool.Put(buf)

@@ -1,8 +1,8 @@
 package series
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -66,12 +66,29 @@ type Event struct {
 }
 
 func (e *Event) String() string {
-	if !e.resolved {
-		return fmt.Sprint("Metric<%s> Event<UNRESOLVED>", e.m.ID)
+	if e.m == nil {
+		return "Metric<UNKNOWN>"
 	}
-	e.m.resolve()
 
-	return fmt.Sprint("Metric<%s> Labels<%s> Event<%d>", e.m.ID, e.m.labelstr(), e.value)
+	if !e.resolved {
+		return fmt.Sprintf("Metric<%s> Event<UNRESOLVED>", e.m.ID)
+	}
+
+	return fmt.Sprintf("Metric<%s> Labels<%s> Event<%d>", e.m.ID, e.m.labelstr(), e.value)
+}
+
+func (e *Event) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ID    string         `json:"id"`
+		Type  MetricType     `json:"type"`
+		Tags  json.Marshaler `json:"tags"`
+		Value int64          `json:"value"`
+	}{
+		ID:    e.m.ID,
+		Type:  e.m.Type,
+		Tags:  e.m.labelCache(),
+		Value: e.value,
+	})
 }
 
 func (m *Metric) Dec() *Event { return m.Add(-1) }
@@ -95,18 +112,27 @@ func (m *Metric) CollectAdd(fn fun.Future[int64]) *Event {
 func (m *Metric) factory() localMetricValue {
 	switch m.Type {
 	case MetricTypeCounter:
-		return &localDelta{}
+		return &localDelta{metric: m}
 	case MetricTypeGuage:
-		return &localGauge{}
+		return &localGauge{metric: m}
 	case MetricTypeHistogram:
 		fun.Invariant.OK(m.hconf != nil, "histograms must have configuration")
-		return m.hconf.factory()()
+		conf := m.hconf.factory()()
+		return conf
 	default:
 		panic(fmt.Errorf("%q is not a valid metric type: %w", m.Type, fun.ErrInvariantViolation))
 	}
 }
 
 func (m *Metric) resolve() {
+	if m.Type == MetricTypeHistogram && m.hconf != nil && m.hconf.Renderer == nil {
+		if m.coll.DefaultHistogramRender != nil {
+			m.hconf.Renderer = m.coll.DefaultHistogramRender
+		} else {
+			m.hconf.Renderer = MakeDefaultHistogramMetricRenderer(m.coll.MetricRenderer)
+		}
+	}
+
 	if m.labelsf == nil {
 		m.labelsf = fun.Futurize(func() []byte {
 			if m.labels.Len() == 0 {
@@ -115,10 +141,11 @@ func (m *Metric) resolve() {
 
 			builder := m.coll.pool.Get()
 			defer m.coll.pool.Put(builder)
-			m.coll.conf.LabelRenderer(m.labelCache().Slice(), builder)
+			m.coll.LabelRenderer(builder, m.labelCache().Slice())
 			return builder.Bytes()
 		}).Once()
 	}
+
 	if m.labelCache == nil {
 		m.labelCache = fun.Futurize(func() *dt.Pairs[string, string] {
 			ps := &dt.Pairs[string, string]{}
@@ -132,6 +159,7 @@ func (m *Metric) resolve() {
 			return ps
 		}).Once()
 	}
+
 	if m.labelstr == nil {
 		m.labelstr = fun.Futurize(func() string {
 			ps := m.labelCache()
@@ -149,8 +177,4 @@ func (m *Metric) resolve() {
 			return buf.String()
 		}).Once()
 	}
-}
-
-func (m *Metric) RenderTo(key string, value int64, ts time.Time, buf *bytes.Buffer) {
-	m.coll.conf.MetricRenderer(key, value, ts, m.labelsf, buf)
 }
