@@ -96,7 +96,7 @@ func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collec
 		break
 	}
 	if c.errs.HasErrors() {
-		c.wg.Operation().Block()
+		c.wg.Operation().Wait()
 		return nil, c.errs.Resolve()
 	}
 	return c, nil
@@ -109,7 +109,7 @@ func (c *Collector) Close() error {
 	}
 
 	c.errs.Add(c.publish.Close())
-	c.wg.Operation().Block()
+	c.wg.Operation().Wait()
 
 	return c.errs.Resolve()
 }
@@ -183,14 +183,6 @@ func (c *Collector) getRegisteredTracked(e *Event) *tracked {
 	trl.PushBack(tr)
 	c.addBackground(tr)
 	return tr
-}
-
-func lazyDefault[T comparable](input T, fn func() T) T {
-	// TODO: use from ft following next release
-	if ft.IsZero(input) {
-		return fn()
-	}
-	return input
 }
 
 ////////////////////////////////////////////////////////////////////////

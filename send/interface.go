@@ -31,7 +31,7 @@ type Sender interface {
 	SetName(string)
 
 	// Method that actually sends messages (the string) to the logging
-	// capture system. The Send() method filters out logged messages based
+	// capture system. The Send() method filters out logged messages
 	// based on priority, typically using the generic
 	// MessageInfo.ShouldLog() function.
 	Send(message.Composer)

@@ -9,7 +9,7 @@ import (
 
 // Converter is an interface for converting arbitrary types to
 // Composers. Like the http.Handler interface, the primary form of
-// implementing the interface is by by ConverterFunc itself, which
+// implementing the interface is by ConverterFunc itself, which
 // implements Converter.
 //
 // The DefaultConverter function produces a wrapper around the Convert

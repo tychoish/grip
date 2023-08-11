@@ -71,7 +71,7 @@
 
 // Use conditional logging methods to potentially suppress log messages
 // based on situations orthogonal to log level, with "log sometimes" or
-// "log rarely" semantics. Combine with Composers to to avoid expensive
+// "log rarely" semantics. Combine with Composers to avoid expensive
 // message building operations.
 package grip
 

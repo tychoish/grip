@@ -3,11 +3,11 @@ package message
 import (
 	"context"
 	"fmt"
-
 	"strings"
 
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/grip/level"
 )
@@ -49,8 +49,14 @@ func (p *PairBuilder) Iterator(ctx context.Context, iter *fun.Iterator[dt.Pair[s
 }
 
 // MakeKV constructs a new Composer using KV (dt.Pair[string, any]).
-func MakeKV(kvs ...dt.Pair[string, any]) Composer     { return BuildPair().Append(kvs...) }
-func MakePairs(kvs *dt.Pairs[string, any]) Composer   { return &PairBuilder{kvs: *kvs} }
+func MakeKV(kvs ...dt.Pair[string, any]) Composer { return BuildPair().Append(kvs...) }
+
+func MakePairs(kvs *dt.Pairs[string, any]) Composer {
+	p := &PairBuilder{}
+	ers.Ignore(p.kvs.Consume(context.Background(), kvs.Iterator()))
+	return p
+}
+
 func KV(k string, v any) dt.Pair[string, any]         { return dt.MakePair(k, v) }
 func (p *PairBuilder) Annotate(key string, value any) { p.kvs.Add(key, value) }
 func (p *PairBuilder) Loggable() bool                 { return p.kvs.Len() > 0 }
@@ -63,7 +69,7 @@ func (p *PairBuilder) Raw() any {
 		p.hasMetadata = true
 	}
 
-	return p.kvs
+	return &p.kvs
 }
 
 func (p *PairBuilder) String() string {

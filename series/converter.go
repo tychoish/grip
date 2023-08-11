@@ -188,27 +188,27 @@ func hasMetrics[T extractableMessageTypes](in T) (isMetric bool) {
 		dt.Mapify(ev).Values().Process(fun.MakeProcessor(func(in any) (err error) {
 			isMetric, err = isEventTyped(in)
 			return
-		})).Ignore().Block()
+		})).Ignore().Wait()
 	case *dt.Pairs[string, any]:
 		ev.Values().Process(fun.MakeProcessor(func(in any) (err error) {
 			isMetric, err = isEventTyped(in)
 			return
-		})).Ignore().Block()
+		})).Ignore().Wait()
 	case []dt.Pair[string, any]:
 		dt.Sliceify(ev).Iterator().Process(fun.MakeProcessor(func(in dt.Pair[string, any]) (err error) {
 			isMetric, err = isEventTyped(in.Value)
 			return
-		})).Ignore().Block()
+		})).Ignore().Wait()
 	case []*dt.Pair[string, any]:
 		dt.Sliceify(ev).Iterator().Process(fun.MakeProcessor(func(in *dt.Pair[string, any]) (err error) {
 			isMetric, err = isEventTyped(in.Value)
 			return
-		})).Ignore().Block()
+		})).Ignore().Wait()
 	case []any:
 		dt.Sliceify(ev).Iterator().Process(fun.MakeProcessor(func(in any) (err error) {
 			isMetric, err = isEventTyped(in)
 			return
-		})).Ignore().Block()
+		})).Ignore().Wait()
 	case any:
 		isMetric = ft.IgnoreSecond(isEventTyped(ev))
 	}

@@ -165,8 +165,6 @@ func (g *GroupComposer) SetPriority(l level.Priority) {
 			m.SetPriority(l)
 		})
 	})
-
-	return
 }
 
 // Messages returns a the underlying collection of messages.

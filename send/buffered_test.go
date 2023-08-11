@@ -28,7 +28,7 @@ func TestBufferedSend(t *testing.T) {
 		bs := newBufferedSender(s, time.Minute, 10)
 		defer bs.cancel()
 
-		bs.Send(convertWithPriority(level.Trace, fmt.Sprintf("should not send")))
+		bs.Send(convertWithPriority(level.Trace, "should not send"))
 		if len(bs.buffer) != 0 {
 			t.Fatal("buffer should be empty")
 		}

@@ -99,6 +99,4 @@ func (b *Base) Annotate(key string, value any) {
 	}
 
 	b.Context[key] = value
-
-	return
 }

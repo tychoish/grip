@@ -82,7 +82,6 @@ func (s *multiSender) add(sender Sender) {
 	// is not set, then senders should just have their own level values.
 	sender.SetPriority(s.Base.Priority())
 	s.senders = append(s.senders, sender)
-	return
 }
 
 func (s *multiSender) Name() string { return s.Base.Name() }

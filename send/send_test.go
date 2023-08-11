@@ -211,17 +211,6 @@ func functionalMockSenders(t *testing.T, in map[string]Sender) map[string]Sender
 	return out
 }
 
-func TestSenderImplementsInterface(t *testing.T) {
-	// this actually won't catch the error; the compiler will in
-	// the fixtures, but either way we need to make sure that the
-	// tests actually enforce this.
-	for name, sender := range senderFixture(t) {
-		if _, ok := sender.(Sender); !ok {
-			t.Errorf("sender %q does not implement interface Sender", name)
-		}
-	}
-}
-
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()"
 
 func randomString(n int, r *rand.Rand) string {

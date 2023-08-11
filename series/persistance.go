@@ -6,12 +6,16 @@ import (
 	"context"
 	"errors"
 	"io"
+	"math/rand"
+	"net"
 	"os"
+	"time"
 
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/ft"
+	"github.com/tychoish/fun/pubsub"
 	"github.com/tychoish/grip/send"
 )
 
@@ -127,4 +131,217 @@ func LoggerBackend(sender send.Sender) CollectorBackend {
 		}
 		return nil
 	}
+}
+
+type CollectorBakendSocketOptionProvider = fun.OptionProvider[*CollectorBackendSocketConf]
+
+type CollectorBackendSocketConf struct {
+	Dialer  net.Dialer
+	Network string // tcp or udb
+	Address string
+
+	DialWorkers       int
+	IdleConns         int
+	MinDialRetryDelay time.Duration
+	MaxDialRetryDelay time.Duration
+	DialErrorHandling CollectorBackendSocketErrorOption
+
+	MessageWorkers       int
+	NumMessageRetries    int
+	MinMessageRetryDelay time.Duration
+	MaxMessageRetryDelay time.Duration
+	MessageErrorHandling CollectorBackendSocketErrorOption
+}
+
+func handleSocketBackedError(
+	eh fun.Handler[error],
+	op CollectorBackendSocketErrorOption,
+	err error,
+) (bool, error) {
+	switch {
+	case err == nil:
+		return true, nil
+	case ers.ContextExpired(err):
+		return true, err
+	case errors.Is(err, pubsub.ErrQueueClosed):
+		return true, nil
+	default:
+		switch op {
+		case CollectorBackendSocketErrorContinue:
+			return false, nil
+		case CollectorBackendSocketErrorAbort:
+			return true, err
+		case CollectorBackendSocketErrorCollect:
+			return false, nil
+		case CollectorBackendSocketErrorPanic:
+			panic(err)
+		}
+	}
+	return false, nil
+}
+
+func (conf CollectorBackendSocketConf) handleDialError(eh fun.Handler[error], err error) (bool, error) {
+	return handleSocketBackedError(eh, conf.DialErrorHandling, err)
+}
+
+func (conf CollectorBackendSocketConf) handleMessageError(eh fun.Handler[error], err error) (bool, error) {
+	return handleSocketBackedError(eh, conf.MessageErrorHandling, err)
+}
+
+type CollectorBackendSocketErrorOption int8
+
+const (
+	CollectorBackendSocketErrorINVALID CollectorBackendSocketErrorOption = iota
+	CollectorBackendSocketErrorAbort
+	CollectorBackendSocketErrorContinue
+	CollectorBackendSocketErrorCollect
+	CollectorBackendSocketErrorPanic
+	CollectorBackendSocketErrorUNSPECIFIED
+)
+
+func (co CollectorBackendSocketErrorOption) poolErrorOptions() fun.OptionProvider[*fun.WorkerGroupConf] {
+	return func(conf *fun.WorkerGroupConf) error {
+		switch co {
+		case CollectorBackendSocketErrorAbort:
+			conf.ContinueOnError = false
+			conf.ContinueOnPanic = false
+		case CollectorBackendSocketErrorContinue:
+			conf.ContinueOnError = true
+			conf.ContinueOnPanic = true
+		case CollectorBackendSocketErrorPanic:
+			conf.ContinueOnError = false
+			conf.ContinueOnPanic = false
+		case CollectorBackendSocketErrorCollect:
+			conf.ContinueOnError = true
+			conf.ContinueOnPanic = false
+		}
+		return nil
+	}
+}
+
+type connCacheItem struct {
+	conn    net.Conn
+	written uint64
+	nerrs   int
+	closed  bool
+}
+
+func (c *connCacheItem) Write(in []byte) (int, error) {
+	n, err := c.conn.Write(in)
+	if err != nil {
+		c.nerrs++
+	}
+	c.written += uint64(n)
+	return n, err
+}
+
+func (c *connCacheItem) Close() error { c.closed = true; return c.conn.Close() }
+
+func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBackend, error) {
+	conf := &CollectorBackendSocketConf{}
+	if err := fun.JoinOptionProviders(opts...).Apply(conf); err != nil {
+		return nil, err
+	}
+
+	// TODO have a pipe that we can use to put connections in?
+	// maybe just a single worker?
+	connCache, err := pubsub.NewDeque[*connCacheItem](pubsub.DequeOptions{Capacity: conf.IdleConns})
+	if err != nil {
+		return nil, err
+	}
+
+	ec := &erc.Collector{}
+	conPoolWorker := fun.Worker(func(ctx context.Context) error {
+		return fun.Worker(func(ctx context.Context) error {
+			timer := time.NewTimer(0)
+			defer timer.Stop()
+
+			var isFinal bool
+
+		LOOP:
+			for {
+				if connCache.Len() < conf.IdleConns {
+					cc, err := conf.Dialer.DialContext(ctx, conf.Network, conf.Address)
+					isFinal, err = conf.handleDialError(ec.Add, err)
+					switch {
+					case err == nil && cc != nil:
+						if _, err = conf.handleDialError(ec.Add, connCache.WaitPushBack(ctx, &connCacheItem{conn: cc})); err != nil {
+							return err
+						}
+					case err == nil && cc == nil:
+						continue LOOP
+					case isFinal:
+						return err
+					case !isFinal:
+						continue
+					}
+				}
+
+				timer.Reset(conf.MinDialRetryDelay + time.Duration(rand.Int63n(int64(conf.MaxDialRetryDelay))))
+				if connCache.Len() >= conf.IdleConns {
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					case <-timer.C:
+					}
+				}
+
+			}
+
+		}).StartGroup(ctx, conf.DialWorkers).Run(ctx)
+	})
+
+	return func(ctx context.Context, iter *fun.Iterator[MetricPublisher]) error {
+		return iter.ProcessParallel(
+			func(ctx context.Context, pub MetricPublisher) (err error) {
+				conn, err := connCache.WaitFront(ctx)
+				if err != nil {
+					return err
+				}
+				defer func() {
+					if err == nil {
+						go ft.Ignore(connCache.WaitPushBack(ctx, conn))
+						return
+					}
+					if ers.ContextExpired(err) || conn == nil {
+						return
+					}
+
+					err = erc.Join(err, ft.IgnoreFirst(conf.handleMessageError(ec.Add, conn.conn.Close())))
+				}()
+
+				timer := time.NewTimer(0)
+				defer timer.Stop()
+				var isFinal bool
+				for i := 0; i < conf.NumMessageRetries; i++ {
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					case <-timer.C:
+					}
+
+					err = pub(conn)
+
+					isFinal, err = conf.handleMessageError(ec.Add, err)
+					if isFinal {
+						return err
+					}
+
+					_ = conn.conn.Close()
+
+					conn, err = connCache.WaitFront(ctx)
+					if err != nil {
+						return err
+					}
+
+					timer.Reset(conf.MinMessageRetryDelay + time.Duration(rand.Int63n(int64(conf.MinMessageRetryDelay))))
+				}
+
+				return
+			},
+			fun.WorkerGroupConfErrorHandler(ec.Add),
+			fun.WorkerGroupConfNumWorkers(conf.MessageWorkers),
+			conf.MessageErrorHandling.poolErrorOptions(),
+		).PreHook(conPoolWorker.Operation(ec.Add)).PostHook(func() { /* do cancel */ }).Run(ctx)
+	}, nil
 }

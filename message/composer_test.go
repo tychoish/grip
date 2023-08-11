@@ -43,9 +43,6 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 				t.Error("value should not be nill")
 			}
 
-			if _, ok := msg.(Composer); !ok {
-				t.Errorf("message %T should implement composer", msg)
-			}
 			if !msg.Loggable() {
 				t.Errorf("value should be true [%T]", msg)
 			}
@@ -134,9 +131,6 @@ func TestStackMessages(t *testing.T) {
 	for msg, text := range cases {
 		if msg == nil {
 			t.Error("value should not be nill")
-		}
-		if _, ok := msg.(Composer); !ok {
-			t.Errorf("message %T should implement composer", msg)
 		}
 		if msg.Raw() == nil {
 			t.Error("value should not be nill")

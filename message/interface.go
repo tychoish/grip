@@ -69,7 +69,7 @@ type Option string
 
 const (
 	// OptionIncludeMetadata tells the message to annotate itself
-	// basic metadata metadata to a message.
+	// basic metadata to a message.
 	OptionIncludeMetadata Option = "include-metadata"
 	// OptionSkipMetadata disables the inclusion of metadata
 	// in the output messaage. This is typically the default in
