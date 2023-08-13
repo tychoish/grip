@@ -14,6 +14,7 @@ import (
 type MetricType string
 
 const (
+	MetricTypeDeltas    MetricType = "deltas"
 	MetricTypeCounter   MetricType = "counter"
 	MetricTypeGuage     MetricType = "gauge"
 	MetricTypeHistogram MetricType = "histogram"
@@ -38,8 +39,8 @@ type Metric struct {
 func Gauge(id string) *Metric   { return &Metric{ID: id, Type: MetricTypeGuage} }
 func Counter(id string) *Metric { return &Metric{ID: id, Type: MetricTypeCounter} }
 func Histogram(id string, opts ...HistogramOptionProvider) *Metric {
-	conf := &HistogramConf{}
-	fun.Invariant.Must(fun.JoinOptionProviders(opts...).Apply(conf))
+	conf := MakeDefaultHistogramConf()
+	fun.Invariant.Must(conf.Apply())
 	return &Metric{ID: id, Type: MetricTypeHistogram, hconf: conf}
 }
 
@@ -111,10 +112,12 @@ func (m *Metric) CollectAdd(fn fun.Future[int64]) *Event {
 
 func (m *Metric) factory() localMetricValue {
 	switch m.Type {
-	case MetricTypeCounter:
+	case MetricTypeDeltas:
 		return &localDelta{metric: m}
 	case MetricTypeGuage:
-		return &localGauge{metric: m}
+		return &localIntValue{metric: m}
+	case MetricTypeCounter:
+		return &localIntValue{metric: m}
 	case MetricTypeHistogram:
 		fun.Invariant.OK(m.hconf != nil, "histograms must have configuration")
 		conf := m.hconf.factory()()
@@ -167,7 +170,7 @@ func (m *Metric) resolve() {
 			defer m.coll.pool.Put(buf)
 			risky.Observe(ps.Iterator(), func(p dt.Pair[string, string]) {
 				if buf.Len() > 0 {
-					buf.WriteByte(';')
+					buf.WriteByte(',')
 				}
 				buf.WriteString(p.Key)
 				buf.WriteByte('=')

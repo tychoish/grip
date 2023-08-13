@@ -45,6 +45,12 @@ type Collector struct {
 	wg     fun.WaitGroup
 	errs   erc.Collector
 }
+type MetricSnapshot struct {
+	Name      string
+	Labels    string
+	Value     int64
+	Timestamp time.Time
+}
 
 func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collector, error) {
 	conf := &CollectorConf{}
@@ -124,7 +130,7 @@ func (c *Collector) PushEvent(e *Event) {
 	e.value = val
 	e.resolved = true
 
-	tr.lastMod.Set(e.ts)
+	tr.lastMod.Set(dt.MakePair(val, e.ts))
 
 	c.distribute(func(wr io.Writer) error {
 		buf := c.pool.Get()
@@ -138,6 +144,38 @@ func (c *Collector) PushEvent(e *Event) {
 	if e.m.dur > 0 && tr.dur.CompareAndSwap(0, int64(e.m.dur)) {
 		c.submitBackground(e.m.dur, tr)
 	}
+}
+
+// Iterator iterates through every metric and label combination, and
+// takes a (rough) snapshot of each metric. Rough only because the
+// timestamps and last metric may not always be synchronixed with
+func (c *Collector) Iterator() *fun.Iterator[MetricSnapshot] {
+	pipe := fun.Blocking(make(chan *tracked))
+	proc := pipe.Send().Processor()
+	ec := &erc.Collector{}
+
+	// This is a pretty terse way of implementing this
+	// transformation pipeline, but:
+	//
+	// map[ids][]trackedMetrics => join([][]trackedMetrics) => []trackedMetrics =>transformationFunction => []MetricSnapshot
+
+	return fun.ConvertIterator(
+		// the pipe is just a channel that we turn into an
+		// iterator, with a "pre hook" that populates the pipe
+		// by starting a goroutine. Errors are captured in the
+		// collector.
+		pipe.Producer().PreHook(
+			c.local.Values().Process(func(ctx context.Context, list *dt.List[*tracked]) error {
+				return list.Iterator().Process(proc).Run(ctx)
+			}).Operation(ec.Handler()).Launch().Once(),
+		).IteratorWithHook(func(iter *fun.Iterator[*tracked]) { iter.AddError(ec.Resolve()) }),
+		// transformation function to convert the iterator of
+		// tracked
+		fun.Converter(func(tr *tracked) MetricSnapshot {
+			last := tr.lastMod.Load()
+			return MetricSnapshot{Name: tr.meta.ID, Labels: tr.meta.labelstr(), Value: last.Key, Timestamp: last.Value}
+		}),
+	)
 }
 
 func (c *Collector) distribute(fn MetricPublisher) {
@@ -158,7 +196,7 @@ func (c *Collector) distribute(fn MetricPublisher) {
 type tracked struct {
 	meta    *Metric // must be immutable
 	local   localMetricValue
-	lastMod adt.Atomic[time.Time]
+	lastMod adt.Atomic[dt.Pair[int64, time.Time]]
 	dur     atomic.Int64
 }
 

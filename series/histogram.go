@@ -3,6 +3,7 @@ package series
 import (
 	"bytes"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/tychoish/fun"
@@ -74,6 +75,10 @@ func MakeDefaultHistogramConf() *HistogramConf {
 	}
 }
 
+func (conf *HistogramConf) Apply(opts ...HistogramOptionProvider) error {
+	return fun.JoinOptionProviders(opts...).Apply(conf)
+}
+
 func (conf *HistogramConf) factory() fun.Future[localMetricValue] {
 	return func() localMetricValue {
 		out := &localHistogram{}
@@ -109,6 +114,10 @@ func HistogramConfOutOfRange(spec HistogramOutOfRangeOption) HistogramOptionProv
 func HistogramConfSet(arg *HistogramConf) HistogramOptionProvider {
 	return func(conf *HistogramConf) error { *conf = *arg; return nil }
 }
+func HistogramConfReset() HistogramOptionProvider {
+	return func(conf *HistogramConf) error { *conf = HistogramConf{}; return nil }
+}
+
 func HistogramConfLowerBound(in int64) HistogramOptionProvider {
 	return func(conf *HistogramConf) error { conf.Min = in; return nil }
 }
@@ -149,6 +158,7 @@ type localHistogram struct {
 	hdrh   adt.Synchronized[*hdrhist.Histogram]
 	conf   *HistogramConf
 	metric *Metric
+	last   atomic.Int64
 }
 
 func (lh *localHistogram) Apply(op func(int64) int64) int64 {
@@ -172,10 +182,13 @@ func (lh *localHistogram) Apply(op func(int64) int64) int64 {
 			// pass
 		}
 
+		lh.last.Store(val)
 		fun.Invariant.Must(hist.RecordValue(val))
 	})
 	return val
 }
+
+func (lh *localHistogram) Last() int64 { return lh.last.Load() }
 
 func (lh *localHistogram) Resolve(wr *bytes.Buffer) {
 	now := time.Now().UTC().Round(time.Millisecond)

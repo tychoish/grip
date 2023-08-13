@@ -12,6 +12,9 @@
 //
 // The x/metrics package includes basic implementations and
 // integrations with third party libraries.
+//
+// This implementation is alpha quality at the moment. Pull requests
+// welcome.
 package series
 
 import (
@@ -20,8 +23,6 @@ import (
 )
 
 // TODO:
-//   - implement prom formatting/renderer
-//   - implement connection handling for tcp graphite connection
 //   - adapters for current x/metrics package functionality/helpers
 
 func example() { //nolint:unused
