@@ -23,7 +23,7 @@ import (
 
 type MetricPublisher func(io.Writer) error
 
-type CollectorBackend func(context.Context, *fun.Iterator[MetricPublisher]) error
+type CollectorBackend fun.Processor[*fun.Iterator[MetricPublisher]]
 
 func (cb CollectorBackend) Worker(iter *fun.Iterator[MetricPublisher]) fun.Worker {
 	return func(ctx context.Context) error {

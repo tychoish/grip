@@ -55,6 +55,28 @@ type MetricSnapshot struct {
 	Timestamp time.Time
 }
 
+// NewCollector constructs a collector service that is responsible for
+// collecting and distributing metric events. There are several basic
+// modes of operation:
+//
+// - Embeded: Use series.Sender to create in a grip/send.Sender: here
+// the collector wraps the sender and intercepts events from normal
+// logger messages. The series.WithMetrics helper can attach metrics.
+//
+// - Directly: You can use the Push/Publish/Stream/PushEvent methods
+// to send events to the collector.
+//
+// - Background: Using the Register() method you can add a function to
+// the Collector which will collect its result and distribute them on
+// the provided backend.
+//
+// Output from a collector is managed by CollectorBackends, which may
+// be implemented externally (a backend is a fun.Processor function
+// that consumes (and processes!) fun.Iterator[series.MetricPublisher]
+// objects. Metrics publishers, then are closures that write the
+// metrics format to an io.Writer, while the formatting of a message
+// is controlled by the <>Renderer function in the Collector
+// configuration.
 func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collector, error) {
 	conf := &CollectorConf{}
 	if err := fun.JoinOptionProviders(opts...).Apply(conf); err != nil {
@@ -92,18 +114,6 @@ func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collec
 			Add(ctx, &c.wg)
 	}
 
-	ticker := time.NewTicker(500 * time.Microsecond)
-	for {
-		select {
-		case <-ticker.C:
-			if c.wg.Num() < len(conf.Backends) && !c.errs.HasErrors() {
-				continue
-			}
-		case <-ctx.Done():
-			c.errs.Add(ers.Wrap(ctx.Err(), "did not complete startup"))
-		}
-		break
-	}
 	if c.errs.HasErrors() {
 		c.wg.Operation().Wait()
 		return nil, c.errs.Resolve()
