@@ -11,6 +11,12 @@ import (
 	"github.com/tychoish/grip/message"
 )
 
+// EventExtractor is a type that is implementable by arbitrary types
+// to create events.
+type EventExtractor interface {
+	Events() []*Event
+}
+
 // MetricMessage is a collection of events and a message.Composer
 // object that can be used as a message.Composer but that also
 // contains some number of events.
@@ -58,11 +64,6 @@ func (m *MetricMessage) Raw() any {
 		}(),
 	}
 
-}
-
-// EventExtractor is a type that is implementable
-type EventExtractor interface {
-	Events() []*Event
 }
 
 // Message is a simple constructor around *MetricMessage (which

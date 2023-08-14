@@ -120,6 +120,8 @@ func (c *Collector) Close() error {
 	return c.errs.Resolve()
 }
 
+func (c *Collector) Push(events ...*Event)   { c.Publish(events) }
+func (c *Collector) Publish(events []*Event) { dt.Sliceify(events).Observe(c.PushEvent) }
 func (c *Collector) PushEvent(e *Event) {
 	if e.m == nil {
 		return
@@ -132,6 +134,10 @@ func (c *Collector) PushEvent(e *Event) {
 
 	tr.lastMod.Set(dt.MakePair(val, e.ts))
 
+	if tr.dur.Load() != 0 {
+		return
+	}
+
 	c.distribute(func(wr io.Writer) error {
 		buf := c.pool.Get()
 		defer c.pool.Put(buf)
@@ -140,10 +146,11 @@ func (c *Collector) PushEvent(e *Event) {
 
 		return ft.IgnoreFirst(wr.Write(buf.Bytes()))
 	})
+}
 
-	if e.m.dur > 0 && tr.dur.CompareAndSwap(0, int64(e.m.dur)) {
-		c.submitBackground(e.m.dur, tr)
-	}
+// Register runs an event producing function,
+func (c *Collector) Register(prod fun.Producer[[]*Event], dur time.Duration) {
+	c.wg.Launch(c.ctx, prod.Operation(c.Publish, c.errs.Handler()).Interval(dur))
 }
 
 // Iterator iterates through every metric and label combination, and
