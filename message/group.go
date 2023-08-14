@@ -56,7 +56,7 @@ func (g *GroupComposer) String() string {
 		prod := list.Producer()
 
 		for {
-			val, ok := prod.CheckBlock()
+			val, ok := prod.CheckForce()
 			if !ok {
 				break
 			}
@@ -79,7 +79,7 @@ func (g *GroupComposer) Raw() any {
 
 		iter := list.Producer()
 		for {
-			m, ok := iter.CheckBlock()
+			m, ok := iter.CheckForce()
 			if !ok {
 				break
 			}
@@ -99,7 +99,7 @@ func (g *GroupComposer) Loggable() bool {
 	g.messages.With(func(list *dt.List[Composer]) {
 		prod := list.Producer()
 		for {
-			m, ok := prod.CheckBlock()
+			m, ok := prod.CheckForce()
 			if !ok {
 				break
 			}
@@ -118,7 +118,7 @@ func (g *GroupComposer) Structured() bool {
 	g.messages.With(func(list *dt.List[Composer]) {
 		prod := list.Producer()
 		for {
-			m, ok := prod.CheckBlock()
+			m, ok := prod.CheckForce()
 			if !ok {
 				break
 			}
@@ -139,7 +139,7 @@ func (g *GroupComposer) Priority() level.Priority {
 	g.messages.With(func(list *dt.List[Composer]) {
 		prod := list.Producer()
 		for {
-			m, ok := prod.CheckBlock()
+			m, ok := prod.CheckForce()
 			if !ok {
 				break
 			}
@@ -193,7 +193,7 @@ func (g *GroupComposer) Unwrap() Composer {
 			}
 		default:
 			prod := list.Producer()
-			val, ok := prod.CheckBlock()
+			val, ok := prod.CheckForce()
 			if !ok {
 				return
 			}
@@ -201,7 +201,7 @@ func (g *GroupComposer) Unwrap() Composer {
 			wrapped := &wrappedImpl{parent: val}
 
 			for {
-				val, ok := prod.CheckBlock()
+				val, ok := prod.CheckForce()
 				if !ok {
 					break
 				}

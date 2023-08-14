@@ -88,7 +88,7 @@ func (p *PairBuilder) String() string {
 	var seenMetadata bool
 	prod := p.kvs.Iterator().Producer()
 	for {
-		kv, ok := prod.CheckBlock()
+		kv, ok := prod.CheckForce()
 		if !ok {
 			break
 		}

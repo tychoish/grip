@@ -60,7 +60,7 @@ func (m *Metric) Labels(set *dt.Set[dt.Pair[string, string]]) *Metric {
 }
 
 func (m *Metric) Equal(two *Metric) bool {
-	return m.Type == two.Type && m.ID == two.ID && m.labels.Equal(two.labels)
+	return m.Type == two.Type && m.ID == two.ID && m.labels.Equal(&two.labels)
 }
 
 // Periodic sets an interval for the metrics to be reported: new

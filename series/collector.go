@@ -196,7 +196,7 @@ func (c *Collector) Iterator() *fun.Iterator[MetricSnapshot] {
 		pipe.Producer().PreHook(
 			c.local.Values().Process(func(ctx context.Context, list *dt.List[*tracked]) error {
 				return list.Iterator().Process(proc).Run(ctx)
-			}).Operation(ec.Handler()).Launch().Once(),
+			}).Operation(ec.Handler()).Go().Once(),
 		).IteratorWithHook(func(iter *fun.Iterator[*tracked]) { iter.AddError(ec.Resolve()) }),
 		// transformation function to convert the iterator of
 		// tracked
@@ -237,7 +237,7 @@ func (c *Collector) getRegisteredTracked(e *Event) *tracked {
 	trl := c.local.Get(e.m.ID)
 
 	if trl.Len() > 0 {
-		for el := trl.Front(); el.Ok(); el = el.Next() {
+		for el := trl.Front(); el.OK(); el = el.Next() {
 			if el.Value().meta.Equal(e.m) {
 				return el.Value()
 			}
