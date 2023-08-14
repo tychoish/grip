@@ -45,6 +45,9 @@ type Collector struct {
 	wg     fun.WaitGroup
 	errs   erc.Collector
 }
+
+// MetricSnapshot is the export format for a metric series at a given
+// point of time.
 type MetricSnapshot struct {
 	Name      string
 	Labels    string
@@ -122,6 +125,14 @@ func (c *Collector) Close() error {
 
 func (c *Collector) Push(events ...*Event)   { c.Publish(events) }
 func (c *Collector) Publish(events []*Event) { dt.Sliceify(events).Observe(c.PushEvent) }
+
+func (c *Collector) Stream(
+	iter *fun.Iterator[*Event],
+	opts ...fun.OptionProvider[*fun.WorkerGroupConf],
+) fun.Worker {
+	return iter.ProcessParallel(fun.Handle(c.PushEvent).Processor(), opts...)
+}
+
 func (c *Collector) PushEvent(e *Event) {
 	if e.m == nil {
 		return
@@ -155,7 +166,8 @@ func (c *Collector) Register(prod fun.Producer[[]*Event], dur time.Duration) {
 
 // Iterator iterates through every metric and label combination, and
 // takes a (rough) snapshot of each metric. Rough only because the
-// timestamps and last metric may not always be synchronixed with
+// timestamps and last metric may not always be (exactly) synchronized
+// with regards to eachother.
 func (c *Collector) Iterator() *fun.Iterator[MetricSnapshot] {
 	pipe := fun.Blocking(make(chan *tracked))
 	proc := pipe.Send().Processor()

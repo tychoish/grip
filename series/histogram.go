@@ -117,7 +117,6 @@ func HistogramConfSet(arg *HistogramConf) HistogramOptionProvider {
 func HistogramConfReset() HistogramOptionProvider {
 	return func(conf *HistogramConf) error { *conf = HistogramConf{}; return nil }
 }
-
 func HistogramConfLowerBound(in int64) HistogramOptionProvider {
 	return func(conf *HistogramConf) error { conf.Min = in; return nil }
 }

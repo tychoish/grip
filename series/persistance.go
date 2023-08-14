@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math/rand"
 	"net"
@@ -15,11 +16,13 @@ import (
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/ft"
+	"github.com/tychoish/fun/intish"
 	"github.com/tychoish/fun/pubsub"
 	"github.com/tychoish/grip/send"
 )
 
 type MetricPublisher func(io.Writer) error
+
 type CollectorBackend func(context.Context, *fun.Iterator[MetricPublisher]) error
 
 func (cb CollectorBackend) Worker(iter *fun.Iterator[MetricPublisher]) fun.Worker {
@@ -153,6 +156,65 @@ type CollectorBackendSocketConf struct {
 	MessageErrorHandling CollectorBackendSocketErrorOption
 }
 
+func (conf *CollectorBackendSocketConf) Validate() error {
+	conf.DialWorkers = intish.Max(1, conf.DialWorkers)
+	conf.MessageWorkers = intish.Max(conf.DialWorkers, conf.MessageWorkers)
+	conf.NumMessageRetries = intish.Max(1, conf.NumMessageRetries)
+	conf.IdleConns = intish.Max(2*conf.DialWorkers, conf.IdleConns)
+	conf.MinDialRetryDelay = intish.Max(100*time.Millisecond, conf.MinDialRetryDelay)
+	conf.MaxDialRetryDelay = intish.Max(conf.MinDialRetryDelay, conf.MaxDialRetryDelay)
+	conf.MinMessageRetryDelay = intish.Max(100*time.Millisecond, conf.MinMessageRetryDelay)
+	conf.MaxMessageRetryDelay = intish.Max(conf.MinMessageRetryDelay, conf.MaxMessageRetryDelay)
+
+	return erc.Join(conf.DialErrorHandling.Validate(), conf.MessageErrorHandling.Validate())
+}
+
+func CollectorBackendSocketConfSet(c *CollectorBackendSocketConf) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { *conf = *c; return nil }
+}
+func CollectorBackendSocketConfDialer(d net.Dialer) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.Dialer = d; return nil }
+}
+func CollectorBackendSocketConfNetowrkTCP() CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.Network = "tcp"; return nil }
+}
+func CollectorBackendSocketConfNetowrkUDP() CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.Network = "udp"; return nil }
+}
+func CollectorBackendSocketConfAddress(addr string) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.Address = addr; return nil }
+}
+func CollectorBackendSocketConfDialWorkers(n int) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.DialWorkers = n; return nil }
+}
+func CollectorBackendSocketConfIdleConns(n int) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.IdleConns = n; return nil }
+}
+func CollectorBackendSocketConfMinDialRetryDelay(d time.Duration) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.MinDialRetryDelay = d; return nil }
+}
+func CollectorBackendSocketConfMaxDialRetryDelay(d time.Duration) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.MaxDialRetryDelay = d; return nil }
+}
+func CollectorBackendSocketConfDialErrorHandling(eh CollectorBackendSocketErrorOption) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.DialErrorHandling = eh; return nil }
+}
+func CollectorBackendSocketConfMessageWorkers(n int) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.MessageWorkers = n; return nil }
+}
+func CollectorBackendSocketConfNumMessageRetries(n int) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.NumMessageRetries = n; return nil }
+}
+func CollectorBackendSocketConfMinMessageRetryDelay(d time.Duration) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.MinMessageRetryDelay = d; return nil }
+}
+func CollectorBackendSocketConfMaxMessageRetryDelay(d time.Duration) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.MaxMessageRetryDelay = d; return nil }
+}
+func CollectorBackendSocketConfMessageErrorHandling(eh CollectorBackendSocketErrorOption) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.MessageErrorHandling = eh; return nil }
+}
+
 func handleSocketBackedError(
 	eh fun.Handler[error],
 	op CollectorBackendSocketErrorOption,
@@ -199,6 +261,13 @@ const (
 	CollectorBackendSocketErrorUNSPECIFIED
 )
 
+func (co CollectorBackendSocketErrorOption) Validate() error {
+	if co <= CollectorBackendSocketErrorINVALID || co >= CollectorBackendSocketErrorUNSPECIFIED {
+		return fmt.Errorf("%d is not a valid error handling option", co)
+	}
+	return nil
+}
+
 func (co CollectorBackendSocketErrorOption) poolErrorOptions() fun.OptionProvider[*fun.WorkerGroupConf] {
 	return func(conf *fun.WorkerGroupConf) error {
 		switch co {
@@ -243,8 +312,6 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 		return nil, err
 	}
 
-	// TODO have a pipe that we can use to put connections in?
-	// maybe just a single worker?
 	connCache, err := pubsub.NewDeque[*connCacheItem](pubsub.DequeOptions{Capacity: conf.IdleConns})
 	if err != nil {
 		return nil, err
@@ -277,7 +344,12 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 					}
 				}
 
-				timer.Reset(conf.MinDialRetryDelay + time.Duration(rand.Int63n(int64(conf.MaxDialRetryDelay))))
+				timer.Reset(conf.MinDialRetryDelay +
+					intish.Max(0, time.Duration(
+						rand.Int63n(int64(conf.MaxDialRetryDelay)))-conf.MinDialRetryDelay,
+					),
+				)
+
 				if connCache.Len() >= conf.IdleConns {
 					select {
 					case <-ctx.Done():
@@ -287,7 +359,6 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 				}
 
 			}
-
 		}).StartGroup(ctx, conf.DialWorkers).Run(ctx)
 	})
 
@@ -323,18 +394,24 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 					err = pub(conn)
 
 					isFinal, err = conf.handleMessageError(ec.Add, err)
+					if err == nil {
+						return nil
+					}
 					if isFinal {
 						return err
 					}
 
 					_ = conn.conn.Close()
-
 					conn, err = connCache.WaitFront(ctx)
 					if err != nil {
 						return err
 					}
 
-					timer.Reset(conf.MinMessageRetryDelay + time.Duration(rand.Int63n(int64(conf.MinMessageRetryDelay))))
+					timer.Reset(conf.MinMessageRetryDelay +
+						intish.Max(0, time.Duration(
+							rand.Int63n(int64(conf.MaxMessageRetryDelay)))-conf.MinMessageRetryDelay,
+						),
+					)
 				}
 
 				return
