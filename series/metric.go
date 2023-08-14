@@ -21,9 +21,9 @@ const (
 )
 
 type Metric struct {
-	ID        string
-	ValueType MetricType
-	labels    *dt.Set[dt.Pair[string, string]]
+	ID     string
+	Type   MetricType
+	labels dt.Set[dt.Pair[string, string]]
 
 	labelsf    fun.Future[[]byte]
 	labelCache fun.Future[*dt.Pairs[string, string]]
@@ -36,39 +36,31 @@ type Metric struct {
 	dur   time.Duration
 }
 
-func Collect(id string) *Metric { return &Metric{ID: id, labels: &dt.Set[dt.Pair[string, string]]{}} }
-
-func Gauge(id string) *Metric {
-	return &Metric{ID: id, ValueType: MetricTypeGuage, labels: &dt.Set[dt.Pair[string, string]]{}}
-}
-
-func Counter(id string) *Metric {
-	return &Metric{ID: id, ValueType: MetricTypeCounter, labels: &dt.Set[dt.Pair[string, string]]{}}
-}
-
-func Delta(id string) *Metric {
-	return &Metric{ID: id, ValueType: MetricTypeDeltas, labels: &dt.Set[dt.Pair[string, string]]{}}
-}
+func Collect(id string) *Metric { return &Metric{ID: id} }
+func Gauge(id string) *Metric   { return &Metric{ID: id, Type: MetricTypeGuage} }
+func Counter(id string) *Metric { return &Metric{ID: id, Type: MetricTypeCounter} }
+func Delta(id string) *Metric   { return &Metric{ID: id, Type: MetricTypeDeltas} }
 
 func Histogram(id string, opts ...HistogramOptionProvider) *Metric {
 	conf := MakeDefaultHistogramConf()
 	fun.Invariant.Must(conf.Apply())
-	return &Metric{ID: id, ValueType: MetricTypeHistogram, hconf: conf, labels: &dt.Set[dt.Pair[string, string]]{}}
+	return &Metric{ID: id, Type: MetricTypeHistogram, hconf: conf}
 }
 
-func (m *Metric) Label(k, v string) *Metric { m.labels.Add(dt.MakePair(k, v)); return m }
-func (m *Metric) Type(t MetricType) *Metric { m.ValueType = t; return m }
+func (m *Metric) Label(k, v string) *Metric       { m.labels.Add(dt.MakePair(k, v)); return m }
+func (m *Metric) MetricType(t MetricType) *Metric { m.Type = t; return m }
 func (m *Metric) Annotate(pairs ...dt.Pair[string, string]) *Metric {
 	m.labels.Populate(dt.Sliceify(pairs).Iterator())
 	return m
 }
 
-func (m *Metric) SetLabels(set *dt.Set[dt.Pair[string, string]]) *Metric {
-	m.labels = set
+func (m *Metric) Labels(set *dt.Set[dt.Pair[string, string]]) *Metric {
+	m.labels.Populate(set.Iterator())
+	return m
 }
 
 func (m *Metric) Equal(two *Metric) bool {
-	return m.ValueType == two.ValueType && m.ID == two.ID && m.labels.Equal(&two.labels)
+	return m.Type == two.Type && m.ID == two.ID && m.labels.Equal(two.labels)
 }
 
 // Periodic sets an interval for the metrics to be reported: new
@@ -109,7 +101,7 @@ func (e *Event) MarshalJSON() ([]byte, error) {
 		Value int64          `json:"value"`
 	}{
 		ID:    e.m.ID,
-		Type:  e.m.ValueType,
+		Type:  e.m.Type,
 		Tags:  e.m.labelCache(),
 		Value: e.value,
 	})
@@ -134,7 +126,7 @@ func (m *Metric) CollectAdd(fn fun.Future[int64]) *Event {
 }
 
 func (m *Metric) factory() localMetricValue {
-	switch m.ValueType {
+	switch m.Type {
 	case MetricTypeDeltas:
 		return &localDelta{metric: m}
 	case MetricTypeGuage:
@@ -146,12 +138,12 @@ func (m *Metric) factory() localMetricValue {
 		conf := m.hconf.factory()()
 		return conf
 	default:
-		panic(fmt.Errorf("%q is not a valid metric type: %w", m.ValueType, fun.ErrInvariantViolation))
+		panic(fmt.Errorf("%q is not a valid metric type: %w", m.Type, fun.ErrInvariantViolation))
 	}
 }
 
 func (m *Metric) resolve() {
-	if m.ValueType == MetricTypeHistogram && m.hconf != nil && m.hconf.Renderer == nil {
+	if m.Type == MetricTypeHistogram && m.hconf != nil && m.hconf.Renderer == nil {
 		if m.coll.DefaultHistogramRender != nil {
 			m.hconf.Renderer = m.coll.DefaultHistogramRender
 		} else {
