@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/tychoish/birch"
+	"github.com/tychoish/fun"
 	"github.com/tychoish/grip/message"
 )
 
@@ -154,11 +155,19 @@ type GoRuntimeInfo struct {
 	}
 	message.Base `json:"meta,omitempty" bson:"meta,omitempty" yaml:"meta,omitempty"`
 
-	loggable  bool
-	useDeltas bool
-	useRates  bool
-	rendered  string
+	ct CounterType
+
+	loggable bool
+	rendered string
 }
+
+type CounterType int8
+
+const (
+	CounterTypeCurrent CounterType = iota
+	CounterTypeDeltas
+	CounterTypeRates
+)
 
 // CollectGoStatsTotals constructs a Composer, which is a
 // GoRuntimeInfo internally, that contains data collected from the Go
@@ -181,7 +190,7 @@ func CollectGoStatsTotals() *GoRuntimeInfo {
 //
 // GoRuntimeInfo also implements the message.Composer interface.
 func MakeGoStatsTotals(msg string) *GoRuntimeInfo {
-	s := &GoRuntimeInfo{}
+	s := &GoRuntimeInfo{ct: CounterTypeCurrent}
 	s.Message = msg
 	s.build()
 
@@ -201,7 +210,7 @@ func MakeGoStatsTotals(msg string) *GoRuntimeInfo {
 //
 // GoRuntimeInfo also implements the message.Composer interface.
 func CollectGoStatsDeltas() *GoRuntimeInfo {
-	s := &GoRuntimeInfo{useDeltas: true}
+	s := &GoRuntimeInfo{ct: CounterTypeDeltas}
 	s.build()
 
 	return s
@@ -213,7 +222,7 @@ func CollectGoStatsDeltas() *GoRuntimeInfo {
 //
 // GoRuntimeInfo also implements the message.Composer interface.
 func MakeGoStatsDeltas(msg string) *GoRuntimeInfo {
-	s := &GoRuntimeInfo{useDeltas: true}
+	s := &GoRuntimeInfo{ct: CounterTypeDeltas}
 	s.Message = msg
 	s.build()
 	return s
@@ -231,7 +240,7 @@ func MakeGoStatsDeltas(msg string) *GoRuntimeInfo {
 //
 // For the best results, collect these messages on a regular interval.
 func CollectGoStatsRates() *GoRuntimeInfo {
-	s := &GoRuntimeInfo{useRates: true}
+	s := &GoRuntimeInfo{ct: CounterTypeRates}
 	s.build()
 
 	return s
@@ -241,7 +250,7 @@ func CollectGoStatsRates() *GoRuntimeInfo {
 // but additionally allows you to set a message string to annotate the
 // data.
 func MakeGoStatsRates(msg string) *GoRuntimeInfo {
-	s := &GoRuntimeInfo{useRates: true}
+	s := &GoRuntimeInfo{ct: CounterTypeRates}
 	s.Message = msg
 	s.build()
 	return s
@@ -262,21 +271,24 @@ func (s *GoRuntimeInfo) build() {
 	s.Payload.GCLatency = time.Since(goStatsCache.lastGC)
 	s.Payload.GCPause = time.Duration(goStatsCache.gcPause)
 
-	if s.useDeltas {
+	switch s.ct {
+	case CounterTypeDeltas:
 		s.Payload.Mallocs = goStatsCache.mallocs().Delta
 		s.Payload.Frees = goStatsCache.frees().Delta
 		s.Payload.GC = goStatsCache.gcs().Delta
 		s.Payload.CgoCalls = goStatsCache.cgo().Delta
-	} else if s.useRates {
+	case CounterTypeRates:
 		s.Payload.Mallocs = goStatsCache.mallocs().int()
 		s.Payload.Frees = goStatsCache.frees().int()
 		s.Payload.GC = goStatsCache.gcs().int()
 		s.Payload.CgoCalls = goStatsCache.cgo().int()
-	} else {
+	case CounterTypeCurrent:
 		s.Payload.Mallocs = goStatsCache.mallocCounter.current
 		s.Payload.Frees = goStatsCache.freesCounter.current
 		s.Payload.GC = goStatsCache.gcRate.current
 		s.Payload.CgoCalls = goStatsCache.cgoCalls.current
+	default:
+		fun.Invariant.Failure(s.ct, "invalid counter type")
 	}
 
 	s.loggable = true
