@@ -7,7 +7,10 @@ import (
 )
 
 // MakeBytesBuffer creates a sender that writes data to the provided
-// bytes.Buffer. Messages that
+// bytes.Buffer. The sender uses the message formatter, and resepects
+// level logging.
+//
+// A new line is added between each message as written.
 func MakeBytesBuffer(buf *bytes.Buffer) Sender { return &bufsend{buffer: buf} }
 
 type bufsend struct {
