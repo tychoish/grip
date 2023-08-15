@@ -3,29 +3,37 @@ package sometimes
 import (
 	"math/rand"
 	"time"
+
+	"github.com/tychoish/fun"
 )
 
-func init() { rand.Seed(time.Now().Unix()) }
+var random fun.Future[int]
 
-func getRandNumber() int { return rand.Intn(101) }
+func init() {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	random = fun.Futurize(func() int {
+		return r.Intn(101)
+	}).Lock()
+}
 
 // Fifth returns true 20% of the time.
-func Fifth() bool { return getRandNumber() > 80 }
+func Fifth() bool { return random() > 80 }
 
 // Half returns true 50% of the time.
-func Half() bool { return getRandNumber() > 50 }
+func Half() bool { return random() > 50 }
 
 // Third returns true 33% of the time.
-func Third() bool { return getRandNumber() > 67 }
+func Third() bool { return random() > 67 }
 
 // Quarter returns true 25% of the time.
-func Quarter() bool { return getRandNumber() > 75 }
+func Quarter() bool { return random() > 75 }
 
 // ThreeQuarters returns true 75% of the time.
-func ThreeQuarters() bool { return getRandNumber() > 25 }
+func ThreeQuarters() bool { return random() > 25 }
 
 // TwoThirds returns true 66% of the time.
-func TwoThirds() bool { return getRandNumber() > 34 }
+func TwoThirds() bool { return random() > 34 }
 
 // Percent takes a number (p) and returns true that percent of the
 // time. If p is greater than or equal to 100, Percent always returns
@@ -39,5 +47,5 @@ func Percent(p int) bool {
 		return false
 	}
 
-	return getRandNumber() > (100 - p)
+	return random() > (100 - p)
 }
