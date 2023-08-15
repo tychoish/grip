@@ -5,7 +5,6 @@ use (
 	./x/desktop
 	./x/email
 	./x/github
-	./x/graphite
 	./x/jira
 	./x/metrics
 	./x/slack
