@@ -8,13 +8,17 @@
 //
 // In general, as a developer, to use grip/series for your metrics:
 // you configure a series.Collector, and embed it in your grip sending
-// pipeline, and then embed metrics in your events.
+// pipeline, and then embed metric events in your message.
 //
-// The x/metrics package includes basic implementations and
-// integrations with third party libraries.
+// The x/metrics package contains message types that use
+// github.com/shirou/gopsutil to collect and generate structred
+// logging messages with metrics information. These tools also
+// integrate with the `tychoish/birch` bson library and it's
+// `birch/x/ftdc` timeseries compression format. Additionally, `bson`
+// formatted output renders for metric events are also provided here.
 //
-// This implementation is alpha quality at the moment. Pull requests
-// welcome.
+// WARNING: This implementation is alpha quality at the moment. Pull
+// requests welcome.
 package series
 
 import (
@@ -23,7 +27,9 @@ import (
 )
 
 // TODO:
-//   - adapters for current x/metrics package functionality/helpers
+//  - testing
+//  - documentation
+//  - simple system metric collector (without gopsutil?)
 
 func example() { //nolint:unused
 	grip.Info(WithMetrics(message.Fields{"op": "test"},
