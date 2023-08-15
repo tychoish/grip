@@ -26,7 +26,7 @@ func GoRuntimeEventProducer(labels ...dt.Pair[string, string]) fun.Producer[[]*E
 			Delta("memory").Labels(ls).Label("runtime", "mallocs").Set(int64(m.Mallocs)),
 			Delta("memory").Labels(ls).Label("runtime", "frees").Set(int64(m.Frees)),
 			Gauge("goruntime").Labels(ls).Label("goroutines", "current").Set(int64(runtime.NumGoroutine())),
-			Delta("goruntime").Labels(ls).Label("cgo", "calls").Set(int64(runtime.NumCgoCall())),
+			Delta("goruntime").Labels(ls).Label("cgo", "calls").Set(runtime.NumCgoCall()),
 			Delta("goruntime").Labels(ls).Label("gc", "latency").Set(int64(time.Since(time.Unix(0, int64(m.LastGC))))),
 			Delta("goruntime").Labels(ls).Label("gc", "pause").Set(int64(m.PauseNs[(m.NumGC+255)%256])),
 			Delta("goruntime").Labels(ls).Label("gc", "passes").Set(int64(m.NumGC)),

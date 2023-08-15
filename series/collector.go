@@ -59,7 +59,7 @@ type MetricSnapshot struct {
 // collecting and distributing metric events. There are several basic
 // modes of operation:
 //
-// - Embeded: Use series.Sender to create in a grip/send.Sender: here
+// - Embedded: Use series.Sender to create in a grip/send.Sender: here
 // the collector wraps the sender and intercepts events from normal
 // logger messages. The series.WithMetrics helper can attach metrics.
 //
