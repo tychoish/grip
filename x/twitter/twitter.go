@@ -55,7 +55,7 @@ func MakeSender(ctx context.Context, opts *Options) (send.Sender, error) {
 func (s *twitterLogger) Send(m message.Composer) {
 	if send.ShouldLog(s, m) {
 		if err := s.twitter.Send(m.String()); err != nil {
-			s.ErrorHandler()(err, m)
+			s.HandleError(send.WrapError(err, m))
 		}
 	}
 }

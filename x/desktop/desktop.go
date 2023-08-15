@@ -19,11 +19,11 @@ func (s *desktopNotify) Send(m message.Composer) {
 	if send.ShouldLog(s, m) {
 		if m.Priority() >= level.Critical {
 			if err := beeep.Alert(s.Name(), m.String(), ""); err != nil {
-				s.ErrorHandler()(err, m)
+				s.HandleError(send.WrapError(err, m))
 			}
 		} else {
 			if err := beeep.Notify(s.Name(), m.String(), ""); err != nil {
-				s.ErrorHandler()(err, m)
+				s.HandleError(send.WrapError(err, m))
 			}
 		}
 	}

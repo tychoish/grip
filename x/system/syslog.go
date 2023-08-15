@@ -46,7 +46,7 @@ func MakeSyslogSender(network, raddr string) send.Sender {
 func MakeLocalSyslog() send.Sender { return MakeSyslogSender("", "") }
 
 func (s *syslogger) reconfig() {
-	s.fallback.SetFormatter(s.Formatter())
+	s.fallback.SetFormatter(s.GetFormatter())
 	s.fallback.SetName(s.Name())
 }
 
@@ -58,14 +58,12 @@ func (s *syslogger) reset() {
 
 	if s.logger != nil {
 		if err := s.logger.Close(); err != nil {
-			s.ErrorHandler()(err, message.MakeString("problem closing syslogger"))
+			s.HandleError(err)
 		}
 	}
 
 	w, err := syslog.Dial(s.network, s.raddr, syslog.LOG_DEBUG, s.Name())
-	if err != nil {
-		s.ErrorHandler()(err, message.WrapErrorf(err,
-			"error restarting syslog [%s] for logger: %s", err.Error(), s.Name()))
+	if !s.HandleErrorOK(err) {
 		return
 	}
 
@@ -79,18 +77,17 @@ func (s *syslogger) Send(m message.Composer) {
 		return
 	}
 	if err := ers.Check(func() {
-		outstr, err := s.Formatter()(m)
-		if err != nil {
-			s.ErrorHandler()(err, m)
+		outstr, err := s.Format(m)
+		if !s.HandleErrorOK(send.WrapError(err, m)) {
 			return
 		}
 
 		if err := s.sendToSysLog(m.Priority(), outstr); err != nil {
-			s.ErrorHandler()(err, m)
+			s.HandleError(send.WrapError(err, m))
 		}
 	}); err != nil {
 		// there was a panic
-		s.ErrorHandler()(err, m)
+		s.HandleError(send.WrapError(err, m))
 	}
 }
 

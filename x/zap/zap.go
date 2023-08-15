@@ -43,9 +43,8 @@ func (s *shim) Send(m message.Composer) {
 
 	if ce := s.zap.Check(convertLevel(m.Priority()), ""); ce != nil {
 		if !m.Structured() {
-			out, err := s.Formatter()(m)
-			if err != nil {
-				s.ErrorHandler()(err, m)
+			out, err := s.Format(m)
+			if !s.HandleErrorOK(send.WrapError(err, m)) {
 				return
 			}
 			ce.Message = out

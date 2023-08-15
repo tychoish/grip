@@ -94,8 +94,7 @@ func (j *jiraJournal) Send(m message.Composer) {
 		}
 
 		issueKey, err := j.opts.client.PostIssue(issueFields)
-		if err != nil {
-			j.ErrorHandler()(err, m)
+		if !j.HandleErrorOK(send.WrapError(err, m)) {
 			return
 		}
 		populateKey(m, issueKey)

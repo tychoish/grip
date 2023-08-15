@@ -77,9 +77,8 @@ func (s *sender) Send(m message.Composer) {
 		return
 	}
 
-	txt, err := s.Formatter()(m)
-	if err != nil {
-		s.ErrorHandler()(err, m)
+	txt, err := s.Format(m)
+	if !s.HandleErrorOK(send.WrapError(err, m)) {
 		return
 	}
 
@@ -88,21 +87,18 @@ func (s *sender) Send(m message.Composer) {
 		Text:   txt,
 	})
 
-	if err != nil {
-		s.ErrorHandler()(err, m)
+	if !s.HandleErrorOK(send.WrapError(err, m)) {
 		return
 	}
 
 	req, err := http.NewRequestWithContext(s.ctx, http.MethodPost, s.url, bytes.NewBuffer(body))
-	if err != nil {
-		s.ErrorHandler()(err, m)
+	if !s.HandleErrorOK(send.WrapError(err, m)) {
 		return
 	}
 	req.Header.Set("content-type", "application/json")
 
 	resp, err := s.opts.Client.Do(req)
-	if err != nil {
-		s.ErrorHandler()(err, m)
+	if !s.HandleErrorOK(send.WrapError(err, m)) {
 		return
 	}
 	defer resp.Body.Close()
@@ -110,10 +106,12 @@ func (s *sender) Send(m message.Composer) {
 	if resp.StatusCode >= http.StatusBadRequest {
 		ec := &erc.Collector{}
 		ec.Add(fmt.Errorf("received response %s", resp.Status))
+
 		out, err := io.ReadAll(resp.Body)
 		ec.Add(err)
 		ec.Add(fmt.Errorf("data: %q", string(out)))
-		s.ErrorHandler()(ec.Resolve(), m)
-		return
+		if !s.HandleErrorOK(send.WrapError(ec.Resolve(), m)) {
+			return
+		}
 	}
 }

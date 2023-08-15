@@ -46,9 +46,8 @@ func NewIssueSender(name string, opts *GithubOptions) (send.Sender, error) {
 
 func (s *githubLogger) Send(m message.Composer) {
 	if send.ShouldLog(s, m) {
-		text, err := s.Formatter()(m)
-		if err != nil {
-			s.ErrorHandler()(err, m)
+		text, err := s.Format(m)
+		if !s.HandleErrorOK(send.WrapError(err, m)) {
 			return
 		}
 
@@ -60,7 +59,7 @@ func (s *githubLogger) Send(m message.Composer) {
 
 		ctx := context.TODO()
 		if _, _, err := s.gh.Create(ctx, s.opts.Account, s.opts.Repo, issue); err != nil {
-			s.ErrorHandler()(err, m)
+			s.HandleError(send.WrapError(err, m))
 		}
 	}
 }

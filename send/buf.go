@@ -1,0 +1,31 @@
+package send
+
+import (
+	"bytes"
+
+	"github.com/tychoish/grip/message"
+)
+
+// MakeBytesBuffer creates a sender that writes data to the provided
+// bytes.Buffer. Messages that
+func MakeBytesBuffer(buf *bytes.Buffer) Sender { return &bufsend{buffer: buf} }
+
+type bufsend struct {
+	Base
+	buffer *bytes.Buffer
+}
+
+func (b *bufsend) WriteLine(line string) {
+	b.buffer.WriteString(line)
+	b.buffer.WriteByte('\n')
+}
+
+func (b *bufsend) Send(m message.Composer) {
+	if ShouldLog(b, m) {
+		out, err := b.Format(m)
+		if !b.HandleErrorOK(WrapError(err, m)) {
+			return
+		}
+		b.WriteLine(out)
+	}
+}

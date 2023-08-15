@@ -436,7 +436,7 @@ func TestSendMethodWithEmailComposerOverridesSMTPOptions(t *testing.T) {
 		t.Fatal("'sender' is not expected to be nil")
 	}
 
-	sender.SetErrorHandler(func(err error, m message.Composer) {
+	sender.SetErrorHandler(func(err error) {
 		if err != nil {
 			t.Fatal(err)
 		}

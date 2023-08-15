@@ -105,11 +105,12 @@ func NewFilter(ctx context.Context, sender send.Sender, opts CollectOptions) sen
 	mf.constructor = func(schema string) ftdc.Collector {
 		coll, closer, err := mf.rotatingCollector(ctx, schema)
 		if err != nil {
-			mf.ErrorHandler()(err, message.MakeFields(message.Fields{
-				message.FieldsMsgName: "creating constructor",
-				"schema":              schema,
-				"prefix":              opts.OutputFilePrefix,
-			}))
+			mf.GetErrorHandler()(send.WrapError(err,
+				message.MakeFields(message.Fields{
+					message.FieldsMsgName: "creating constructor",
+					"schema":              schema,
+					"prefix":              opts.OutputFilePrefix,
+				})))
 			return nil
 		}
 		go func() {
@@ -127,22 +128,24 @@ func (mf *metricsFilterImpl) Send(msg message.Composer) {
 	if mc, ok := msg.(SchemaComposer); ok {
 		if coll := mf.getOrCreateFilter(mc.Schema()); coll != nil {
 			if err := coll.Add(mc.Raw()); err != nil {
-				mf.ErrorHandler()(err, message.MakeFields(message.Fields{
-					message.FieldsMsgName: "adding metrics",
-					"schema":              mc.Schema(),
-					"prefix":              mf.opts.OutputFilePrefix,
-				}))
+				mf.GetErrorHandler()(send.WrapError(err,
+					message.MakeFields(message.Fields{
+						message.FieldsMsgName: "adding metrics",
+						"schema":              mc.Schema(),
+						"prefix":              mf.opts.OutputFilePrefix,
+					})))
 			}
 		}
 	} else if mf.opts.CaptureStructured && msg.Structured() {
 		if coll := mf.getOrCreateFilter(fmt.Sprintf("%T", msg)); coll != nil {
 			m := msg.Raw()
 			if err := coll.Add(m); err != nil {
-				mf.ErrorHandler()(err, message.MakeFields(message.Fields{
-					message.FieldsMsgName: "adding metrics",
-					"schema":              fmt.Sprintf("%T", m),
-					"prefix":              mf.opts.OutputFilePrefix,
-				}))
+				mf.GetErrorHandler()(send.WrapError(err,
+					message.MakeFields(message.Fields{
+						message.FieldsMsgName: "adding metrics",
+						"schema":              fmt.Sprintf("%T", m),
+						"prefix":              mf.opts.OutputFilePrefix,
+					})))
 			}
 		}
 	}
@@ -244,12 +247,13 @@ func (mf *metricsFilterImpl) rotatingCollector(ctx context.Context, name string)
 				return
 			case <-timer.C:
 				if err := flusher(reuseCollector); err != nil {
-					mf.ErrorHandler()(err, message.MakeFields(message.Fields{
-						"operation": "flushing message",
-						"name":      name,
-						"count":     outputCount,
-						"prefix":    mf.opts.OutputFilePrefix,
-					}))
+					mf.GetErrorHandler()(send.WrapError(err,
+						message.MakeFields(message.Fields{
+							"operation": "flushing message",
+							"name":      name,
+							"count":     outputCount,
+							"prefix":    mf.opts.OutputFilePrefix,
+						})))
 					return
 				}
 			}

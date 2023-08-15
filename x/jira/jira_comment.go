@@ -56,7 +56,7 @@ func (j *jiraCommentJournal) Send(m message.Composer) {
 			issue = c.IssueID
 		}
 		if err := j.opts.client.PostComment(issue, m.String()); err != nil {
-			j.ErrorHandler()(err, m)
+			j.HandleError(send.WrapError(err, m))
 		}
 	}
 }

@@ -22,7 +22,7 @@ func msgsToString(t *testing.T, sender Sender, msgs []message.Composer) []string
 
 	strs := make([]string, 0, len(msgs))
 	for _, msg := range msgs {
-		str, err := sender.Formatter()(msg)
+		str, err := sender.GetFormatter()(msg)
 		if err != nil {
 			t.Fatal(err)
 		}

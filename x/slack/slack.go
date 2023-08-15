@@ -78,7 +78,7 @@ func (s *slackJournal) Send(m message.Composer) {
 		}
 
 		if err := s.opts.client.ChatPostMessage(channel, msg, params); err != nil {
-			s.ErrorHandler()(err, m)
+			s.HandleError(send.WrapError(err, m))
 		}
 	}
 }

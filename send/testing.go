@@ -29,7 +29,7 @@ func MakeTesting(t *testing.T) Sender {
 
 func (s *testLogger) Send(m message.Composer) {
 	if ShouldLog(s, m) {
-		out, err := s.Formatter()(m)
+		out, err := s.GetFormatter()(m)
 		if err != nil {
 			s.t.Logf("formating message [type=%T]: %v", m, err)
 			return

@@ -62,7 +62,7 @@ func (s *splunkLogger) Send(m message.Composer) {
 			e := hec.NewEvent(m.Raw())
 			e.SetHost(s.hostname)
 			if err := s.client.WriteEvent(e); err != nil {
-				s.ErrorHandler()(err, m)
+				s.HandleError(send.WrapError(err, m))
 			}
 		default:
 			batch := []*hec.Event{}
@@ -73,8 +73,9 @@ func (s *splunkLogger) Send(m message.Composer) {
 					batch = append(batch, e)
 				}
 			}
+
 			if err := s.client.WriteBatch(batch); err != nil {
-				s.ErrorHandler()(err, m)
+				s.HandleError(send.WrapError(err, m))
 			}
 			return
 		}

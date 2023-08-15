@@ -42,9 +42,8 @@ func NewCommentSender(name string, issueID int, opts *GithubOptions) (send.Sende
 
 func (s *githubCommentLogger) Send(m message.Composer) {
 	if send.ShouldLog(s, m) {
-		text, err := s.Formatter()(m)
-		if err != nil {
-			s.ErrorHandler()(err, m)
+		text, err := s.Format(m)
+		if !s.HandleErrorOK(send.WrapError(err, m)) {
 			return
 		}
 
@@ -53,7 +52,7 @@ func (s *githubCommentLogger) Send(m message.Composer) {
 		ctx := context.TODO()
 		_, _, err = s.gh.CreateComment(ctx, s.opts.Account, s.opts.Repo, s.issue, comment)
 		if err != nil {
-			s.ErrorHandler()(err, m)
+			s.HandleError(send.WrapError(err, m))
 		}
 	}
 }

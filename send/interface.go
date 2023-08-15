@@ -9,6 +9,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -50,17 +51,19 @@ type Sender interface {
 	Priority() level.Priority
 
 	// SetErrorHandler provides a method to inject error handling behavior
-	// to a sender. Not all sender implementations use the error handler,
+	// to a sender. If the underlying sender method encounters an
+	// error, that error is handed to this function, which
+	// processes. Sender implementations should then  Not all sender implementations use the error handler,
 	// although some, use a default handler to write logging errors to
 	// standard output.
 	SetErrorHandler(ErrorHandler)
-	ErrorHandler() ErrorHandler
+	GetErrorHandler() ErrorHandler
 
 	// SetFormatter allows users to inject formatting functions to modify
 	// the output of the log sender by providing a function that takes a
 	// message and returns string and error.
 	SetFormatter(MessageFormatter)
-	Formatter() MessageFormatter
+	GetFormatter() MessageFormatter
 
 	// If the logging sender holds any resources that require desecration
 	// they should be cleaned up in the Close() method. Close() is called
@@ -69,10 +72,13 @@ type Sender interface {
 	Close() error
 }
 
-// ErrorHandler is a function that you can use define how a sender
-// handles errors sending messages. Implementations of this type
-// should perform a noop if the err object is nil.
-type ErrorHandler func(error, message.Composer)
+// ErrorHandler is a function that you can use to process errors
+// encountered sending messages. When errors are encountered the
+// messages are discarded unless an alternate sender (via a
+// multi-sender implementation) or fallback is
+// configured. Implementations of this type should perform a noop if
+// the error object is nil.
+type ErrorHandler fun.Handler[error]
 
 // MessageFormatter is a function type used by senders to construct the
 // entire string returned as part of the output. This makes it

@@ -38,7 +38,7 @@ func MakeSystemdSender() send.Sender {
 }
 
 func (s *systemdJournal) reconfig() {
-	s.fallback.SetFormatter(s.Formatter())
+	s.fallback.SetFormatter(s.GetFormatter())
 	s.fallback.SetName(s.Name())
 }
 
@@ -55,18 +55,17 @@ func (s *systemdJournal) Send(m message.Composer) {
 	}
 
 	if err := ers.Check(func() {
-		outstr, err := s.Formatter()(m)
-		if err != nil {
-			s.ErrorHandler()(err, m)
+		outstr, err := s.Format(m)
+		if !s.HandleErrorOK(send.WrapError(err, m)) {
 			return
 		}
 
 		if err := journal.Send(outstr, convertPrioritySystemd(m.Priority(), 0), s.options); err != nil {
-			s.ErrorHandler()(err, m)
+			s.HandleError(send.WrapError(err, m))
 		}
 	}); err != nil {
 		// there was a panic
-		s.ErrorHandler()(err, m)
+		s.HandleError(send.WrapError(err, m))
 	}
 }
 

@@ -44,7 +44,7 @@ func MakeSender(opts *SMTPOptions) (send.Sender, error) {
 func (s *smtpLogger) Send(m message.Composer) {
 	if send.ShouldLog(s, m) {
 		if err := s.opts.sendMail(m); err != nil {
-			s.ErrorHandler()(err, m)
+			s.HandleError(send.WrapError(err, m))
 		}
 	}
 }

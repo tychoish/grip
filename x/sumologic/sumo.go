@@ -64,15 +64,14 @@ func NewSumo(name, endpoint string) (send.Sender, error) {
 
 func (s *sumoLogger) Send(m message.Composer) {
 	if send.ShouldLog(s, m) {
-		text, err := s.Formatter()(m)
-		if err != nil {
-			s.ErrorHandler()(err, m)
+		text, err := s.Format(m)
+		if !s.HandleErrorOK(send.WrapError(err, m)) {
 			return
 		}
 
 		buf := []byte(text)
 		if err := s.client.Send(buf, s.Name()); err != nil {
-			s.ErrorHandler()(err, m)
+			s.HandleError(send.WrapError(err, m))
 		}
 	}
 }

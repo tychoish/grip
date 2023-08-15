@@ -104,9 +104,8 @@ func NewSender(target string, info ConnectionInfo) (send.Sender, error) {
 
 func (s *xmppLogger) Send(m message.Composer) {
 	if send.ShouldLog(s, m) {
-		text, err := s.Formatter()(m)
-		if err != nil {
-			s.ErrorHandler()(err, m)
+		text, err := s.Format(m)
+		if !s.HandleErrorOK(send.WrapError(err, m)) {
 			return
 		}
 
@@ -117,7 +116,7 @@ func (s *xmppLogger) Send(m message.Composer) {
 		}
 
 		if _, err := s.info.client.Send(c); err != nil {
-			s.ErrorHandler()(err, m)
+			s.HandleError(send.WrapError(err, m))
 		}
 	}
 }

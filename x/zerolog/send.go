@@ -66,9 +66,8 @@ func (s *shim) Send(m message.Composer) {
 
 	event := s.zl.WithLevel(convertLevel(m.Priority()))
 	if !m.Structured() {
-		out, err := s.Formatter()(m)
-		if err != nil {
-			s.ErrorHandler()(err, m)
+		out, err := s.Format(m)
+		if !s.HandleErrorOK(send.WrapError(err, m)) {
 			return
 		}
 		event.Msg(out)
@@ -98,8 +97,7 @@ func (s *shim) Send(m message.Composer) {
 		// message.KVs are json.Marshalers so make sure this
 		// clause stays last.
 		r, err := data.MarshalJSON()
-		if err != nil {
-			s.ErrorHandler()(err, m)
+		if !s.HandleErrorOK(send.WrapError(err, m)) {
 			return
 		}
 		event.RawJSON("payload", r)

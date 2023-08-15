@@ -67,9 +67,8 @@ func makeNativeFromWriter(wr io.Writer, stdFlags int) *nativeLogger {
 
 func (s *nativeLogger) Send(m message.Composer) {
 	if ShouldLog(s, m) {
-		out, err := s.Formatter()(m)
-		if err != nil {
-			s.ErrorHandler()(err, m)
+		out, err := s.Format(m)
+		if !s.HandleErrorOK(WrapError(err, m)) {
 			return
 		}
 

@@ -82,14 +82,7 @@ func (b *Base) SetFormatter(mf MessageFormatter) { b.formatter.Set(mf) }
 
 // Formatter returns the formatter, defaulting to using the string
 // form of the message if no formatter is configured.
-func (b *Base) Formatter() MessageFormatter {
-	return func(m message.Composer) (string, error) {
-		if fn := b.formatter.Get(); fn != nil {
-			return fn(m)
-		}
-		return m.String(), nil
-	}
-}
+func (b *Base) GetFormatter() MessageFormatter { return b.Format }
 
 // SetErrorHandler configures the error handling function for this Sender.
 func (b *Base) SetErrorHandler(eh ErrorHandler) { b.errHandler.Set(eh) }
@@ -97,16 +90,25 @@ func (b *Base) SetErrorHandler(eh ErrorHandler) { b.errHandler.Set(eh) }
 // ErrorHandler returns an error handling functioncalls the error
 // handler, and is a wrapper around the embedded ErrorHandler
 // function.
-func (b *Base) ErrorHandler() ErrorHandler {
-	return func(err error, m message.Composer) {
-		if err == nil {
-			return
-		}
+func (b *Base) GetErrorHandler() ErrorHandler { return b.HandleError }
+func (b *Base) HandleError(err error)         { b.HandleErrorOK(err) }
 
-		if fn := b.errHandler.Get(); fn != nil {
-			fn(err, m)
-		}
+func (b *Base) Format(m message.Composer) (string, error) {
+	if fn := b.formatter.Get(); fn != nil {
+		return fn(m)
 	}
+	return m.String(), nil
+}
+
+func (b *Base) HandleErrorOK(err error) bool {
+	if err == nil {
+		return true
+	}
+
+	if fn := b.errHandler.Get(); fn != nil {
+		fn(err)
+	}
+	return false
 }
 
 // SetPriority configures the level (default levels and threshold levels)
