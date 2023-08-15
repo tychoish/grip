@@ -8,6 +8,7 @@ import (
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
 	"github.com/tychoish/birch"
+	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/grip/message"
 )
 
@@ -32,7 +33,7 @@ type ProcessInfo struct {
 	message.Base `json:"metadata,omitempty" bson:"metadata,omitempty"`
 
 	loggable bool
-	rendered string
+	rendered adt.Once[string]
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -180,13 +181,7 @@ func (p *ProcessInfo) Raw() any { p.Collect(); return p }
 
 // String returns a string representation of the message, lazily
 // rendering the message, and caching it privately.
-func (p *ProcessInfo) String() string {
-	if p.rendered == "" {
-		p.rendered = renderStatsString(p.Message, p.Payload)
-	}
-
-	return p.rendered
-}
+func (p *ProcessInfo) String() string { return p.rendered.Resolve() }
 
 func (p *ProcessInfo) MarshalDocument() (*birch.Document, error) {
 	proc := birch.DC.Elements(
@@ -272,6 +267,10 @@ func (p *ProcessInfo) populate(proc *process.Process) {
 	if err == nil && ioStat != nil {
 		p.Payload.IoStat = *ioStat
 	}
+
+	p.rendered.Set(func() string {
+		return renderStatsString(p.Message, p.Payload)
+	})
 }
 
 func (p *ProcessInfo) saveError(stat string, err error) {

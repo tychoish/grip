@@ -7,6 +7,7 @@ import (
 
 	"github.com/tychoish/birch"
 	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/grip/message"
 )
 
@@ -158,7 +159,7 @@ type GoRuntimeInfo struct {
 	ct CounterType
 
 	loggable bool
-	rendered string
+	rendered adt.Once[string]
 }
 
 type CounterType int8
@@ -292,6 +293,10 @@ func (s *GoRuntimeInfo) build() {
 	}
 
 	s.loggable = true
+	s.rendered.Set(func() string {
+		s.Collect()
+		return renderStatsString(s.Message, s.Payload)
+	})
 }
 
 // Loggable returns true when the GoRuntimeInfo structure is
@@ -311,14 +316,7 @@ func (s *GoRuntimeInfo) Raw() any {
 
 	return s.Payload
 }
-func (s *GoRuntimeInfo) String() string {
-	if s.rendered == "" {
-		s.Collect()
-		s.rendered = renderStatsString(s.Message, s.Payload)
-	}
-
-	return s.rendered
-}
+func (s *GoRuntimeInfo) String() string { return s.rendered.Resolve() }
 
 func (s *GoRuntimeInfo) MarshalDocument() (*birch.Document, error) {
 	return birch.DC.Elements(

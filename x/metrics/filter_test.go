@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -61,13 +62,14 @@ func TestSchemaComposer(t *testing.T) {
 }
 
 type buf struct {
+	closed atomic.Bool
+
 	mtx sync.Mutex
 	bytes.Buffer
-	isClosed bool
 }
 
 func (b *buf) Write(in []byte) (int, error) { defer a.With(a.Lock(&b.mtx)); return b.Buffer.Write(in) }
-func (b *buf) Close() error                 { defer a.With(a.Lock(&b.mtx)); b.isClosed = true; return nil }
+func (b *buf) Close() error                 { b.closed.Store(true); return nil }
 
 func TestFilter(t *testing.T) {
 	t.Run("CollectionBasicEndToEnd", func(t *testing.T) {
@@ -100,15 +102,14 @@ func TestFilter(t *testing.T) {
 			t.Error("should have one collector")
 		}
 
-		if b.Buffer.Len() == 0 {
-			t.Error("buffer should have content", b.Buffer.Len())
-		}
-
 		if err := filter.Close(); err != nil {
 			t.Error(err)
 		}
-		if !b.isClosed {
+		if !b.closed.Load() {
 			t.Error("buffer should be closed")
+		}
+		if b.Len() == 0 {
+			t.Error("buffer should have content", b.Len())
 		}
 	})
 	t.Run("MultiStreamCollector", func(t *testing.T) {
@@ -160,8 +161,9 @@ func TestFilter(t *testing.T) {
 		}
 		seenData := 0
 		for n, b := range bufs {
-			if !b.isClosed {
+			if !b.closed.Load() {
 				t.Errorf("buffer %q failed to close", n)
+				continue
 			}
 			if b.Len() > 0 {
 				seenData++
