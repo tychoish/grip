@@ -195,9 +195,9 @@ func (c *Collector) Iterator() *fun.Iterator[MetricSnapshot] {
 		// collector.
 		pipe.Producer().PreHook(
 			c.local.Values().Process(func(ctx context.Context, list *dt.List[*tracked]) error {
-				return list.Iterator().Process(proc).Run(ctx)
+				return list.Iterator().Process(proc).PostHook(pipe.Close).Run(ctx)
 			}).Operation(ec.Handler()).Go().Once(),
-		).IteratorWithHook(func(iter *fun.Iterator[*tracked]) { iter.AddError(ec.Resolve()) }),
+		).IteratorWithHook(erc.IteratorHook[*tracked](ec)),
 		// transformation function to convert the iterator of
 		// tracked
 		fun.Converter(func(tr *tracked) MetricSnapshot {
