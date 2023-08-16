@@ -23,7 +23,6 @@ func init() {
 	hostnameCache.Set(func() string { out, _ := os.Hostname(); return out })
 	procCache.Set(func() string { return filepath.Base(os.Args[0]) })
 	pidCache.Set(func() int { return os.Getpid() })
-
 }
 
 // Base provides a simple embedable implementation of some common

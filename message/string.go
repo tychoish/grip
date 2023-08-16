@@ -48,7 +48,7 @@ func (s *stringMessage) String() string {
 func (s *stringMessage) Raw() any {
 	switch {
 	case s.fm != nil:
-		return s.fm.Raw
+		return s.fm.Raw()
 	case len(s.Base.Context) > 0:
 		s.setupField()
 		return s.fm.Raw()

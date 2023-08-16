@@ -15,7 +15,6 @@ func MakeBytes(b []byte) Composer {
 
 func (s *bytesMessage) String() string { return string(s.Message) }
 func (s *bytesMessage) Loggable() bool { return len(s.Message) > 0 }
-
 func (s *bytesMessage) Raw() any {
 	if s.IncludeMetadata {
 		s.Collect()

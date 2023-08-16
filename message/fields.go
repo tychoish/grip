@@ -145,11 +145,11 @@ func (m *fieldMessage) addMetadatIfNeeded() {
 		m.fields = Fields{}
 	}
 
-	m.Collect()
-
-	if !m.IncludeMetadata || m.metadataAdded || len(m.fields) == 0 {
+	if !m.IncludeMetadata || m.metadataAdded {
 		return
 	}
+
+	m.Collect()
 
 	if b, ok := m.fields["meta"]; !ok {
 		m.fields["meta"] = &m.Base
