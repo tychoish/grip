@@ -8,7 +8,7 @@ import (
 
 type localMetricValue interface {
 	Apply(func(int64) int64) int64
-	Resolve(*bytes.Buffer)
+	Resolve(*bytes.Buffer, Renderer)
 	Last() int64
 }
 
@@ -31,7 +31,7 @@ func (lv *localDelta) Apply(op func(int64) int64) int64 {
 	}
 }
 
-func (lv *localDelta) Resolve(wr *bytes.Buffer) {
+func (lv *localDelta) Resolve(wr *bytes.Buffer, r Renderer) {
 	var delta int64
 	var now time.Time
 	for {
@@ -42,7 +42,7 @@ func (lv *localDelta) Resolve(wr *bytes.Buffer) {
 		}
 	}
 	lv.total.Add(delta)
-	lv.metric.coll.MetricRenderer(wr, lv.metric.ID, lv.metric.labelsf, delta, now)
+	r.Metric(wr, lv.metric.ID, lv.metric.labelCache, delta, now)
 }
 
 type localIntValue struct {
@@ -62,6 +62,6 @@ func (lg *localIntValue) Apply(op func(int64) int64) int64 {
 	}
 }
 
-func (lg *localIntValue) Resolve(wr *bytes.Buffer) {
-	lg.metric.coll.MetricRenderer(wr, lg.metric.ID, lg.metric.labelsf, lg.value.Load(), time.Now())
+func (lg *localIntValue) Resolve(wr *bytes.Buffer, r Renderer) {
+	r.Metric(wr, lg.metric.ID, lg.metric.labelCache, lg.value.Load(), time.Now())
 }

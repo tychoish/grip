@@ -109,7 +109,7 @@ func (s *writerSenderImpl) doSend() error {
 	}
 }
 
-// Close writes any buffered messages to the underlying Sender. This does
+// Close writbes any buffered messages to the underlying Sender. This does
 // not close the underlying sender.
 func (s *writerSenderImpl) Close() error {
 	s.mu.Lock()

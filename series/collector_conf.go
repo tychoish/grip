@@ -11,19 +11,14 @@ type CollectorConf struct {
 	Backends      []CollectorBackend
 	BrokerOptions pubsub.BrokerOptions
 	Buffer        int
-
-	LabelRenderer          MetricLabelRenderer
-	MetricRenderer         MetricValueRenderer
-	DefaultHistogramRender MetricHistogramRenderer
 }
 
 func (conf *CollectorConf) Validate() error {
 	ec := &erc.Collector{}
 	erc.When(ec, len(conf.Backends) == 0, "must specify one or more backends")
-	erc.When(ec, conf.MetricRenderer == nil, "must define a metric renderer")
-	erc.When(ec, conf.LabelRenderer == nil, "must define a label renderer")
 	erc.When(ec, conf.Buffer == 0, "must define buffer size (positive) or negative (unlimited)")
-	return nil
+	// TODO validate broker options make sense with other buffer options
+	return ec.Resolve()
 }
 
 type CollectorOptionProvider = fun.OptionProvider[*CollectorConf]
@@ -49,14 +44,14 @@ func CollectorConfAppendBackends(bs ...CollectorBackend) CollectorOptionProvider
 	}
 }
 
-func CollectorConfWithLoggerBackend(sender send.Sender) CollectorOptionProvider {
+func CollectorConfWithLoggerBackend(sender send.Sender, r Renderer) CollectorOptionProvider {
 	return func(conf *CollectorConf) error {
-		conf.Backends = append(conf.Backends, LoggerBackend(sender))
+		conf.Backends = append(conf.Backends, LoggerBackend(sender, r))
 		return nil
 	}
 }
 
-func CollectorConfWithFileLogger(opts ...CollectorBakendFileOptionProvider) CollectorOptionProvider {
+func CollectorConfWithFileBacked(opts ...CollectorBakendFileOptionProvider) CollectorOptionProvider {
 	return func(conf *CollectorConf) error {
 		be, err := FileBackend(opts...)
 		if err != nil {
@@ -68,64 +63,13 @@ func CollectorConfWithFileLogger(opts ...CollectorBakendFileOptionProvider) Coll
 	}
 }
 
-func CollectorConfFileLoggerBackend(opts *CollectorBackendFileConf) CollectorOptionProvider {
+func CollectorConfFileBackend(opts *CollectorBackendFileConf) CollectorOptionProvider {
 	return func(conf *CollectorConf) error {
 		be, err := FileBackend(CollectorBackendFileConfSet(opts))
 		if err != nil {
 			return err
 		}
 		conf.Backends = append(conf.Backends, be)
-		return nil
-	}
-}
-
-func CollectorConfOutputOpenTSB() CollectorOptionProvider {
-	return func(conf *CollectorConf) error {
-		conf.LabelRenderer = RenderLabelsOpenTSB
-		conf.MetricRenderer = RenderMetricOpenTSB
-		conf.DefaultHistogramRender = MakeDefaultHistogramMetricRenderer(RenderMetricOpenTSB)
-		return nil
-	}
-}
-
-func CollectorConfOutputGraphite() CollectorOptionProvider {
-	return func(conf *CollectorConf) error {
-		conf.LabelRenderer = RenderLabelsGraphite
-		conf.MetricRenderer = RenderMetricGraphite
-		conf.DefaultHistogramRender = MakeDefaultHistogramMetricRenderer(RenderMetricGraphite)
-		return nil
-	}
-}
-
-func CollectorConfOutputJSON() CollectorOptionProvider {
-	return func(conf *CollectorConf) error {
-		conf.LabelRenderer = RenderLabelsJSON
-		conf.MetricRenderer = RenderMetricJSON
-		conf.DefaultHistogramRender = RenderHistogramJSON
-		return nil
-	}
-}
-
-func CollectorConfWithOutput(
-	lr MetricLabelRenderer,
-	mr MetricValueRenderer,
-	hr MetricHistogramRenderer,
-) CollectorOptionProvider {
-	return func(conf *CollectorConf) error {
-		ec := &erc.Collector{}
-
-		erc.When(ec, lr == nil, "unspecified label renderer")
-		erc.When(ec, mr == nil, "unspecified metric renderer")
-		erc.When(ec, hr == nil, "unspecified histogram renderer")
-
-		if err := ec.Resolve(); err != nil {
-			return err
-		}
-
-		conf.LabelRenderer = lr
-		conf.MetricRenderer = mr
-		conf.DefaultHistogramRender = hr
-
 		return nil
 	}
 }

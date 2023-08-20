@@ -1,12 +1,14 @@
 package series
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/risky"
 )
@@ -25,15 +27,39 @@ type Metric struct {
 	Type   MetricType
 	labels dt.Set[dt.Pair[string, string]]
 
-	labelsf    fun.Future[[]byte]
 	labelCache fun.Future[*dt.Pairs[string, string]]
 	labelstr   fun.Future[string]
-	// pointer to the collector, for rendering
-	// interaction. populated in publish event.
-	coll *Collector
+
+	bufferPool maybeBufferPool
+
 	// internal configuration
 	hconf *HistogramConf
 	dur   time.Duration
+}
+
+type maybeBufferPool struct {
+	pool *adt.Pool[*bytes.Buffer]
+}
+
+func (mbp *maybeBufferPool) Get() *bytes.Buffer {
+	if mbp == nil || mbp.pool == nil {
+		return &bytes.Buffer{}
+	}
+
+	return mbp.pool.Get()
+}
+func (mbp *maybeBufferPool) Put(buf *bytes.Buffer) {
+	if mbp == nil || mbp.pool == nil {
+		return
+	}
+	mbp.pool.Put(buf)
+}
+
+func (mbp *maybeBufferPool) Make() *bytes.Buffer {
+	if mbp == nil || mbp.pool == nil {
+		return &bytes.Buffer{}
+	}
+	return mbp.pool.Make()
 }
 
 func Collect(id string) *Metric { return &Metric{ID: id} }
@@ -143,27 +169,6 @@ func (m *Metric) factory() localMetricValue {
 }
 
 func (m *Metric) resolve() {
-	if m.Type == MetricTypeHistogram && m.hconf != nil && m.hconf.Renderer == nil {
-		if m.coll.DefaultHistogramRender != nil {
-			m.hconf.Renderer = m.coll.DefaultHistogramRender
-		} else {
-			m.hconf.Renderer = MakeDefaultHistogramMetricRenderer(m.coll.MetricRenderer)
-		}
-	}
-
-	if m.labelsf == nil {
-		m.labelsf = fun.Futurize(func() []byte {
-			if m.labels.Len() == 0 {
-				return nil
-			}
-
-			builder := m.coll.pool.Get()
-			defer m.coll.pool.Put(builder)
-			m.coll.LabelRenderer(builder, m.labelCache().Slice())
-			return builder.Bytes()
-		}).Once()
-	}
-
 	if m.labelCache == nil {
 		m.labelCache = fun.Futurize(func() *dt.Pairs[string, string] {
 			ps := &dt.Pairs[string, string]{}
@@ -181,8 +186,10 @@ func (m *Metric) resolve() {
 	if m.labelstr == nil {
 		m.labelstr = fun.Futurize(func() string {
 			ps := m.labelCache()
-			buf := m.coll.pool.Get()
-			defer m.coll.pool.Put(buf)
+
+			buf := m.bufferPool.Get()
+			defer m.bufferPool.Put(buf)
+
 			risky.Observe(ps.Iterator(), func(p dt.Pair[string, string]) {
 				if buf.Len() > 0 {
 					buf.WriteByte(',')

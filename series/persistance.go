@@ -21,14 +21,17 @@ import (
 	"github.com/tychoish/grip/send"
 )
 
-type MetricPublisher func(io.Writer) error
+type MetricPublisher func(io.Writer, Renderer) error
 
 type CollectorBackend fun.Processor[*fun.Iterator[MetricPublisher]]
 
+type Renderer struct {
+	Metric    MetricValueRenderer
+	Histogram MetricHistogramRenderer
+}
+
 func (cb CollectorBackend) Worker(iter *fun.Iterator[MetricPublisher]) fun.Worker {
-	return func(ctx context.Context) error {
-		return ers.Join(cb(ctx, iter), iter.Close())
-	}
+	return func(ctx context.Context) error { return cb(ctx, iter) }
 }
 
 type CollectorBakendFileOptionProvider = fun.OptionProvider[*CollectorBackendFileConf]
@@ -40,6 +43,7 @@ type CollectorBackendFileConf struct {
 	CounterPadding int
 	Megabytes      int
 	Gzip           bool
+	Renderer       Renderer `json:"-" yaml:"-" db:"-" bson:"-"`
 }
 
 func (conf *CollectorBackendFileConf) Validate() error {
@@ -71,6 +75,9 @@ func CollectorBackendFileConfCounterPadding(v int) CollectorBakendFileOptionProv
 }
 func CollectorBackendFileConfRotationSizeMB(v int) CollectorBakendFileOptionProvider {
 	return func(conf *CollectorBackendFileConf) error { conf.Megabytes = v; return nil }
+}
+func CollectorBackendFileConfWithRenderer(r Renderer) CollectorBakendFileOptionProvider {
+	return func(conf *CollectorBackendFileConf) error { conf.Renderer = r; return nil }
 }
 
 func FileBackend(opts ...CollectorBakendFileOptionProvider) (CollectorBackend, error) {
@@ -105,7 +112,7 @@ func FileBackend(opts ...CollectorBakendFileOptionProvider) (CollectorBackend, e
 
 			op := iter.Value()
 
-			if err := op(wr); err != nil {
+			if err := op(wr, conf.Renderer); err != nil {
 				return errors.Join(err, ft.SafeDo(buf.Flush), ft.SafeDo(gzp.Close), ft.SafeDo(file.Close))
 			}
 
@@ -123,16 +130,18 @@ func FileBackend(opts ...CollectorBakendFileOptionProvider) (CollectorBackend, e
 	}, nil
 }
 
-func LoggerBackend(sender send.Sender) CollectorBackend {
+func LoggerBackend(sender send.Sender, r Renderer) CollectorBackend {
+	wr := send.MakeWriter(sender)
 	return func(ctx context.Context, iter *fun.Iterator[MetricPublisher]) error {
-		wr := send.MakeWriter(sender)
+		count := 0
 		for iter.Next(ctx) {
 			op := iter.Value()
-			if err := op(wr); err != nil {
-				return err
+			if err := op(wr, r); err != nil {
+				return erc.Join(err, wr.Close())
 			}
+			count++
 		}
-		return nil
+		return wr.Close()
 	}
 }
 
@@ -154,6 +163,8 @@ type CollectorBackendSocketConf struct {
 	MinMessageRetryDelay time.Duration
 	MaxMessageRetryDelay time.Duration
 	MessageErrorHandling CollectorBackendSocketErrorOption
+
+	Renderer Renderer
 }
 
 func (conf *CollectorBackendSocketConf) Validate() error {
@@ -166,9 +177,19 @@ func (conf *CollectorBackendSocketConf) Validate() error {
 	conf.MinMessageRetryDelay = intish.Max(100*time.Millisecond, conf.MinMessageRetryDelay)
 	conf.MaxMessageRetryDelay = intish.Max(conf.MinMessageRetryDelay, conf.MaxMessageRetryDelay)
 
-	return erc.Join(conf.DialErrorHandling.Validate(), conf.MessageErrorHandling.Validate())
+	ec := &erc.Collector{}
+	ec.Add(conf.DialErrorHandling.Validate())
+	ec.Add(conf.MessageErrorHandling.Validate())
+
+	erc.When(ec, conf.Renderer.Histogram == nil, "must specify histogram renderer")
+	erc.When(ec, conf.Renderer.Metric == nil, "must specify scalar metrics renderer")
+
+	return ec.Resolve()
 }
 
+func CollectorBackendSocketConfWithRenderer(r Renderer) CollectorBakendSocketOptionProvider {
+	return func(conf *CollectorBackendSocketConf) error { conf.Renderer = r; return nil }
+}
 func CollectorBackendSocketConfSet(c *CollectorBackendSocketConf) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { *conf = *c; return nil }
 }
@@ -304,7 +325,7 @@ func (c *connCacheItem) Write(in []byte) (int, error) {
 	return n, err
 }
 
-func (c *connCacheItem) Close() error { c.closed = true; return c.conn.Close() }
+func (c *connCacheItem) Close() error { c.closed = true; return ft.SafeDo(c.conn.Close) }
 
 func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBackend, error) {
 	conf := &CollectorBackendSocketConf{}
@@ -312,72 +333,69 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 		return nil, err
 	}
 
-	connCache, err := pubsub.NewDeque[*connCacheItem](pubsub.DequeOptions{Capacity: conf.IdleConns})
-	if err != nil {
-		return nil, err
-	}
+	connCache := make(chan *connCacheItem, 2*(conf.IdleConns+conf.DialWorkers+conf.MessageWorkers))
+	connCacheSize := &intish.Atomic[int]{}
 
 	ec := &erc.Collector{}
-	conPoolWorker := fun.Worker(func(ctx context.Context) error {
-		return fun.Worker(func(ctx context.Context) error {
-			timer := time.NewTimer(0)
-			defer timer.Stop()
+	var dialOperation fun.Operation = func(ctx context.Context) {
+		timer := time.NewTimer(0)
+		defer timer.Stop()
 
-			var isFinal bool
-
-		LOOP:
-			for {
-				if connCache.Len() < conf.IdleConns {
-					cc, err := conf.Dialer.DialContext(ctx, conf.Network, conf.Address)
-					isFinal, err = conf.handleDialError(ec.Add, err)
-					switch {
-					case err == nil && cc != nil:
-						if _, err = conf.handleDialError(ec.Add, connCache.WaitPushBack(ctx, &connCacheItem{conn: cc})); err != nil {
-							return err
-						}
-					case err == nil && cc == nil:
-						continue LOOP
-					case isFinal:
-						return err
-					case !isFinal:
-						continue
+		var isFinal bool
+	LOOP:
+		for {
+			if connCacheSize.Load() < conf.IdleConns {
+				cc, err := conf.Dialer.DialContext(ctx, conf.Network, conf.Address)
+				isFinal, err = conf.handleDialError(ec.Add, err)
+				switch {
+				case err == nil && cc != nil:
+					connCacheSize.Add(1)
+					if !fun.BlockingSend(connCache).Check(ctx, &connCacheItem{conn: cc}) {
+						return
 					}
+
+					// if _, err = conf.handleDialError(ec.Add, connCache.WaitPushBack(ctx, )); err != nil {
+					// 	return
+					// }
+					continue LOOP
+				case err == nil && cc == nil:
+					continue LOOP
+				case isFinal:
+					return
+				case !isFinal:
+					continue LOOP
 				}
-
-				timer.Reset(conf.MinDialRetryDelay +
-					intish.Max(0, time.Duration(
-						rand.Int63n(int64(conf.MaxDialRetryDelay)))-conf.MinDialRetryDelay,
-					),
-				)
-
-				if connCache.Len() >= conf.IdleConns {
-					select {
-					case <-ctx.Done():
-						return ctx.Err()
-					case <-timer.C:
-					}
-				}
-
 			}
-		}).StartGroup(ctx, conf.DialWorkers).Run(ctx)
-	})
+
+			timer.Reset(conf.MinDialRetryDelay +
+				intish.Max(0, time.Duration(
+					rand.Int63n(int64(conf.MaxDialRetryDelay)))-conf.MinDialRetryDelay,
+				),
+			)
+
+			if connCacheSize.Load() >= conf.IdleConns {
+				select {
+				case <-ctx.Done():
+					return
+				case <-timer.C:
+				}
+			}
+		}
+	}
 
 	return func(ctx context.Context, iter *fun.Iterator[MetricPublisher]) error {
 		return iter.ProcessParallel(
 			func(ctx context.Context, pub MetricPublisher) (err error) {
-				conn, err := connCache.WaitFront(ctx)
-				if err != nil {
-					return err
-				}
+				var conn *connCacheItem
 				defer func() {
+					if conn == nil || ers.ContextExpired(err) {
+						return
+					}
 					if err == nil {
-						go ft.Ignore(connCache.WaitPushBack(ctx, conn))
+						ec.Add(fun.BlockingSend(connCache).Write(ctx, conn))
+						connCacheSize.Add(1)
 						return
 					}
-					if ers.ContextExpired(err) || conn == nil {
-						return
-					}
-
 					err = erc.Join(err, ft.IgnoreFirst(conf.handleMessageError(ec.Add, conn.conn.Close())))
 				}()
 
@@ -391,8 +409,15 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 					case <-timer.C:
 					}
 
-					err = pub(conn)
+					if conn == nil {
+						conn, err = fun.BlockingReceive(connCache).Read(ctx)
+						connCacheSize.Add(-1)
+						if err != nil {
+							return err
+						}
+					}
 
+					err = pub(conn, conf.Renderer)
 					isFinal, err = conf.handleMessageError(ec.Add, err)
 					if err == nil {
 						return nil
@@ -402,10 +427,7 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 					}
 
 					_ = conn.conn.Close()
-					conn, err = connCache.WaitFront(ctx)
-					if err != nil {
-						return err
-					}
+					conn = nil
 
 					timer.Reset(conf.MinMessageRetryDelay +
 						intish.Max(0, time.Duration(
@@ -416,9 +438,9 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 
 				return
 			},
-			fun.WorkerGroupConfErrorHandler(ec.Add),
+			fun.WorkerGroupConfWithErrorCollector(ec),
 			fun.WorkerGroupConfNumWorkers(conf.MessageWorkers),
 			conf.MessageErrorHandling.poolErrorOptions(),
-		).PreHook(conPoolWorker.Operation(ec.Add)).PostHook(func() { /* do cancel */ }).Run(ctx)
+		).PreHook(dialOperation.Go().Once()).Run(ctx)
 	}, nil
 }

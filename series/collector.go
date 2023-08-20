@@ -14,18 +14,13 @@ import (
 	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/fun/pubsub"
+	"github.com/tychoish/grip"
 )
-
-// MetricLabelRenderer provides an implementation for an ordered set
-// of labels (tags) for a specific metric series. MetricLabels are
-// rendered and cached in the Collector, and the buffered output, is
-// passed as a future to the MetricRenderer function.
-type MetricLabelRenderer func(output *bytes.Buffer, labels []dt.Pair[string, string], extra ...dt.Pair[string, string])
 
 // MetricValueRenderer takes an event and writes the output to a
 // buffer. This makes it possible to use the metrics system with
 // arbitrary output formats and targets.
-type MetricValueRenderer func(writer *bytes.Buffer, key string, labels fun.Future[[]byte], value int64, ts time.Time)
+type MetricValueRenderer func(writer *bytes.Buffer, key string, labels fun.Future[*dt.Pairs[string, string]], value int64, ts time.Time)
 
 // Collector maintains the local state of collected metrics: metric
 // series are registered lazily when they are first sent, and the
@@ -78,58 +73,55 @@ type MetricSnapshot struct {
 // is controlled by the <>Renderer function in the Collector
 // configuration.
 func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collector, error) {
-	conf := &CollectorConf{}
-	if err := fun.JoinOptionProviders(opts...).Apply(conf); err != nil {
+	c := &Collector{}
+
+	if err := fun.JoinOptionProviders(opts...).Apply(&c.CollectorConf); err != nil {
 		return nil, err
 	}
-
-	c := &Collector{broker: pubsub.NewDequeBroker(
-		ctx,
-		pubsub.NewUnlimitedDeque[MetricPublisher](),
-		conf.BrokerOptions,
-	)}
+	conf := c.CollectorConf
 
 	c.ctx, c.cancel = context.WithCancel(ctx)
+	c.publish = pubsub.NewUnlimitedDeque[MetricPublisher]()
 	c.local.Default.SetConstructor(func() *dt.List[*tracked] { return &dt.List[*tracked]{} })
 	c.pool.SetConstructor(func() *bytes.Buffer { return &bytes.Buffer{} })
 	c.pool.SetCleanupHook(func(buf *bytes.Buffer) *bytes.Buffer { buf.Reset(); return buf })
-	ec := c.errs.Handler().Join(func(err error) { ft.WhenCall(err != nil, c.cancel) }).Lock()
+	ec := c.errs.Handler().Lock() // Join(func(err error) { ft.WhenCall(err != nil, c.cancel) }).
 
 	if len(conf.Backends) == 1 {
-		conf.Backends[0].Worker(c.publish.Distributor().Iterator()).
-			Lock().
-			Operation(ec).
-			Add(ctx, &c.wg)
+		c.wg.Launch(c.ctx, func(ctx context.Context) {
+			err := conf.Backends[0].Worker(c.publish.Distributor().Iterator()).Run(ctx)
+			// .Operation(func(err error) { grip.Warning(err) }))
+			grip.Critical(err)
+		})
 
 		return c, nil
 	}
 
-	c.broker = pubsub.NewDequeBroker[MetricPublisher](ctx, c.publish, c.BrokerOptions)
-	for idx := range conf.Backends {
-		ch := c.broker.Subscribe(ctx)
-		conf.Backends[idx].Worker(fun.ChannelIterator(ch)).
-			Lock().
-			Operation(ec).
-			PostHook(func() { c.broker.Unsubscribe(ctx, ch) }).
-			Add(ctx, &c.wg)
+	pbopts := pubsub.BrokerOptions{
+		BufferSize:       4,
+		WorkerPoolSize:   16,
+		ParallelDispatch: true,
 	}
 
-	if c.errs.HasErrors() {
-		c.wg.Operation().Wait()
-		return nil, c.errs.Resolve()
+	c.broker = pubsub.NewDequeBroker(ctx, c.publish, pbopts)
+
+	for idx := range conf.Backends {
+		ch := c.broker.Subscribe(c.ctx)
+
+		c.wg.Launch(c.ctx, conf.Backends[idx].Worker(pubsub.DistributorChannel(ch).Iterator()).
+			Operation(ec).PostHook(func() { c.broker.Unsubscribe(c.ctx, ch) }))
 	}
+
 	return c, nil
 }
 
 func (c *Collector) Close() error {
-	c.cancel()
+	ft.SafeCall(c.cancel)
+	c.wg.Operation().Wait()
 	if c.broker != nil {
 		c.broker.Stop()
 	}
-
 	c.errs.Add(c.publish.Close())
-	c.wg.Operation().Wait()
-
 	return c.errs.Resolve()
 }
 
@@ -159,11 +151,14 @@ func (c *Collector) PushEvent(e *Event) {
 		return
 	}
 
-	c.distribute(func(wr io.Writer) error {
+	c.distribute(func(wr io.Writer, r Renderer) error {
 		buf := c.pool.Get()
 		defer c.pool.Put(buf)
 
-		c.MetricRenderer(buf, e.m.ID, e.m.labelsf, val, e.ts)
+		r.Metric(buf,
+			tr.meta.ID,
+			tr.meta.labelCache,
+			val, e.ts)
 
 		return ft.IgnoreFirst(wr.Write(buf.Bytes()))
 	})
@@ -244,7 +239,6 @@ func (c *Collector) getRegisteredTracked(e *Event) *tracked {
 		}
 	}
 
-	e.m.coll = ft.Default(e.m.coll, c)
 	e.m.resolve()
 	tr := newTracked(e.m)
 	trl.PushBack(tr)
@@ -310,14 +304,15 @@ func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
 						return
 					case <-ticker.C:
 						if err := pipe.Iterator().Observe(ctx, func(tr *tracked) {
-							buf := c.pool.Get()
 
-							tr.local.Resolve(buf)
-
-							fun.Invariant.Must(c.publish.PushBack(func(wr io.Writer) error {
+							c.broker.Publish(c.ctx, func(wr io.Writer, r Renderer) error {
+								buf := c.pool.Get()
 								defer c.pool.Put(buf)
+
+								tr.local.Resolve(buf, r)
+
 								return ft.IgnoreFirst(wr.Write(buf.Bytes()))
-							}))
+							})
 						}); err != nil {
 							return
 						}

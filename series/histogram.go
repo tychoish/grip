@@ -18,7 +18,7 @@ import (
 type MetricHistogramRenderer func(
 	wr *bytes.Buffer,
 	key string,
-	labels fun.Future[[]byte],
+	labels fun.Future[*dt.Pairs[string, string]],
 	sample *dt.Pairs[float64, int64],
 	ts time.Time,
 )
@@ -27,7 +27,7 @@ func MakeDefaultHistogramMetricRenderer(mr MetricValueRenderer) MetricHistogramR
 	return func(
 		wr *bytes.Buffer,
 		key string,
-		labels fun.Future[[]byte],
+		labels fun.Future[*dt.Pairs[string, string]],
 		sample *dt.Pairs[float64, int64],
 		ts time.Time,
 	) {
@@ -51,7 +51,6 @@ type HistogramConf struct {
 	Quantiles         []float64
 	OutOfRange        HistogramOutOfRangeOption
 	Interval          time.Duration
-	Renderer          MetricHistogramRenderer
 }
 
 type HistogramOutOfRangeOption int8
@@ -132,9 +131,6 @@ func HistogramConfSignifcantDigits(in int) HistogramOptionProvider {
 func HistogramConfInterval(dur time.Duration) HistogramOptionProvider {
 	return func(conf *HistogramConf) error { conf.Interval = intish.Max(dur, 100*time.Millisecond); return nil }
 }
-func HistogramConfRenderer(hr MetricHistogramRenderer) HistogramOptionProvider {
-	return func(conf *HistogramConf) error { conf.Renderer = hr; return nil }
-}
 
 func HistogramConfSetQuantiles(quant []float64) HistogramOptionProvider {
 	return func(conf *HistogramConf) (err error) {
@@ -189,7 +185,7 @@ func (lh *localHistogram) Apply(op func(int64) int64) int64 {
 
 func (lh *localHistogram) Last() int64 { return lh.last.Load() }
 
-func (lh *localHistogram) Resolve(wr *bytes.Buffer) {
+func (lh *localHistogram) Resolve(wr *bytes.Buffer, r Renderer) {
 	now := time.Now().UTC().Round(time.Millisecond)
 
 	samples := &dt.Pairs[float64, int64]{}
@@ -198,10 +194,10 @@ func (lh *localHistogram) Resolve(wr *bytes.Buffer) {
 			samples.Add(bucket, in.ValueAtQuantile(bucket))
 		}
 	})
-	lh.metric.hconf.Renderer(
+	r.Histogram(
 		wr,
 		lh.metric.ID,
-		lh.metric.labelsf,
+		lh.metric.labelCache,
 		samples,
 		now,
 	)
