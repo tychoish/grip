@@ -34,9 +34,8 @@ func TestIntegration(t *testing.T) {
 					CollectorBackendSocketConfMinDialRetryDelay(100*time.Millisecond),
 					CollectorBackendSocketConfIdleConns(6),
 					CollectorBackendSocketConfMaxDialRetryDelay(time.Second),
-					CollectorBackendSocketConfMessageErrorHandling(CollectorBackendSocketErrorCollect),
-					CollectorBackendSocketConfDialErrorHandling(CollectorBackendSocketErrorCollect),
-				),
+					CollectorBackendSocketConfMessageErrorHandling(CollectorBackendSocketErrorPanic),
+					CollectorBackendSocketConfDialErrorHandling(CollectorBackendSocketErrorPanic)),
 				),
 			))
 		assert.NotError(t, err)

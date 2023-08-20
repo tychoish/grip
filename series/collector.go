@@ -118,7 +118,7 @@ func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collec
 }
 
 func (c *Collector) Close() error {
-	c.cancel()
+	ft.SafeCall(c.cancel)
 	if c.broker != nil {
 		c.broker.Stop()
 	}

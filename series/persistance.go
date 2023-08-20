@@ -382,6 +382,7 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 		return iter.ProcessParallel(
 			func(ctx context.Context, pub MetricPublisher) (err error) {
 				defer func() { grip.Error(err); grip.Infoln("done worker;", counter.Load()) }()
+				counter.Add(1)
 				grip.Info("start worker")
 				conn, err := connCache.WaitFront(ctx)
 				grip.Info("got first conn")
@@ -441,7 +442,7 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 			},
 			fun.WorkerGroupConfErrorHandler(ec.Add),
 			fun.WorkerGroupConfNumWorkers(conf.MessageWorkers),
-			conf.MessageErrorHandling.poolErrorOptions(),
+			// conf.MessageErrorHandling.poolErrorOptions(),
 		).PreHook(conPoolWorker.Operation(ec.Add).Once().Go()).PostHook(func() { /* do cancel */ }).Run(ctx)
 	}, nil
 }
