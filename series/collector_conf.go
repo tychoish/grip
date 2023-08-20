@@ -23,7 +23,7 @@ func (conf *CollectorConf) Validate() error {
 	erc.When(ec, conf.MetricRenderer == nil, "must define a metric renderer")
 	erc.When(ec, conf.LabelRenderer == nil, "must define a label renderer")
 	erc.When(ec, conf.Buffer == 0, "must define buffer size (positive) or negative (unlimited)")
-	return nil
+	return ec.Resolve()
 }
 
 type CollectorOptionProvider = fun.OptionProvider[*CollectorConf]

@@ -78,7 +78,7 @@ func (c *conditional) Structured() bool {
 }
 
 func (c *conditional) Loggable() bool {
-	return c.cond && safeDo(c.resolve(), func(c Composer) bool { return c.Loggable() })
+	return safeDo(c.resolve(), func(c Composer) bool { return c.Loggable() })
 }
 
 func (c *conditional) Priority() level.Priority {

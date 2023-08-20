@@ -18,6 +18,7 @@ import (
 	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/fun/intish"
 	"github.com/tychoish/fun/pubsub"
+	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/send"
 )
 
@@ -106,6 +107,7 @@ func FileBackend(opts ...CollectorBakendFileOptionProvider) (CollectorBackend, e
 			op := iter.Value()
 
 			if err := op(wr); err != nil {
+
 				return errors.Join(err, ft.SafeDo(buf.Flush), ft.SafeDo(gzp.Close), ft.SafeDo(file.Close))
 			}
 
@@ -124,14 +126,17 @@ func FileBackend(opts ...CollectorBakendFileOptionProvider) (CollectorBackend, e
 }
 
 func LoggerBackend(sender send.Sender) CollectorBackend {
+	wr := send.MakeWriter(sender)
 	return func(ctx context.Context, iter *fun.Iterator[MetricPublisher]) error {
-		wr := send.MakeWriter(sender)
 		for iter.Next(ctx) {
 			op := iter.Value()
 			if err := op(wr); err != nil {
+				grip.Error(wr.Close())
 				return err
 			}
+			grip.Info("messagePushed")
 		}
+		grip.Error(wr.Close())
 		return nil
 	}
 }
@@ -307,6 +312,7 @@ func (c *connCacheItem) Write(in []byte) (int, error) {
 func (c *connCacheItem) Close() error { c.closed = true; return c.conn.Close() }
 
 func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBackend, error) {
+	grip.Debug("socketz")
 	conf := &CollectorBackendSocketConf{}
 	if err := fun.JoinOptionProviders(opts...).Apply(conf); err != nil {
 		return nil, err
@@ -317,6 +323,7 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 		return nil, err
 	}
 
+	counter := &intish.Atomic[int]{}
 	ec := &erc.Collector{}
 	conPoolWorker := fun.Worker(func(ctx context.Context) error {
 		return fun.Worker(func(ctx context.Context) error {
@@ -324,6 +331,9 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 			defer timer.Stop()
 
 			var isFinal bool
+			grip.Notice("starting conn pool wokrer")
+
+			defer func() { grip.Infoln("con itters", counter.Load()) }()
 
 		LOOP:
 			for {
@@ -332,15 +342,18 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 					isFinal, err = conf.handleDialError(ec.Add, err)
 					switch {
 					case err == nil && cc != nil:
+						grip.Debug("pushing Connection")
 						if _, err = conf.handleDialError(ec.Add, connCache.WaitPushBack(ctx, &connCacheItem{conn: cc})); err != nil {
 							return err
 						}
+						counter.Add(1)
+						continue LOOP
 					case err == nil && cc == nil:
 						continue LOOP
 					case isFinal:
 						return err
 					case !isFinal:
-						continue
+						continue LOOP
 					}
 				}
 
@@ -363,22 +376,31 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 	})
 
 	return func(ctx context.Context, iter *fun.Iterator[MetricPublisher]) error {
+		counter := &intish.Atomic[int]{}
+		grip.Notice("starting socket writer")
+		defer func() { grip.Infoln("socket counter", counter.Load()) }()
 		return iter.ProcessParallel(
 			func(ctx context.Context, pub MetricPublisher) (err error) {
+				defer func() { grip.Error(err); grip.Infoln("done worker;", counter.Load()) }()
+				grip.Info("start worker")
 				conn, err := connCache.WaitFront(ctx)
+				grip.Info("got first conn")
 				if err != nil {
 					return err
 				}
 				defer func() {
+					grip.Infoln("exiting start", err)
 					if err == nil {
+						grip.Infoln("written", conn.written)
 						go ft.Ignore(connCache.WaitPushBack(ctx, conn))
 						return
 					}
 					if ers.ContextExpired(err) || conn == nil {
 						return
 					}
-
+					grip.Info("exiting end")
 					err = erc.Join(err, ft.IgnoreFirst(conf.handleMessageError(ec.Add, conn.conn.Close())))
+					grip.Error(err)
 				}()
 
 				timer := time.NewTimer(0)
@@ -393,8 +415,10 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 
 					err = pub(conn)
 
+					grip.Info("message socket pushing begin")
 					isFinal, err = conf.handleMessageError(ec.Add, err)
 					if err == nil {
+						grip.Info("message socket pushed")
 						return nil
 					}
 					if isFinal {
@@ -406,7 +430,6 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 					if err != nil {
 						return err
 					}
-
 					timer.Reset(conf.MinMessageRetryDelay +
 						intish.Max(0, time.Duration(
 							rand.Int63n(int64(conf.MaxMessageRetryDelay)))-conf.MinMessageRetryDelay,
@@ -419,6 +442,6 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 			fun.WorkerGroupConfErrorHandler(ec.Add),
 			fun.WorkerGroupConfNumWorkers(conf.MessageWorkers),
 			conf.MessageErrorHandling.poolErrorOptions(),
-		).PreHook(conPoolWorker.Operation(ec.Add)).PostHook(func() { /* do cancel */ }).Run(ctx)
+		).PreHook(conPoolWorker.Operation(ec.Add).Once().Go()).PostHook(func() { /* do cancel */ }).Run(ctx)
 	}, nil
 }

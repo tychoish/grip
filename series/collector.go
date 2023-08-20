@@ -14,6 +14,7 @@ import (
 	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/fun/pubsub"
+	"github.com/tychoish/grip"
 )
 
 // MetricLabelRenderer provides an implementation for an ordered set
@@ -78,40 +79,35 @@ type MetricSnapshot struct {
 // is controlled by the <>Renderer function in the Collector
 // configuration.
 func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collector, error) {
-	conf := &CollectorConf{}
-	if err := fun.JoinOptionProviders(opts...).Apply(conf); err != nil {
+	c := &Collector{}
+
+	if err := fun.JoinOptionProviders(opts...).Apply(&c.CollectorConf); err != nil {
 		return nil, err
 	}
-
-	c := &Collector{broker: pubsub.NewDequeBroker(
-		ctx,
-		pubsub.NewUnlimitedDeque[MetricPublisher](),
-		conf.BrokerOptions,
-	)}
+	conf := c.CollectorConf
+	grip.Info(conf)
 
 	c.ctx, c.cancel = context.WithCancel(ctx)
 	c.local.Default.SetConstructor(func() *dt.List[*tracked] { return &dt.List[*tracked]{} })
 	c.pool.SetConstructor(func() *bytes.Buffer { return &bytes.Buffer{} })
 	c.pool.SetCleanupHook(func(buf *bytes.Buffer) *bytes.Buffer { buf.Reset(); return buf })
+	c.publish = pubsub.NewUnlimitedDeque[MetricPublisher]()
 	ec := c.errs.Handler().Join(func(err error) { ft.WhenCall(err != nil, c.cancel) }).Lock()
 
 	if len(conf.Backends) == 1 {
-		conf.Backends[0].Worker(c.publish.Distributor().Iterator()).
-			Lock().
-			Operation(ec).
-			Add(ctx, &c.wg)
+		c.wg.Launch(c.ctx, conf.Backends[0].Worker(c.publish.Distributor().Iterator()).Operation(ec))
 
 		return c, nil
 	}
 
-	c.broker = pubsub.NewDequeBroker[MetricPublisher](ctx, c.publish, c.BrokerOptions)
+	c.broker = pubsub.NewDequeBroker[MetricPublisher](c.ctx, c.publish, c.BrokerOptions)
 	for idx := range conf.Backends {
+		grip.Infoln("start collector backend", idx)
 		ch := c.broker.Subscribe(ctx)
-		conf.Backends[idx].Worker(fun.ChannelIterator(ch)).
-			Lock().
+
+		c.wg.Launch(c.ctx, conf.Backends[idx].Worker(fun.ChannelIterator(ch)).
 			Operation(ec).
-			PostHook(func() { c.broker.Unsubscribe(ctx, ch) }).
-			Add(ctx, &c.wg)
+			PostHook(func() { c.broker.Unsubscribe(ctx, ch) }))
 	}
 
 	if c.errs.HasErrors() {
@@ -127,9 +123,12 @@ func (c *Collector) Close() error {
 		c.broker.Stop()
 	}
 
-	c.errs.Add(c.publish.Close())
-	c.wg.Operation().Wait()
-
+	// c.errs.Add(c.publish.Close())
+	// c.wg.Operation().Wait()
+	grip.Infoln("shutting down", c.wg.Num())
+	time.Sleep(100 * time.Millisecond)
+	grip.Infoln("shut down wait over", c.wg.Num(), c.errs.Len())
+	grip.Warning(c.errs.Resolve())
 	return c.errs.Resolve()
 }
 

@@ -101,10 +101,10 @@ func RenderMetricOpenTSB(buf *bytes.Buffer, key string, labels fun.Future[[]byte
 
 func RenderLabelsGraphite(builder *bytes.Buffer, labels []dt.Pair[string, string], extra ...dt.Pair[string, string]) {
 	for _, label := range append(labels, extra...) {
+		builder.WriteByte(';')
 		builder.WriteString(label.Key)
 		builder.WriteByte('=')
 		builder.WriteString(label.Value)
-		builder.WriteByte(';')
 	}
 }
 
