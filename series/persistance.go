@@ -2,6 +2,7 @@ package series
 
 import (
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"errors"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/ft"
@@ -142,6 +144,25 @@ func LoggerBackend(sender send.Sender, r Renderer) CollectorBackend {
 			count++
 		}
 		return wr.Close()
+	}
+}
+
+func PassthroughBackend(r Renderer, handler fun.Handler[string], opts ...fun.OptionProvider[*fun.WorkerGroupConf]) CollectorBackend {
+	return func(ctx context.Context, iter *fun.Iterator[MetricPublisher]) error {
+		pool := &adt.Pool[*bytes.Buffer]{}
+		pool.SetConstructor(func() *bytes.Buffer { return &bytes.Buffer{} })
+		pool.SetCleanupHook(func(buf *bytes.Buffer) *bytes.Buffer { buf.Reset(); return buf })
+
+		return fun.Converter(
+			func(mp MetricPublisher) string {
+				buf := pool.Get()
+				defer pool.Put(buf)
+				fun.Invariant.Must(mp(buf, r))
+				return buf.String()
+			}).
+			ProcessParallel(iter, opts...).
+			ProcessParallel(handler.Processor(), opts...).
+			Run(ctx)
 	}
 }
 
