@@ -61,21 +61,21 @@ func MakeAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Send
 	wg := &s.wg
 	s.closer.Set(func() (err error) {
 		s.doClose.Do(func() {
-			catcher := &erc.Collector{}
-			defer func() { err = catcher.Resolve() }()
+			ec := &erc.Collector{}
+			defer func() { err = ec.Resolve() }()
 			defer s.cancel()
-			catcher.Add(s.senders.Close())
+			ec.Add(s.senders.Close())
 
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				catcher.Add(s.senders.Iterator().Observe(ctx, func(sender Sender) {
-					catcher.Add(sender.Close())
-				}))
+				ec.Add(s.senders.Iterator().Observe(func(sender Sender) {
+					ec.Add(sender.Close())
+				}).Run(ctx))
 
 			}()
 
-			catcher.Add(s.senders.Close())
+			ec.Add(s.senders.Close())
 			close(shutdown)
 			wg.Wait(ctx)
 			s.cancel()
@@ -111,24 +111,24 @@ func (s *asyncGroupSender) startSenderWorker(newSender Sender) {
 func (s *asyncGroupSender) SetPriority(p level.Priority) {
 	s.Base.SetPriority(p)
 
-	fun.Invariant.Must(s.senders.Iterator().Observe(s.ctx, func(sender Sender) {
+	fun.Invariant.Must(s.senders.Iterator().Observe(func(sender Sender) {
 		sender.SetPriority(p)
-	}))
+	}).Run(s.ctx))
 }
 
 func (s *asyncGroupSender) SetErrorHandler(erh ErrorHandler) {
 	s.Base.SetErrorHandler(erh)
 
-	fun.Invariant.Must(s.senders.Iterator().Observe(s.ctx, func(sender Sender) {
+	fun.Invariant.Must(s.senders.Iterator().Observe(func(sender Sender) {
 		sender.SetErrorHandler(erh)
-	}))
+	}).Run(s.ctx))
 }
 
 func (s *asyncGroupSender) SetFormatter(fmtr MessageFormatter) {
 	s.Base.SetFormatter(fmtr)
-	fun.Invariant.Must(s.senders.Iterator().Observe(s.ctx, func(sender Sender) {
+	fun.Invariant.Must(s.senders.Iterator().Observe(func(sender Sender) {
 		sender.SetFormatter(fmtr)
-	}))
+	}).Run(s.ctx))
 }
 
 func (s *asyncGroupSender) Send(m message.Composer) {
@@ -141,9 +141,9 @@ func (s *asyncGroupSender) Send(m message.Composer) {
 func (s *asyncGroupSender) Flush(ctx context.Context) error {
 	catcher := &erc.Collector{}
 
-	fun.Invariant.Must(s.senders.Iterator().Observe(s.ctx, func(sender Sender) {
+	fun.Invariant.Must(s.senders.Iterator().Observe(func(sender Sender) {
 		catcher.Add(sender.Flush(ctx))
-	}))
+	}).Run(ctx))
 
 	return catcher.Resolve()
 }

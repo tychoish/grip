@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 
-	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -22,7 +21,7 @@ func WrapError(err error, m message.Composer) error {
 		return nil
 	}
 
-	return erc.Join(ErrGripMessageSendError, err, ers.Error(m.String()))
+	return ers.Join(ErrGripMessageSendError, err, ers.Error(m.String()))
 }
 
 func ErrorHandlerWriter(writer io.Writer) ErrorHandler {

@@ -139,7 +139,7 @@ func LoggerBackend(sender send.Sender, r Renderer) CollectorBackend {
 		for iter.Next(ctx) {
 			op := iter.Value()
 			if err := op(wr, r); err != nil {
-				return erc.Join(err, wr.Close())
+				return ers.Join(err, wr.Close())
 			}
 			count++
 		}
@@ -417,7 +417,7 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 						connCacheSize.Add(1)
 						return
 					}
-					err = erc.Join(err, ft.IgnoreFirst(conf.handleMessageError(ec.Add, conn.conn.Close())))
+					err = ers.Join(err, ft.IgnoreFirst(conf.handleMessageError(ec.Add, conn.conn.Close())))
 				}()
 
 				timer := time.NewTimer(0)

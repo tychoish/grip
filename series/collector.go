@@ -303,8 +303,7 @@ func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
 					case <-ctx.Done():
 						return
 					case <-ticker.C:
-						if err := pipe.Iterator().Observe(ctx, func(tr *tracked) {
-
+						if err := pipe.Iterator().Observe(func(tr *tracked) {
 							c.broker.Publish(c.ctx, func(wr io.Writer, r Renderer) error {
 								buf := c.pool.Get()
 								defer c.pool.Put(buf)
@@ -313,7 +312,7 @@ func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
 
 								return ft.IgnoreFirst(wr.Write(buf.Bytes()))
 							})
-						}); err != nil {
+						}).Run(ctx); err != nil {
 							return
 						}
 					}

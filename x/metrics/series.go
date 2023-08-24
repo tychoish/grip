@@ -13,28 +13,19 @@ import (
 	"github.com/tychoish/grip/series"
 )
 
-func CollectorConfOutputBSON() series.CollectorOptionProvider {
-	return func(conf *series.CollectorConf) error {
-		conf.LabelRenderer = RenderLabelsBSON
-		conf.MetricRenderer = RenderMetricBSON
-		conf.DefaultHistogramRender = RenderHistogramBSON
-		return nil
+func SeriesRendererBSON() series.Renderer {
+	return series.Renderer{
+		Metric:    RenderMetricBSON,
+		Histogram: RenderHistogramBSON,
 	}
 }
 
-func RenderLabelsBSON(output *bytes.Buffer, labels []dt.Pair[string, string], extra ...dt.Pair[string, string]) {
-	doc := birch.DC.Make(len(labels))
-	dt.Sliceify(append(labels, extra...)).Observe(func(label dt.Pair[string, string]) {
-		doc.Append(birch.EC.String(label.Key, label.Value))
-	})
-
-	fun.Invariant.Must(ft.IgnoreFirst(doc.WriteTo(output)))
-}
-
-func RenderMetricBSON(buf *bytes.Buffer, key string, labels fun.Future[[]byte], value int64, ts time.Time) {
+func RenderMetricBSON(buf *bytes.Buffer, key string, labels fun.Future[*dt.Pairs[string, string]], value int64, ts time.Time) {
 	doc := birch.DC.Elements(birch.EC.String("metric", key))
 	if tags := labels(); tags != nil {
-		doc.Append(birch.EC.SubDocumentFromReader("labels", birch.Reader(tags)))
+		tagdoc := birch.DC.Make(tags.Len())
+		tags.Observe(func(kv dt.Pair[string, string]) { tagdoc.Append(birch.EC.String(kv.Key, kv.Value)) })
+		doc.Append(birch.EC.SubDocument("labels", tagdoc))
 	}
 	doc.Append(
 		birch.EC.Time("ts", ts),
@@ -46,15 +37,18 @@ func RenderMetricBSON(buf *bytes.Buffer, key string, labels fun.Future[[]byte], 
 func RenderHistogramBSON(
 	wr *bytes.Buffer,
 	key string,
-	labels fun.Future[[]byte],
+	labels fun.Future[*dt.Pairs[string, string]],
 	sample *dt.Pairs[float64, int64],
 	ts time.Time,
 ) {
 	doc := birch.DC.Elements(birch.EC.String("metric", key))
 
 	if tags := labels(); tags != nil {
-		doc.Append(birch.EC.SubDocumentFromReader("labels", birch.Reader(tags)))
+		tagdoc := birch.DC.Make(tags.Len())
+		tags.Observe(func(kv dt.Pair[string, string]) { tagdoc.Append(birch.EC.String(kv.Key, kv.Value)) })
+		doc.Append(birch.EC.SubDocument("labels", tagdoc))
 	}
+
 	doc.Append(birch.EC.Time("ts", ts))
 	quants := birch.DC.Make(sample.Len())
 	risky.Observe(sample.Iterator(), func(pair dt.Pair[float64, int64]) {

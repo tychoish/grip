@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/tychoish/fun/adt"
-	"github.com/tychoish/fun/erc"
+	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -43,7 +43,7 @@ var ErrAlreadyClosed = errors.New("sender already closed")
 // an error rooted in ErrAlreadyClosed.
 func (b *Base) Close() error {
 	if swapped := b.closed.CompareAndSwap(false, true); !swapped {
-		return erc.Join(fmt.Errorf("sender %q is already closed: %w", b.Name(), ErrAlreadyClosed), b.doClose())
+		return ers.Join(fmt.Errorf("sender %q is already closed: %w", b.Name(), ErrAlreadyClosed), b.doClose())
 	}
 
 	return b.doClose()
