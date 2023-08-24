@@ -15,8 +15,7 @@ github.com/tychoish/birch v0.2.3-0.20230815160103-70c52db1b271 h1:4BBpigJOisXsnT
 github.com/tychoish/birch v0.2.3-0.20230815160103-70c52db1b271/go.mod h1:6VXjKviYBKvDKj5pADE1Ecw79+4AQMQ2PJTkfLXd3Vg=
 github.com/tychoish/birch/x/ftdc v0.0.0-20230815160103-70c52db1b271 h1:atNiog1swK3hIgzPTzdMU20a+rexlCDlbCndAzkzjAo=
 github.com/tychoish/birch/x/ftdc v0.0.0-20230815160103-70c52db1b271/go.mod h1:eAkHGxL73BATG+UC2yeIO9vnyitSjfNbImsN4k+Cx/o=
-github.com/tychoish/fun v0.10.3 h1:R7VIf4c8fRRSYUDMVuNzHYXLTUt7lshaXtIY7KAbko8=
-github.com/tychoish/fun v0.10.3/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=
+github.com/tychoish/fun v0.10.4 h1:ZV//9hmGCKt5QDdEhEYLVWWjkjJkzhpIwXiHeTjUAOo=
 github.com/tychoish/grip v0.3.5 h1:HPJTW9xaO+kFubhSNCPGBiIBsXWCvGmX8kCtawX0NOA=
 github.com/tychoish/grip v0.3.5/go.mod h1:yUxPpU6c/Z40pyHGlmdUXQyOIW9QooUsw9qB3y0NmBA=
 github.com/yusufpapurcu/wmi v1.2.2 h1:KBNDSne4vP5mbSWnJbO+51IMOXJB67QiYCSBrubbPRg=
