@@ -42,6 +42,7 @@ func WhenMsg(cond bool, m string) Composer {
 
 func (c *conditional) resolve() Composer {
 	switch {
+
 	case c.constructor != nil:
 		c.resolved = c.constructor()
 		c.constructor = nil
@@ -78,7 +79,7 @@ func (c *conditional) Structured() bool {
 }
 
 func (c *conditional) Loggable() bool {
-	return safeDo(c.resolve(), func(c Composer) bool { return c.Loggable() })
+	return c.cond && safeDo(c.resolve(), func(c Composer) bool { return c.Loggable() })
 }
 
 func (c *conditional) Priority() level.Priority {
