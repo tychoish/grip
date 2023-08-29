@@ -7,7 +7,6 @@ import (
 
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
-	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/grip/level"
 )
@@ -28,13 +27,12 @@ type PairBuilder struct {
 func BuildPair() *PairBuilder { return &PairBuilder{} }
 
 // Composer returns the builder as a composer-type
-func (p *PairBuilder) Composer() Composer                           { return p }
-func (p *PairBuilder) Pair(key string, value any) *PairBuilder      { p.kvs.Add(key, value); return p }
-func (p *PairBuilder) AddPair(in dt.Pair[string, any]) *PairBuilder { p.kvs.AddPair(in); return p }
-func (p *PairBuilder) Option(f Option) *PairBuilder                 { p.SetOption(f); return p }
-func (p *PairBuilder) Level(l level.Priority) *PairBuilder          { p.SetPriority(l); return p }
-func (p *PairBuilder) Fields(f Fields) *PairBuilder                 { p.kvs.ConsumeMap(f); return p }
-
+func (p *PairBuilder) Composer() Composer                             { return p }
+func (p *PairBuilder) Pair(key string, value any) *PairBuilder        { p.kvs.Add(key, value); return p }
+func (p *PairBuilder) AddPair(in dt.Pair[string, any]) *PairBuilder   { p.kvs.Append(in); return p }
+func (p *PairBuilder) Option(f Option) *PairBuilder                   { p.SetOption(f); return p }
+func (p *PairBuilder) Level(l level.Priority) *PairBuilder            { p.SetPriority(l); return p }
+func (p *PairBuilder) Fields(f Fields) *PairBuilder                   { p.kvs.ConsumeMap(f); return p }
 func (p *PairBuilder) Extend(in *dt.Pairs[string, any]) *PairBuilder  { p.kvs.Extend(in); return p }
 func (p *PairBuilder) Append(in ...dt.Pair[string, any]) *PairBuilder { p.kvs.Append(in...); return p }
 func (p *PairBuilder) PairWhen(cond bool, k string, v any) *PairBuilder {
@@ -42,10 +40,8 @@ func (p *PairBuilder) PairWhen(cond bool, k string, v any) *PairBuilder {
 }
 
 func (p *PairBuilder) Iterator(ctx context.Context, iter *fun.Iterator[dt.Pair[string, any]]) *PairBuilder {
-	// TODO this is probably safe, but soon we can add this error
-	// to the input iterator after fun v0.10
-	_ = p.kvs.Consume(ctx, iter)
-	return p
+	err := p.kvs.Consume(iter).Run(ctx)
+	return p.PairWhen(err != nil, "gripErr", err)
 }
 
 // MakeKV constructs a new Composer using KV (dt.Pair[string, any]).
@@ -53,7 +49,7 @@ func MakeKV(kvs ...dt.Pair[string, any]) Composer { return BuildPair().Append(kv
 
 func MakePairs(kvs *dt.Pairs[string, any]) Composer {
 	p := &PairBuilder{}
-	ers.Ignore(p.kvs.Consume(context.Background(), kvs.Iterator()))
+	p.kvs.Consume(kvs.Iterator()).Ignore().Wait()
 	return p
 }
 
