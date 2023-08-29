@@ -15,5 +15,5 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/trivago/tgo v1.0.7 // indirect
-	github.com/tychoish/fun v0.10.6-0.20230829195000-6cd43bc008be // indirect
+	github.com/tychoish/fun v0.10.6-0.20230829222630-28c89fac90df // indirect
 )

@@ -114,7 +114,7 @@ github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
-github.com/tychoish/fun v0.10.6-0.20230829195000-6cd43bc008be h1:1uv1nPmlIRlj/T2HDFcTktocvuwXUXOaqI4UBma2UTk=
+github.com/tychoish/fun v0.10.6-0.20230829222630-28c89fac90df h1:DhKhXwvVsZPxUyhp9L4cC1g3QcyiX+AKtn5rv5gwsKc=
 github.com/tychoish/grip v0.3.5 h1:HPJTW9xaO+kFubhSNCPGBiIBsXWCvGmX8kCtawX0NOA=
 github.com/tychoish/grip v0.3.5/go.mod h1:yUxPpU6c/Z40pyHGlmdUXQyOIW9QooUsw9qB3y0NmBA=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

@@ -4,3 +4,7 @@ github.com/tychoish/fun v0.10.4 h1:ZV//9hmGCKt5QDdEhEYLVWWjkjJkzhpIwXiHeTjUAOo=
 github.com/tychoish/fun v0.10.4/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=
 github.com/tychoish/fun v0.10.6-0.20230829195000-6cd43bc008be h1:1uv1nPmlIRlj/T2HDFcTktocvuwXUXOaqI4UBma2UTk=
 github.com/tychoish/fun v0.10.6-0.20230829195000-6cd43bc008be/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=
+github.com/tychoish/fun v0.10.6-0.20230829200936-afb92066a071 h1:67MS8b8+IthmZiTLlKIykDoF0zhuYl5BV8XWYZGqPvE=
+github.com/tychoish/fun v0.10.6-0.20230829200936-afb92066a071/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=
+github.com/tychoish/fun v0.10.6-0.20230829222630-28c89fac90df h1:DhKhXwvVsZPxUyhp9L4cC1g3QcyiX+AKtn5rv5gwsKc=
+github.com/tychoish/fun v0.10.6-0.20230829222630-28c89fac90df/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=

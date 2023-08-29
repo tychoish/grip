@@ -170,10 +170,7 @@ func (m *Metric) factory() localMetricValue {
 func (m *Metric) resolve() {
 	if m.labelCache == nil {
 		m.labelCache = fun.Futurize(func() *dt.Pairs[string, string] {
-			ps := &dt.Pairs[string, string]{}
-			dt.ConsumePairs[]()
-
-			ps.Consume(m.labels.Iterator()).Must().Wait()
+			ps := dt.ConsumePairs(m.labels.Iterator()).Force().Resolve()
 
 			ps.SortQuick(func(a, b dt.Pair[string, string]) bool {
 				return a.Key < b.Key && a.Value < b.Value

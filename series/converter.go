@@ -248,7 +248,7 @@ func resolveEvents(in any, buildMessage metricMessageExtractOption) (out MetricM
 				return
 			}
 			if buildMessage {
-				p.AddPair(item)
+				p.Append(item)
 			}
 		})
 	case []dt.Pair[string, any]:
@@ -261,7 +261,7 @@ func resolveEvents(in any, buildMessage metricMessageExtractOption) (out MetricM
 				return
 			}
 			if buildMessage {
-				p.AddPair(item)
+				p.Append(item)
 			}
 		})
 	case []*dt.Pair[string, any]:
@@ -274,7 +274,7 @@ func resolveEvents(in any, buildMessage metricMessageExtractOption) (out MetricM
 				return
 			}
 			if buildMessage {
-				p.AddPair(*item)
+				p.Append(*item)
 			}
 		})
 	case []any:

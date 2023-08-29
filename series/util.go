@@ -67,7 +67,7 @@ func (conf *CollectorBackendFileConf) RotatingFilePath() fun.Producer[string] {
 }
 
 func (conf *CollectorBackendFileConf) RotatingFileProducer() fun.Producer[io.WriteCloser] {
-	getNextFileName := conf.RotatingFilePath().Block
+	getNextFileName := conf.RotatingFilePath().Wait
 
 	return fun.Producer[io.WriteCloser](func(ctx context.Context) (io.WriteCloser, error) {
 		if err := os.MkdirAll(conf.Directory, 0755); err != nil {

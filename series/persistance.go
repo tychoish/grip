@@ -265,7 +265,7 @@ func handleSocketBackedError(
 	switch {
 	case err == nil:
 		return true, nil
-	case ers.ContextExpired(err):
+	case ers.IsExpiredContext(err):
 		return true, err
 	case errors.Is(err, pubsub.ErrQueueClosed):
 		return true, nil
@@ -409,7 +409,7 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 			func(ctx context.Context, pub MetricPublisher) (err error) {
 				var conn *connCacheItem
 				defer func() {
-					if conn == nil || ers.ContextExpired(err) {
+					if conn == nil || ers.IsExpiredContext(err) {
 						return
 					}
 					if err == nil {
