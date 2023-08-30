@@ -11,5 +11,5 @@ require (
 
 require (
 	github.com/stretchr/testify v1.8.1 // indirect
-	github.com/tychoish/fun v0.10.6-0.20230829222630-28c89fac90df // indirect
+	github.com/tychoish/fun v0.10.6 // indirect
 )
