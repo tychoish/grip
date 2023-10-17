@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/tychoish/fun/assert"
-	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/grip"
 )
 
@@ -20,27 +19,31 @@ func TestIntegration(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
+			sb, err := SocketBackend(CollectorBackendSocketConfWithRenderer(MakeGraphiteRenderer()),
+				CollectorBackendSocketConfMessageWorkers(4),
+				CollectorBackendSocketConfDialWorkers(6),
+				CollectorBackendSocketConfDialer(net.Dialer{
+					Timeout:   2 * time.Second,
+					KeepAlive: time.Minute,
+				}),
+				CollectorBackendSocketConfNetowrkTCP(),
+				CollectorBackendSocketConfAddress("localhost:2003"),
+				CollectorBackendSocketConfMinDialRetryDelay(100*time.Millisecond),
+				CollectorBackendSocketConfIdleConns(6),
+				CollectorBackendSocketConfMaxDialRetryDelay(time.Second),
+				CollectorBackendSocketConfMessageErrorHandling(CollectorBackendSocketErrorAbort),
+				CollectorBackendSocketConfDialErrorHandling(CollectorBackendSocketErrorAbort))
+
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			coll, err := NewCollector(
 				ctx,
 				CollectorConfBuffer(9001),
 				CollectorConfAppendBackends(
 					LoggerBackend(grip.Sender(), MakeJSONRenderer()),
-					ft.Must(SocketBackend(
-						CollectorBackendSocketConfWithRenderer(MakeGraphiteRenderer()),
-						CollectorBackendSocketConfMessageWorkers(4),
-						CollectorBackendSocketConfDialWorkers(6),
-						CollectorBackendSocketConfDialer(net.Dialer{
-							Timeout:   2 * time.Second,
-							KeepAlive: time.Minute,
-						}),
-						CollectorBackendSocketConfNetowrkTCP(),
-						CollectorBackendSocketConfAddress("localhost:2003"),
-						CollectorBackendSocketConfMinDialRetryDelay(100*time.Millisecond),
-						CollectorBackendSocketConfIdleConns(6),
-						CollectorBackendSocketConfMaxDialRetryDelay(time.Second),
-						CollectorBackendSocketConfMessageErrorHandling(CollectorBackendSocketErrorPanic),
-						CollectorBackendSocketConfDialErrorHandling(CollectorBackendSocketErrorPanic)),
-					),
+					sb,
 				))
 			assert.NotError(t, err)
 			assert.True(t, coll != nil)
