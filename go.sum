@@ -1,14 +1,2 @@
-github.com/tychoish/fun v0.10.3 h1:R7VIf4c8fRRSYUDMVuNzHYXLTUt7lshaXtIY7KAbko8=
-github.com/tychoish/fun v0.10.3/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=
-github.com/tychoish/fun v0.10.4 h1:ZV//9hmGCKt5QDdEhEYLVWWjkjJkzhpIwXiHeTjUAOo=
-github.com/tychoish/fun v0.10.4/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=
-github.com/tychoish/fun v0.10.6-0.20230829195000-6cd43bc008be h1:1uv1nPmlIRlj/T2HDFcTktocvuwXUXOaqI4UBma2UTk=
-github.com/tychoish/fun v0.10.6-0.20230829195000-6cd43bc008be/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=
-github.com/tychoish/fun v0.10.6-0.20230829200936-afb92066a071 h1:67MS8b8+IthmZiTLlKIykDoF0zhuYl5BV8XWYZGqPvE=
-github.com/tychoish/fun v0.10.6-0.20230829200936-afb92066a071/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=
-github.com/tychoish/fun v0.10.6-0.20230829222630-28c89fac90df h1:DhKhXwvVsZPxUyhp9L4cC1g3QcyiX+AKtn5rv5gwsKc=
-github.com/tychoish/fun v0.10.6-0.20230829222630-28c89fac90df/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=
-github.com/tychoish/fun v0.10.6-0.20230830050348-040e417312e9 h1:PdR5zKtn/5n8Dg3Qcluu4SVCOjDo8aaEmzdKjjPz/lw=
-github.com/tychoish/fun v0.10.6-0.20230830050348-040e417312e9/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=
-github.com/tychoish/fun v0.10.6 h1:UqJZY8I9hPsXGcuS1XdX5gNZKIcJRywjy+jD9oHRR+s=
-github.com/tychoish/fun v0.10.6/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=
+github.com/tychoish/fun v0.10.8 h1:NBC8ug2cRYGKzlD70+r/tz4lkwfKAshFv9aaxHoYNwQ=
+github.com/tychoish/fun v0.10.8/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=

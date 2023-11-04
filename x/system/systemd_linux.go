@@ -54,7 +54,7 @@ func (s *systemdJournal) Send(m message.Composer) {
 		return
 	}
 
-	if err := ers.Check(func() {
+	if err := ers.WithRecoverCall(func() {
 		outstr, err := s.Format(m)
 		if !s.HandleErrorOK(send.WrapError(err, m)) {
 			return

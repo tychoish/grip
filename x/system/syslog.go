@@ -76,7 +76,7 @@ func (s *syslogger) Send(m message.Composer) {
 	if !send.ShouldLog(s, m) {
 		return
 	}
-	if err := ers.Check(func() {
+	if err := ers.WithRecoverCall(func() {
 		outstr, err := s.Format(m)
 		if !s.HandleErrorOK(send.WrapError(err, m)) {
 			return
