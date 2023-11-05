@@ -186,7 +186,7 @@ func hasMetrics[T extractableMessageTypes](in T) (isMetric bool) {
 	case fun.Future[Event], fun.Future[*Event], fun.Future[[]Event], fun.Future[[]*Event]:
 		return true
 	case map[string]any: // also mesage.Fields
-		dt.Mapify(ev).Values().Process(fun.MakeProcessor(func(in any) (err error) {
+		dt.NewMap(ev).Values().Process(fun.MakeProcessor(func(in any) (err error) {
 			isMetric, err = isEventTyped(in)
 			return
 		})).Ignore().Wait()
@@ -196,17 +196,17 @@ func hasMetrics[T extractableMessageTypes](in T) (isMetric bool) {
 			return
 		})).Ignore().Wait()
 	case []dt.Pair[string, any]:
-		dt.Sliceify(ev).Iterator().Process(fun.MakeProcessor(func(in dt.Pair[string, any]) (err error) {
+		dt.NewSlice(ev).Iterator().Process(fun.MakeProcessor(func(in dt.Pair[string, any]) (err error) {
 			isMetric, err = isEventTyped(in.Value)
 			return
 		})).Ignore().Wait()
 	case []*dt.Pair[string, any]:
-		dt.Sliceify(ev).Iterator().Process(fun.MakeProcessor(func(in *dt.Pair[string, any]) (err error) {
+		dt.NewSlice(ev).Iterator().Process(fun.MakeProcessor(func(in *dt.Pair[string, any]) (err error) {
 			isMetric, err = isEventTyped(in.Value)
 			return
 		})).Ignore().Wait()
 	case []any:
-		dt.Sliceify(ev).Iterator().Process(fun.MakeProcessor(func(in any) (err error) {
+		dt.NewSlice(ev).Iterator().Process(fun.MakeProcessor(func(in any) (err error) {
 			isMetric, err = isEventTyped(in)
 			return
 		})).Ignore().Wait()

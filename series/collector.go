@@ -18,23 +18,28 @@ import (
 )
 
 // MetricValueRenderer takes an event and writes the output to a
-// buffer. This makes it possible to use the metrics system with
-// arbitrary output formats and targets.
+// buffer. This provides the ability to add support arbitrary output
+// formats and targets via dependency injection.
 type MetricValueRenderer func(writer *bytes.Buffer, key string, labels fun.Future[*dt.Pairs[string, string]], value int64, ts time.Time)
 
 // Collector maintains the local state of collected metrics: metric
 // series are registered lazily when they are first sent, and the
 // collector tracks the value and is responsible for orchestrating.
 type Collector struct {
+	CollectorConf
+
+	// synchronized map tracking metrics and periodic collection operations.
 	local adt.Map[string, *dt.List[*tracked]]
 	loops adt.Map[time.Duration, fun.Handler[*tracked]]
 	pool  adt.Pool[*bytes.Buffer]
 
+	// broker is for cases where there are more than one output
+	// system. the broker is backed by the publish deque, but we
+	// use the deque directly when there's only one output.
 	broker  *pubsub.Broker[MetricPublisher]
 	publish *pubsub.Deque[MetricPublisher]
 
-	CollectorConf
-
+	// lifecycle an error collection.
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     fun.WaitGroup
@@ -125,15 +130,15 @@ func (c *Collector) Close() error {
 	return c.errs.Resolve()
 }
 
-func (c *Collector) Push(events ...*Event)   { c.Publish(events) }
-func (c *Collector) Publish(events []*Event) { dt.Sliceify(events).Observe(c.PushEvent) }
-
 func (c *Collector) Stream(
 	iter *fun.Iterator[*Event],
 	opts ...fun.OptionProvider[*fun.WorkerGroupConf],
 ) fun.Worker {
 	return iter.ProcessParallel(fun.Handle(c.PushEvent).Processor(), opts...)
 }
+
+func (c *Collector) Push(events ...*Event)   { c.Publish(events) }
+func (c *Collector) Publish(events []*Event) { dt.NewSlice(events).Observe(c.PushEvent) }
 
 func (c *Collector) PushEvent(e *Event) {
 	if e.m == nil {
@@ -194,7 +199,7 @@ func (c *Collector) Iterator() *fun.Iterator[MetricSnapshot] {
 			}).Operation(ec.Handler()).Go().Once(),
 		).IteratorWithHook(erc.IteratorHook[*tracked](ec)),
 		// transformation function to convert the iterator of
-		// tracked
+		// trackedMetrics to metrics snapshots.
 		fun.Converter(func(tr *tracked) MetricSnapshot {
 			last := tr.lastMod.Load()
 			return MetricSnapshot{Name: tr.meta.ID, Labels: tr.meta.labelstr(), Value: last.Key, Timestamp: last.Value}

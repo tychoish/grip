@@ -12,10 +12,19 @@ import (
 	"github.com/tychoish/fun/risky"
 )
 
+// MetricType determines the kind of metric, in particular how the
+// state of the metric is tracked over the lifetime of the
+// application.
 type MetricType string
 
 const (
-	MetricTypeDeltas    MetricType = "deltas"
+	// MetricTypeDeltas represents an integer/numeric value that
+	// is rendered as deltas: the difference since the last time
+	// the metric was reported.
+	MetricTypeDeltas MetricType = "deltas"
+	// MetricTypeCounter represents an incrementing metric that
+	// increases over the lifetime of the process' lifespan. When
+	// reported, the total value of the counter is displayed.
 	MetricTypeCounter   MetricType = "counter"
 	MetricTypeGuage     MetricType = "gauge"
 	MetricTypeHistogram MetricType = "histogram"
@@ -75,7 +84,7 @@ func Histogram(id string, opts ...HistogramOptionProvider) *Metric {
 func (m *Metric) Label(k, v string) *Metric       { m.labels.Add(dt.MakePair(k, v)); return m }
 func (m *Metric) MetricType(t MetricType) *Metric { m.Type = t; return m }
 func (m *Metric) Annotate(pairs ...dt.Pair[string, string]) *Metric {
-	m.labels.Populate(dt.Sliceify(pairs).Iterator())
+	m.labels.Populate(dt.NewSlice(pairs).Iterator())
 	return m
 }
 
