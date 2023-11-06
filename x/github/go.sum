@@ -116,8 +116,8 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/tychoish/fun v0.10.8 h1:NBC8ug2cRYGKzlD70+r/tz4lkwfKAshFv9aaxHoYNwQ=
 github.com/tychoish/fun v0.10.8/go.mod h1:ZZfrwtsnHHV81ecZCBPp57DjjYY9Io39JH2QSXNpKn4=
-github.com/tychoish/grip v0.3.6 h1:DnraGQGg8f7rVgZZirLWnZjBSYMsMvruwtmGurXH6fc=
-github.com/tychoish/grip v0.3.6/go.mod h1:KNReR43GI+rvv3BiBvlQ0KH8uJ2jHl4bg9gZPtm2g6U=
+github.com/tychoish/grip v0.3.7 h1:buYuRYNWC0szZtmz74QtyhPldysPYzxgCF6wqDO49XE=
+github.com/tychoish/grip v0.3.7/go.mod h1:gJt2LY5xkr5IDsZy89X3gh0JwqO1/e8+M24NQ34Cyrk=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

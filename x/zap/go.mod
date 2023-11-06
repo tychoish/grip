@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/tychoish/fun v0.10.8
-	github.com/tychoish/grip v0.3.6
+	github.com/tychoish/grip v0.3.7
 	go.uber.org/zap v1.24.0
 )
 
