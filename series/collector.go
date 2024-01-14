@@ -237,7 +237,7 @@ func (c *Collector) getRegisteredTracked(e *Event) *tracked {
 	trl := c.local.Get(e.m.ID)
 
 	if trl.Len() > 0 {
-		for el := trl.Front(); el.OK(); el = el.Next() {
+		for el := trl.Front(); el.Ok(); el = el.Next() {
 			if el.Value().meta.Equal(e.m) {
 				return el.Value()
 			}
@@ -284,7 +284,7 @@ func (c *Collector) submitBackground(dur time.Duration, tr *tracked) {
 	}
 
 	handler, ok := c.loops.Load(dur)
-	fun.Invariant.OK(ok)
+	fun.Invariant.Ok(ok)
 	handler(tr)
 }
 

@@ -168,7 +168,7 @@ func (m *Metric) factory() localMetricValue {
 	case MetricTypeCounter:
 		return &localIntValue{metric: m}
 	case MetricTypeHistogram:
-		fun.Invariant.OK(m.hconf != nil, "histograms must have configuration")
+		fun.Invariant.Ok(m.hconf != nil, "histograms must have configuration")
 		conf := m.hconf.factory()()
 		return conf
 	default:

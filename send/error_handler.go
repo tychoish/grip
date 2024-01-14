@@ -17,7 +17,7 @@ const ErrGripMessageSendError ers.Error = "unable to send grip log message"
 // error,) ErrGripMessageSendError, and the underlying error. When the
 // input error is nil, the error is nil.
 func WrapError(err error, m message.Composer) error {
-	if ers.OK(err) {
+	if ers.Ok(err) {
 		return nil
 	}
 
