@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/fuyufjh/splunk-hec-go v0.4.0
-	github.com/tychoish/grip v0.3.7
+	github.com/tychoish/grip v0.3.8
 )
 
 require (
