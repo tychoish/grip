@@ -199,7 +199,7 @@ func TestLogger(t *testing.T) {
 
 		const msg = "hello world!"
 		multiMessage := []message.Composer{
-			message.Convert[message.Composer](nil),
+			message.Convert(nil),
 			message.Convert(msg),
 		}
 

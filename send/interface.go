@@ -9,7 +9,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/fn"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -78,7 +78,7 @@ type Sender interface {
 // multi-sender implementation) or fallback is
 // configured. Implementations of this type should perform a noop if
 // the error object is nil.
-type ErrorHandler fun.Handler[error]
+type ErrorHandler fn.Handler[error]
 
 // MessageFormatter is a function type used by senders to construct the
 // entire string returned as part of the output. This makes it

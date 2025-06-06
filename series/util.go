@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/ers"
 )
 
 type sizeAccountingWriter struct {
@@ -25,7 +26,7 @@ func newSizeAccountingWriter(base io.Writer) *sizeAccountingWriter {
 
 func (w *sizeAccountingWriter) Write(in []byte) (out int, err error) {
 	out, err = w.Writer.Write(in)
-	w.Int64.Add(int64(out))
+	w.Add(int64(out))
 	return
 }
 
@@ -43,33 +44,31 @@ func intPow(val, exp int64) int64 {
 	return result
 }
 
-func (conf *CollectorBackendFileConf) RotatingFilePath() fun.Producer[string] {
+func (conf *CollectorBackendFileConf) RotatingFilePath() fun.Generator[string] {
 	counter := &atomic.Int64{}
-	tmpl := fmt.Sprintf("%%0%dd", conf.CounterPadding)
+	tmpl := fmt.Sprintf("%s%%0%dd", conf.FilePrefix, conf.CounterPadding)
 	counter.Add(-1)
 	maxCounterVal := intPow(10, int64(conf.CounterPadding+1)) - 1
 
-	return fun.MakeProducer(func() (string, error) {
+	return func(ctx context.Context) (string, error) {
 		var path string
 
 		for i := counter.Add(1); i < maxCounterVal; i = counter.Add(1) {
-			path = filepath.Join(conf.Directory,
-				conf.FilePrefix,
-				fmt.Sprintf(tmpl, i),
-			)
+			path = filepath.Join(conf.Directory, fmt.Sprintf(tmpl, i))
+
 			if _, err := os.Stat(path); os.IsNotExist(err) {
 				return path, nil
 			}
 		}
-		return "", fmt.Errorf("insufficient padding for %d elements %s %q", counter.Load(), conf.FilePrefix, path)
-	})
 
+		return "", fmt.Errorf("insufficient padding for %d elements %s %q", counter.Load(), conf.FilePrefix, path)
+	}
 }
 
-func (conf *CollectorBackendFileConf) RotatingFileProducer() fun.Producer[io.WriteCloser] {
+func (conf *CollectorBackendFileConf) RotatingFileProducer() fun.Generator[io.WriteCloser] {
 	getNextFileName := conf.RotatingFilePath().Wait
 
-	return fun.Producer[io.WriteCloser](func(ctx context.Context) (io.WriteCloser, error) {
+	return fun.Generator[io.WriteCloser](func(ctx context.Context) (io.WriteCloser, error) {
 		if err := os.MkdirAll(conf.Directory, 0755); err != nil {
 			return nil, err
 		}
@@ -79,6 +78,11 @@ func (conf *CollectorBackendFileConf) RotatingFileProducer() fun.Producer[io.Wri
 			return nil, err
 		}
 
-		return os.Open(fn)
+		out, err := os.Create(fn)
+		if err != nil {
+			return nil, ers.Wrapf(err, "os.Create<%s>", fn)
+		}
+
+		return out, nil
 	})
 }

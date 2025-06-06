@@ -3,9 +3,9 @@ package message
 import (
 	"errors"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/erc"
+	"github.com/tychoish/fun/fn"
 	"github.com/tychoish/grip/level"
 )
 
@@ -23,7 +23,7 @@ type Builder struct {
 	send        func(Composer)
 	converter   Converter
 	composer    Composer
-	level       fun.Future[level.Priority]
+	level       fn.Future[level.Priority]
 	catcher     erc.Collector
 	sendAsGroup bool
 	opts        []Option
@@ -56,7 +56,7 @@ func (b *Builder) Send() {
 		return
 	}
 
-	msgs := dt.Unwind(m)
+	msgs := Unwind(m)
 	for _, msg := range msgs {
 		if len(b.opts) > 0 {
 			msg.SetOption(b.opts...)
@@ -67,7 +67,7 @@ func (b *Builder) Send() {
 
 func (b *Builder) getMessage() Composer {
 	if b.composer != nil {
-		if b.catcher.HasErrors() {
+		if !b.catcher.Ok() {
 			return WrapError(b.catcher.Resolve(), b.composer)
 		}
 		if b.level != nil {
@@ -110,8 +110,8 @@ func (b *Builder) SetOption(opts ...Option) *Builder { b.opts = append(b.opts, o
 // message via another method, otherwise an error is generated and
 // added to the builder. Additionally an error is added to the builder
 // if the level is not valid.
-func (b *Builder) Level(l level.Priority) *Builder                { b.level = fun.AsFuture(l); return b }
-func (b *Builder) Leveler(fn fun.Future[level.Priority]) *Builder { b.level = fn.Once(); return b }
+func (b *Builder) Level(l level.Priority) *Builder               { b.level = fn.AsFuture(l); return b }
+func (b *Builder) Leveler(fp fn.Future[level.Priority]) *Builder { b.level = fp.Once(); return b }
 
 // When makes the message conditional. Pass a statement to this
 // function, that when false will cause the rest of the message to be
@@ -155,7 +155,7 @@ func (b *BuilderP) Builder() *Builder { return b.outer }
 
 type BuilderFuture struct{ uilder *Builder }
 
-func addFuture[T any](b *BuilderFuture, f fun.Future[T]) *BuilderFuture {
+func addFuture[T any](b *BuilderFuture, f fn.Future[T]) *BuilderFuture {
 	WithFuture(b.uilder, f)
 	return b
 }
@@ -163,18 +163,18 @@ func addFuture[T any](b *BuilderFuture, f fun.Future[T]) *BuilderFuture {
 func (b *BuilderFuture) Send()             { b.uilder.Send() }
 func (b *BuilderFuture) Builder() *Builder { return b.uilder }
 
-func (b *BuilderFuture) Convert(f fun.Future[any]) *BuilderFuture        { return addFuture(b, f) }
-func (b *BuilderFuture) Fields(f fun.Future[Fields]) *BuilderFuture      { return addFuture(b, f) }
-func (b *BuilderFuture) Map(f fun.Future[map[string]any]) *BuilderFuture { return addFuture(b, f) }
-func (b *BuilderFuture) Composer(f fun.Future[Composer]) *BuilderFuture  { return addFuture(b, f) }
-func (b *BuilderFuture) Error(f fun.Future[error]) *BuilderFuture        { return addFuture(b, f) }
-func (b *BuilderFuture) String(f fun.Future[string]) *BuilderFuture      { return addFuture(b, f) }
-func (b *BuilderFuture) Pairs(f fun.Future[dt.Pairs[string, any]]) *BuilderFuture {
+func (b *BuilderFuture) Convert(f fn.Future[any]) *BuilderFuture        { return addFuture(b, f) }
+func (b *BuilderFuture) Fields(f fn.Future[Fields]) *BuilderFuture      { return addFuture(b, f) }
+func (b *BuilderFuture) Map(f fn.Future[map[string]any]) *BuilderFuture { return addFuture(b, f) }
+func (b *BuilderFuture) Composer(f fn.Future[Composer]) *BuilderFuture  { return addFuture(b, f) }
+func (b *BuilderFuture) Error(f fn.Future[error]) *BuilderFuture        { return addFuture(b, f) }
+func (b *BuilderFuture) String(f fn.Future[string]) *BuilderFuture      { return addFuture(b, f) }
+func (b *BuilderFuture) Pairs(f fn.Future[dt.Pairs[string, any]]) *BuilderFuture {
 	return addFuture(b, f)
 }
 
-func WithFuture[T any](b *Builder, fn fun.Future[T]) *Builder {
-	return b.Composer(converterFuture(b.converter, fn))
+func WithFuture[T any](b *Builder, fp fn.Future[T]) *Builder {
+	return b.Composer(converterFuture(b.converter, fp))
 }
 
 // Fields, creates a new fields message if no message has been

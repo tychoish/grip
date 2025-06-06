@@ -14,7 +14,7 @@ func MakeString(m string) Composer {
 func (s *stringMessage) setupField() {
 	s.Collect()
 	s.fm = &fieldMessage{
-		fields:  s.Base.Context,
+		fields:  s.Context,
 		Base:    s.Base,
 		message: s.Message,
 	}
@@ -24,7 +24,7 @@ func (s *stringMessage) Loggable() bool {
 	switch {
 	case (s.fm != nil && s.fm.Loggable()):
 		return true
-	case len(s.Base.Context) > 0:
+	case len(s.Context) > 0:
 		return true
 	case s.Message != "":
 		return true
@@ -37,7 +37,7 @@ func (s *stringMessage) String() string {
 	switch {
 	case s.fm != nil:
 		return s.fm.String()
-	case len(s.Base.Context) > 0:
+	case len(s.Context) > 0:
 		s.setupField()
 		return s.fm.String()
 	default:
@@ -49,7 +49,7 @@ func (s *stringMessage) Raw() any {
 	switch {
 	case s.fm != nil:
 		return s.fm.Raw()
-	case len(s.Base.Context) > 0:
+	case len(s.Context) > 0:
 		s.setupField()
 		return s.fm.Raw()
 	default:

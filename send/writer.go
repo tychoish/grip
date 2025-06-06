@@ -84,7 +84,7 @@ func (s *writerSenderImpl) Write(p []byte) (int, error) {
 }
 
 func (s *writerSenderImpl) doSend() error {
-	pri := s.Sender.Priority()
+	pri := s.Priority()
 	for {
 		line, err := s.buffer.ReadBytes('\n')
 		if err == io.EOF {

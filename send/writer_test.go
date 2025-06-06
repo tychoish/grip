@@ -12,7 +12,7 @@ func TestSenderWriter(t *testing.T) {
 	sink.SetPriority(level.Debug)
 
 	ws := MakeWriter(sink)
-	if 0 != ws.buffer.Len() {
+	if ws.buffer.Len() != 0 {
 		t.Error("elements should be equal")
 	}
 
@@ -41,7 +41,7 @@ func TestSenderWriter(t *testing.T) {
 	if len(newLine) != n {
 		t.Error("elements should be equal")
 	}
-	if 12 != ws.buffer.Len() {
+	if ws.buffer.Len() != 12 {
 		t.Error("elements should be equal")
 	}
 
@@ -56,7 +56,7 @@ func TestSenderWriter(t *testing.T) {
 	if !m.Logged {
 		t.Error("should be true")
 	}
-	if "hello world" != m.Message.String() {
+	if m.Message.String() != "hello world" {
 		t.Error("elements should be equal")
 	}
 	// the above trimmed the final new line off, which is correct,
@@ -82,7 +82,7 @@ func TestSenderWriter(t *testing.T) {
 	if !sink.HasMessage() {
 		t.Error("should be true")
 	}
-	if 2 != sink.Len() {
+	if sink.Len() != 2 {
 		t.Error("elements should be equal")
 	}
 	m = sink.GetMessage()
@@ -93,10 +93,10 @@ func TestSenderWriter(t *testing.T) {
 	if !m2.Logged {
 		t.Error("should be true")
 	}
-	if "hello world" != m.Message.String() {
+	if m.Message.String() != "hello world" {
 		t.Error("elements should be equal")
 	}
-	if "hello grip" != m2.Message.String() {
+	if m2.Message.String() != "hello grip" {
 		t.Error("elements should be equal")
 	}
 
@@ -130,11 +130,11 @@ func TestSenderWriter(t *testing.T) {
 	if !m.Logged {
 		t.Error("should be true")
 	}
-	if "hello world" != m.Message.String() {
+	if m.Message.String() != "hello world" {
 		t.Error("elements should be equal")
 	}
 	numMessages := sink.Len()
-	if 0 != ws.buffer.Len() {
+	if ws.buffer.Len() != 0 {
 		t.Error("elements should be equal")
 	}
 	if sink.Len() != numMessages {
@@ -150,7 +150,7 @@ func TestSenderWriter(t *testing.T) {
 		}
 	}
 
-	if 0 != ws.buffer.Len() {
+	if ws.buffer.Len() != 0 {
 		t.Error("elements should be equal")
 	}
 }

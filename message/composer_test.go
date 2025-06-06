@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/assert/check"
 	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/fn"
 	"github.com/tychoish/fun/testt"
 	"github.com/tychoish/grip/level"
 )
@@ -198,7 +198,7 @@ func TestComposerConverter(t *testing.T) {
 			if comp.Loggable() {
 				t.Errorf("should be false: %T", comp)
 			}
-			if "" != comp.String() {
+			if comp.String() != "" {
 				testt.Logf(t, "%T>%s", comp, comp.String())
 				t.Errorf("%T", msg)
 			}
@@ -308,11 +308,11 @@ func fixTimestamps(t *testing.T, msgs ...Composer) {
 	for _, msg := range msgs {
 		switch m := msg.(type) {
 		case *fieldMessage:
-			m.Base.Time = ts
+			m.Time = ts
 		case *lineMessenger:
-			m.Base.Time = ts
+			m.Time = ts
 		case *PairBuilder:
-			m.Base.Time = ts
+			m.Time = ts
 		case *GroupComposer:
 			fixTimestamps(t, m.Messages()...)
 		}
@@ -337,7 +337,7 @@ func TestConverter(t *testing.T) {
 		},
 		{
 			Name:         "ComposerNilFunction",
-			Input:        fun.Future[Composer](nil),
+			Input:        fn.Future[Composer](nil),
 			Expected:     MakeKV(),
 			IsStructured: true,
 			Unloggable:   true,
@@ -357,19 +357,19 @@ func TestConverter(t *testing.T) {
 		},
 		{
 			Name:         "ComposerProducer",
-			Input:        fun.Future[Composer](func() Composer { return MakeString("hello world") }),
+			Input:        fn.Future[Composer](func() Composer { return MakeString("hello world") }),
 			Expected:     MakeString("hello world"),
 			IsStructured: false,
 		},
 		{
 			Name:         "ErrorProducer",
-			Input:        fun.Futurize(func() error { return errors.New("hello world") }),
+			Input:        fn.MakeFuture(func() error { return errors.New("hello world") }),
 			Expected:     MakeError(errors.New("hello world")),
 			IsStructured: false,
 		},
 		{
 			Name:         "StaticErrorProducer",
-			Input:        fun.AsFuture(errors.New("hello world")),
+			Input:        fn.AsFuture(errors.New("hello world")),
 			Expected:     MakeError(errors.New("hello world")),
 			IsStructured: false,
 		},
@@ -422,13 +422,13 @@ func TestConverter(t *testing.T) {
 		},
 		{
 			Name:         "SliceComposerProducer",
-			Input:        []fun.Future[Composer]{func() Composer { return MakeString("hello world") }},
+			Input:        []fn.Future[Composer]{func() Composer { return MakeString("hello world") }},
 			Expected:     MakeString("hello world"),
 			IsStructured: false,
 		},
 		{
 			Name:         "EmptySliceComposerProducer",
-			Input:        []fun.Future[Composer]{},
+			Input:        []fn.Future[Composer]{},
 			Expected:     MakeString(""),
 			IsStructured: true,
 			Unloggable:   true,

@@ -36,5 +36,5 @@ func example() { //nolint:unused
 		Gauge("new_op").Label("key", "value").Inc(),
 		Histogram("new_op").Label("key", "value").Inc(),
 	))
-	// extractMetrics(fun.Futurize(func() message.Fields { return message.Fields{} }), metricMessageWithComposer)
+	// extractMetrics(fn.Futurize(func() message.Fields { return message.Fields{} }), metricMessageWithComposer)
 }

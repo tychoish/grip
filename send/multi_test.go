@@ -20,11 +20,11 @@ func TestMultiSenderRespectsLevel(t *testing.T) {
 	s.SetName("mock2")
 	multi := MakeMulti(s, mock)
 
-	if 0 != mock.Len() {
+	if mock.Len() != 0 {
 		t.Error("elements should be equal")
 	}
 	multi.Send(NewString(level.Info, "hello"))
-	if 1 != mock.Len() {
+	if mock.Len() != 1 {
 		t.Error("elements should be equal")
 	}
 	m, ok := mock.GetMessageSafe()
@@ -36,7 +36,7 @@ func TestMultiSenderRespectsLevel(t *testing.T) {
 	}
 
 	multi.Send(NewString(level.Alert, "hello"))
-	if 1 != mock.Len() {
+	if mock.Len() != 1 {
 		t.Error("elements should be equal")
 	}
 	m, ok = mock.GetMessageSafe()
@@ -48,7 +48,7 @@ func TestMultiSenderRespectsLevel(t *testing.T) {
 	}
 
 	multi.Send(NewString(level.Alert, "hello"))
-	if 1 != mock.Len() {
+	if mock.Len() != 1 {
 		t.Error("elements should be equal")
 	}
 	m, ok = mock.GetMessageSafe()

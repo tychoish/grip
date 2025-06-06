@@ -36,10 +36,13 @@ func (p *PairBuilder) Fields(f Fields) *PairBuilder                   { p.kvs.Co
 func (p *PairBuilder) Extend(in *dt.Pairs[string, any]) *PairBuilder  { p.kvs.Extend(in); return p }
 func (p *PairBuilder) Append(in ...dt.Pair[string, any]) *PairBuilder { p.kvs.Append(in...); return p }
 func (p *PairBuilder) PairWhen(cond bool, k string, v any) *PairBuilder {
-	return ft.WhenDo(cond, func() *PairBuilder { return p.Pair(k, v) })
+	ft.CallWhen(cond, func() { p.Pair(k, v) })
+	return p
 }
 
-func (p *PairBuilder) Iterator(ctx context.Context, iter *fun.Iterator[dt.Pair[string, any]]) *PairBuilder {
+// Stream consumes a fun.Stream of dt.Pair and appends its contents to the builder.
+// Any error encountered during consumption is recorded under the "gripErr" key.
+func (p *PairBuilder) Stream(ctx context.Context, iter *fun.Stream[dt.Pair[string, any]]) *PairBuilder {
 	err := p.kvs.Consume(iter).Run(ctx)
 	return p.PairWhen(err != nil, "gripErr", err)
 }
@@ -49,7 +52,7 @@ func MakeKV(kvs ...dt.Pair[string, any]) Composer { return BuildPair().Append(kv
 
 func MakePairs(kvs *dt.Pairs[string, any]) Composer {
 	p := &PairBuilder{}
-	p.kvs.Consume(kvs.Iterator()).Ignore().Wait()
+	p.kvs.Consume(kvs.Stream()).Ignore().Wait()
 	return p
 }
 
@@ -82,15 +85,11 @@ func (p *PairBuilder) String() string {
 
 	out := make([]string, 0, p.kvs.Len())
 	var seenMetadata bool
-	prod := p.kvs.Iterator().Producer()
-	for {
-		kv, ok := prod.CheckForce()
-		if !ok {
-			break
-		}
+
+	p.kvs.Stream().ReadAll(func(kv dt.Pair[string, any]) {
 		if kv.Key == "meta" && (seenMetadata || !p.IncludeMetadata) {
 			seenMetadata = true
-			continue
+			return
 		}
 
 		switch val := kv.Value.(type) {
@@ -104,8 +103,7 @@ func (p *PairBuilder) String() string {
 			p.hasMetadata = true
 			seenMetadata = true
 		}
-	}
-
+	}).Ignore().Wait()
 	p.cachedOutput = strings.Join(out, " ")
 	p.cachedSize = p.kvs.Len()
 

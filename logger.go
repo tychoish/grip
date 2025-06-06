@@ -208,7 +208,7 @@ func TraceWhen(conditional bool, m any)                 { std.TraceWhen(conditio
 func (g Logger) send(l level.Priority, in any) {
 	m := g.Convert(in)
 	m.SetPriority(l)
-	g.impl.Get().Sender.Send(m)
+	g.impl.Get().Send(m)
 }
 
 // Convert runs the custom converter if set, falling back to

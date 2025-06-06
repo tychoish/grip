@@ -101,7 +101,7 @@ func TestSendIgnoresMessagesWithPrioritiesBelowThreshold(t *testing.T) {
 
 	msg := NewString(level.Trace, "foo")
 	s.sender.Send(msg)
-	if 0 != len(s.sender.buffer) {
+	if len(s.sender.buffer) != 0 {
 		t.Error("values should be equal")
 	}
 }
@@ -278,7 +278,7 @@ func TestGetCountTruncated(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if 1 != n {
+	if n != 1 {
 		t.Error("values should be equal")
 	}
 	if s.msgs[0] != msgs[0] {
@@ -311,7 +311,7 @@ func TestGetCountWithCatchupTruncated(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if 1 != n {
+	if n != 1 {
 		t.Error("values should be equal")
 	}
 	if s.msgs[0] != msgs[0] {
@@ -364,7 +364,7 @@ func TestGetCountWithCatchupWithOverflowTruncated(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if 1 != n {
+		if n != 1 {
 			t.Error("values should be equal")
 		}
 		if s.msgs[i] != msgs[0] {
@@ -405,7 +405,7 @@ func TestGetCountWithOverflowTruncated(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if 1 != n {
+		if n != 1 {
 			t.Error("values should be equal")
 		}
 		if s.msgs[i] != msgs[0] {
@@ -444,7 +444,7 @@ func TestGetCountWithWritesAfterEOF(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if 1 != n {
+	if n != 1 {
 		t.Error("values should be equal")
 	}
 	if s.msgs[0] != msgs[0] {
@@ -466,7 +466,7 @@ func TestGetCountWithWritesAfterEOF(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if 1 != n {
+	if n != 1 {
 		t.Error("values should be equal")
 	}
 	if s.msgs[1] != msgs[0] {

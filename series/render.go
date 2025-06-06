@@ -7,6 +7,7 @@ import (
 
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/fn"
 )
 
 func renderLabelsJSON(buf *bytes.Buffer, labels *dt.Pairs[string, string]) {
@@ -14,49 +15,40 @@ func renderLabelsJSON(buf *bytes.Buffer, labels *dt.Pairs[string, string]) {
 		return
 	}
 
-	buf.WriteString(`",tags":{`)
+	buf.WriteString(`"tags":{`)
 	first := true
-	labels.Observe(func(label dt.Pair[string, string]) {
+	labels.ReadAll(fun.FromHandler(func(label dt.Pair[string, string]) {
 		switch {
 		case first:
 			first = false
 		case !first:
 			buf.WriteByte(',')
 		}
-		buf.WriteByte('"')
-		buf.WriteString(label.Key)
-		buf.WriteString(`":"`)
-		buf.WriteString(label.Value)
-		buf.WriteByte('"')
-	})
-	buf.WriteByte('}')
+		fmt.Fprintf(buf, `"%s":"%s"`, label.Key, label.Value)
+	})).Ignore().Wait()
+	buf.WriteString("},")
 }
 
-func RenderMetricJSON(buf *bytes.Buffer, key string, labels fun.Future[*dt.Pairs[string, string]], value int64, ts time.Time) {
-	buf.WriteString(`{"metric":"`)
-	buf.WriteString(key)
-	buf.WriteString(`","ts":`)
-	fmt.Fprint(buf, ts.UTC().UnixMilli())
+func RenderMetricJSON(buf *bytes.Buffer, key string, labels fn.Future[*dt.Pairs[string, string]], value int64, ts time.Time) {
+	fmt.Fprintf(buf, `{"metric":"%s","ts":%d,`, key, ts.UTC().UnixMilli())
 	renderLabelsJSON(buf, labels())
-	buf.WriteString(`",value":`)
-	buf.WriteString(fmt.Sprint(value))
-	buf.WriteByte('}')
+	fmt.Fprintf(buf, `"value":%d}`, value)
 	buf.WriteByte('\n')
 }
 
 func RenderHistogramJSON(
 	buf *bytes.Buffer,
 	key string,
-	labels fun.Future[*dt.Pairs[string, string]],
+	labels fn.Future[*dt.Pairs[string, string]],
 	sample *dt.Pairs[float64, int64],
 	ts time.Time,
 ) {
-	buf.WriteString(`{"metric":"`)
-	buf.WriteString(key)
+	fmt.Fprintf(buf, `{"metric":"%s",`, key)
 	renderLabelsJSON(buf, labels())
-	buf.WriteString(`",value":{`)
+	buf.WriteString(`"value":{`)
+
 	first := true
-	sample.Observe(func(pair dt.Pair[float64, int64]) {
+	sample.ReadAll(fun.FromHandler(func(pair dt.Pair[float64, int64]) {
 		switch {
 		case first:
 			first = false
@@ -64,49 +56,42 @@ func RenderHistogramJSON(
 			buf.WriteByte(',')
 		}
 
-		buf.WriteByte('"')
-		fmt.Fprint(buf, int(pair.Key*100))
-		buf.WriteString(`":`)
-		fmt.Fprint(buf, pair.Value)
-	})
-	buf.WriteString("}}")
+		fmt.Fprintf(buf, `"%d":%d`, int(pair.Key*100), pair.Value)
+	})).Ignore().Wait()
+	fmt.Fprint(buf, "}}")
 	buf.WriteByte('\n')
 }
 
-func RenderMetricOpenTSB(buf *bytes.Buffer, key string, labels fun.Future[*dt.Pairs[string, string]], value int64, ts time.Time) {
+func RenderMetricOpenTSB(buf *bytes.Buffer, key string, labels fn.Future[*dt.Pairs[string, string]], value int64, ts time.Time) {
 	buf.WriteString("put ")
 	buf.WriteString(key)
 	buf.WriteByte(' ')
-	buf.WriteString(fmt.Sprint(ts.UTC().UnixMilli()))
+	fmt.Fprint(buf, ts.UTC().UnixMilli())
 	buf.WriteByte(' ')
-	buf.WriteString(fmt.Sprint(value))
+	fmt.Fprint(buf, value)
 	if tags := labels(); tags != nil && tags.Len() > 0 {
 		buf.WriteByte(' ')
-		tags.Observe(func(label dt.Pair[string, string]) {
+		tags.ReadAll(fun.FromHandler(func(label dt.Pair[string, string]) {
 			buf.WriteString(label.Key)
 			buf.WriteByte('=')
 			buf.WriteString(label.Value)
 			buf.WriteByte(' ')
-		})
+		})).Ignore().Wait()
 	}
 	buf.WriteByte('\n')
 }
 
-func RenderMetricGraphite(buf *bytes.Buffer, key string, labels fun.Future[*dt.Pairs[string, string]], value int64, ts time.Time) {
+func RenderMetricGraphite(buf *bytes.Buffer, key string, labels fn.Future[*dt.Pairs[string, string]], value int64, ts time.Time) {
 	buf.WriteString(key)
 	if tags := labels(); tags != nil && tags.Len() > 0 {
-		tags.Observe(func(label dt.Pair[string, string]) {
-			buf.WriteByte(';')
-			buf.WriteString(label.Key)
-			buf.WriteByte('=')
-			buf.WriteString(label.Value)
-		})
+		tags.ReadAll(fun.FromHandler(func(label dt.Pair[string, string]) {
+			fmt.Fprintf(buf, ";%s=%s", label.Key, label.Value)
+		})).Ignore().Wait()
 	}
 	buf.WriteByte(' ')
-	buf.WriteString(fmt.Sprint(value))
+	fmt.Fprint(buf, value)
 	buf.WriteByte(' ')
-	buf.WriteString(fmt.Sprint(ts.UTC().Unix()))
-	buf.WriteByte('\n')
+	fmt.Fprint(buf, ts.UTC().Unix())
 }
 
 func MakeOpenTSBLineRenderer() Renderer {

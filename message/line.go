@@ -43,7 +43,7 @@ func (l *lineMessenger) Loggable() bool {
 	switch {
 	case (l.fm != nil && l.fm.Loggable()):
 		return true
-	case len(l.Base.Context) > 0:
+	case len(l.Context) > 0:
 		return true
 	case len(l.lines) > 0:
 		return true
@@ -56,7 +56,7 @@ func (l *lineMessenger) String() string {
 	switch {
 	case l.fm != nil:
 		return l.fm.String()
-	case len(l.Base.Context) > 0:
+	case len(l.Context) > 0:
 		l.setupField()
 		return l.fm.String()
 	case l.Message == "":
@@ -70,7 +70,7 @@ func (l *lineMessenger) Raw() any {
 	switch {
 	case l.fm != nil:
 		return l.fm.Raw()
-	case len(l.Base.Context) > 0:
+	case len(l.Context) > 0:
 		l.setupField()
 		return l.fm.Raw()
 	case l.IncludeMetadata:
@@ -96,7 +96,7 @@ func (l *lineMessenger) resolve() {
 func (l *lineMessenger) setupField() {
 	l.resolve()
 	l.fm = &fieldMessage{
-		fields:  l.Base.Context,
+		fields:  l.Context,
 		Base:    l.Base,
 		message: l.Message,
 	}

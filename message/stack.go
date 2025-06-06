@@ -104,7 +104,7 @@ func (m *stackMessage) Structured() bool { return true }
 func (m *stackMessage) Raw() any {
 	if m.Composer.Structured() {
 		m.annotateOnce.Do(func() {
-			m.Composer.Annotate("stack.frames", m.trace)
+			m.Annotate("stack.frames", m.trace)
 		})
 		return m.Composer.Raw()
 	}

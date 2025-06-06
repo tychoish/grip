@@ -11,14 +11,14 @@ import (
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/dt/hdrhist"
 	"github.com/tychoish/fun/erc"
-	"github.com/tychoish/fun/intish"
-	"github.com/tychoish/fun/risky"
+	"github.com/tychoish/fun/ers"
+	"github.com/tychoish/fun/fn"
 )
 
 type MetricHistogramRenderer func(
 	wr *bytes.Buffer,
 	key string,
-	labels fun.Future[*dt.Pairs[string, string]],
+	labels fn.Future[*dt.Pairs[string, string]],
 	sample *dt.Pairs[float64, int64],
 	ts time.Time,
 )
@@ -27,11 +27,11 @@ func MakeDefaultHistogramMetricRenderer(mr MetricValueRenderer) MetricHistogramR
 	return func(
 		wr *bytes.Buffer,
 		key string,
-		labels fun.Future[*dt.Pairs[string, string]],
+		labels fn.Future[*dt.Pairs[string, string]],
 		sample *dt.Pairs[float64, int64],
 		ts time.Time,
 	) {
-		risky.Observe(sample.Iterator(), func(point dt.Pair[float64, int64]) {
+		for _, point := range sample.Slice() {
 			quantile := point.Key
 			mr(
 				wr,
@@ -40,7 +40,7 @@ func MakeDefaultHistogramMetricRenderer(mr MetricValueRenderer) MetricHistogramR
 				point.Value,
 				ts,
 			)
-		})
+		}
 	}
 }
 
@@ -78,7 +78,7 @@ func (conf *HistogramConf) Apply(opts ...HistogramOptionProvider) error {
 	return fun.JoinOptionProviders(opts...).Apply(conf)
 }
 
-func (conf *HistogramConf) factory() fun.Future[localMetricValue] {
+func (conf *HistogramConf) factory() fn.Future[localMetricValue] {
 	return func() localMetricValue {
 		out := &localHistogram{}
 
@@ -92,14 +92,14 @@ func (conf *HistogramConf) factory() fun.Future[localMetricValue] {
 }
 
 func (conf *HistogramConf) Validate() error {
-	conf.Interval = intish.Max(conf.Interval, 100*time.Millisecond)
+	conf.Interval = max(conf.Interval, 100*time.Millisecond)
 
 	ec := &erc.Collector{}
-	erc.When(ec, conf.Min > conf.Max, "min cannot be larget than the max")
-	erc.When(ec, len(conf.Quantiles) <= 1, "must specify more than one bucket")
-	erc.When(ec, conf.OutOfRange <= HistogramOutOfRangeINVALID ||
+	ec.When(conf.Min > conf.Max, ers.New("min cannot be larget than the max"))
+	ec.When(len(conf.Quantiles) <= 1, ers.New("must specify more than one bucket"))
+	ec.When(conf.OutOfRange <= HistogramOutOfRangeINVALID ||
 		conf.OutOfRange >= HistogramOutOfRangeUNSPECIFIED,
-		"must specify valid behavior for out of range",
+		ers.New("must specify valid behavior for out of range"),
 	)
 	// TODO decide if we need to validate: conf.SignificantDigits > math.Log10(float64(conf.Max-conf.Min))
 	return ec.Resolve()
@@ -129,18 +129,18 @@ func HistogramConfSignifcantDigits(in int) HistogramOptionProvider {
 	return func(conf *HistogramConf) error { conf.SignificantDigits = in; return nil }
 }
 func HistogramConfInterval(dur time.Duration) HistogramOptionProvider {
-	return func(conf *HistogramConf) error { conf.Interval = intish.Max(dur, 100*time.Millisecond); return nil }
+	return func(conf *HistogramConf) error { conf.Interval = max(dur, 100*time.Millisecond); return nil }
 }
 
 func HistogramConfSetQuantiles(quant []float64) HistogramOptionProvider {
 	return func(conf *HistogramConf) (err error) {
 		ec := &erc.Collector{}
 		for idx, q := range quant {
-			erc.Whenf(ec, q < 0, "quantile at index %d has value %f which is less than 0", idx, q)
-			erc.Whenf(ec, q > 1, "quantile at index %d has value %f which is more than 1", idx, q)
+			ec.Whenf(q < 0, "quantile at index %d has value %f which is less than 0", idx, q)
+			ec.Whenf(q > 1, "quantile at index %d has value %f which is more than 1", idx, q)
 			quant[idx] = float64(int(q*100+0.5)) / 100
 		}
-		if ec.HasErrors() {
+		if !ec.Ok() {
 			return ec.Resolve()
 		}
 

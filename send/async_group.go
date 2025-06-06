@@ -69,10 +69,9 @@ func MakeAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Send
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				ec.Add(s.senders.Iterator().Observe(func(sender Sender) {
+				s.senders.StreamFront().ReadAll(func(sender Sender) {
 					ec.Add(sender.Close())
-				}).Run(ctx))
-
+				}).Ignore().Wait()
 			}()
 
 			ec.Add(s.senders.Close())
@@ -111,24 +110,37 @@ func (s *asyncGroupSender) startSenderWorker(newSender Sender) {
 func (s *asyncGroupSender) SetPriority(p level.Priority) {
 	s.Base.SetPriority(p)
 
-	fun.Invariant.Must(s.senders.Iterator().Observe(func(sender Sender) {
-		sender.SetPriority(p)
-	}).Run(s.ctx))
+	s.senders.
+		StreamFront().
+		ReadAll(func(sender Sender) {
+			sender.SetPriority(p)
+		}).
+		Ignore().
+		Wait()
 }
 
 func (s *asyncGroupSender) SetErrorHandler(erh ErrorHandler) {
 	s.Base.SetErrorHandler(erh)
 
-	fun.Invariant.Must(s.senders.Iterator().Observe(func(sender Sender) {
-		sender.SetErrorHandler(erh)
-	}).Run(s.ctx))
+	s.senders.
+		StreamFront().
+		ReadAll(func(sender Sender) {
+			sender.SetErrorHandler(erh)
+		}).
+		Ignore().
+		Wait()
 }
 
 func (s *asyncGroupSender) SetFormatter(fmtr MessageFormatter) {
 	s.Base.SetFormatter(fmtr)
-	fun.Invariant.Must(s.senders.Iterator().Observe(func(sender Sender) {
-		sender.SetFormatter(fmtr)
-	}).Run(s.ctx))
+
+	s.senders.
+		StreamFront().
+		ReadAll(func(sender Sender) {
+			sender.SetFormatter(fmtr)
+		}).
+		Ignore().
+		Wait()
 }
 
 func (s *asyncGroupSender) Send(m message.Composer) {
@@ -141,9 +153,13 @@ func (s *asyncGroupSender) Send(m message.Composer) {
 func (s *asyncGroupSender) Flush(ctx context.Context) error {
 	catcher := &erc.Collector{}
 
-	fun.Invariant.Must(s.senders.Iterator().Observe(func(sender Sender) {
-		catcher.Add(sender.Flush(ctx))
-	}).Run(ctx))
+	s.senders.
+		StreamFront().
+		ReadAll(func(sender Sender) {
+			catcher.Add(sender.Flush(ctx))
+		}).
+		Ignore().
+		Wait()
 
 	return catcher.Resolve()
 }

@@ -30,7 +30,7 @@ package message
 import (
 	"sync"
 
-	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/fn"
 	"github.com/tychoish/grip/level"
 )
 
@@ -42,19 +42,19 @@ type Marshaler interface {
 	MarshalComposer() Composer
 }
 
-// MakeFuture constructs a compuser build around a fun.Future[T] which
+// MakeFuture constructs a compuser build around a fn.Future[T] which
 // a function object that will resolve a message lazily. Use this to
 // construct a function that will produce a message or a type that
-// can be trivally converted to a message at call time.
+// can be trivially converted to a message at call time.
 //
 // The future is resolved functions are only called when the outer
 // composers Loggable, String, Raw, or Annotate methods are
 // called. Changing the priority does not resolve the future. In
 // practice, if the priority of the message is below the logging
 // threshold, then the function will never be called.
-func MakeFuture[T any](fp fun.Future[T]) Composer { return converterFuture(defaultConverter{}, fp) }
+func MakeFuture[T any](fp fn.Future[T]) Composer { return converterFuture(defaultConverter{}, fp) }
 
-func converterFuture[T any](c Converter, fp fun.Future[T]) Composer {
+func converterFuture[T any](c Converter, fp fn.Future[T]) Composer {
 	if fp == nil {
 		fp = func() (o T) { return }
 	}
@@ -64,11 +64,11 @@ func converterFuture[T any](c Converter, fp fun.Future[T]) Composer {
 ////////////////////////////////////////////////////////////////////////
 
 type composerFutureMessage struct {
-	cp      fun.Future[Composer]
+	cp      fn.Future[Composer]
 	cached  Composer
 	level   level.Priority
 	exec    sync.Once
-	lazyOps []fun.Handler[Composer]
+	lazyOps []fn.Handler[Composer]
 }
 
 func (cp *composerFutureMessage) resolve() {

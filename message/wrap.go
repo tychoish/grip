@@ -10,7 +10,7 @@ type wrappedImpl struct {
 	cached string
 }
 
-func (wi *wrappedImpl) Unwrap() Composer { return wi.parent }
+func (wi *wrappedImpl) Unwind() Composer { return wi.parent }
 
 // Wrap creates a new composer, converting the message to the
 // appropriate Composer type, using the Convert() function, while
@@ -63,7 +63,7 @@ func IsMulti(comp Composer) bool {
 		return true
 	case *GroupComposer:
 		return true
-	case interface{ Unwrap() Composer }:
+	case interface{ Unwind() Composer }:
 		return true
 	default:
 		return false
@@ -94,6 +94,14 @@ func Unwind(comp Composer) []Composer {
 		return out
 	case *GroupComposer:
 		return c.Messages()
+	case interface{ Unwind() Composer }:
+		return []Composer{c.Unwind()}
+	case interface{ Unwind() []Composer }:
+		return c.Unwind()
+	case interface{ Unwrap() []Composer }:
+		return c.Unwrap()
+	case interface{ Unwrap() Composer }:
+		return []Composer{c.Unwrap()}
 	default:
 		return []Composer{c}
 	}

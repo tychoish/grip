@@ -5,7 +5,9 @@ import (
 	"io"
 	"log"
 
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/ers"
+	"github.com/tychoish/fun/fn"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -17,42 +19,48 @@ const ErrGripMessageSendError ers.Error = "unable to send grip log message"
 // error,) ErrGripMessageSendError, and the underlying error. When the
 // input error is nil, the error is nil.
 func WrapError(err error, m message.Composer) error {
-	if ers.Ok(err) {
+	if ers.IsOk(err) {
 		return nil
 	}
 
-	return ers.Join(ErrGripMessageSendError, err, ers.Error(m.String()))
+	return erc.Join(ErrGripMessageSendError, err, ers.Error(m.String()))
 }
 
+// ErrorHandlerWriter returns a fun.Handler that writes the error to the
+// provided io.Writer.
 func ErrorHandlerWriter(writer io.Writer) ErrorHandler {
-	return func(err error) {
-		if err == nil {
+	return ErrorHandler(fn.NewHandler(func(err error) {
+		if ers.IsOk(err) {
 			return
 		}
 
 		_, _ = io.WriteString(writer, fmt.Sprintln("logging error:", err.Error()))
 		_, _ = writer.Write([]byte("\n"))
-	}
+	}))
 }
 
+// ErrorHandlerFromLogger returns a fun.Handler that logs the error with the
+// provided standard library *log.Logger.
 func ErrorHandlerFromLogger(l *log.Logger) ErrorHandler {
-	return func(err error) {
-		if err == nil {
+	return ErrorHandler(fn.NewHandler(func(err error) {
+		if ers.IsOk(err) {
 			return
 		}
 
 		l.Println("logging error:", err.Error())
-	}
+	}))
 }
 
-// ErrorHandlerFromSender wraps an existing Sender for sending error messages.
+// ErrorHandlerFromSender wraps an existing Sender for sending error messages and
+// exposes it as a fun.Handler.
 func ErrorHandlerFromSender(s Sender) ErrorHandler {
-	return func(err error) {
-		if err == nil {
+	return ErrorHandler(fn.NewHandler(func(err error) {
+		if ers.IsOk(err) {
 			return
 		}
+
 		em := message.MakeError(err)
 		em.SetPriority(level.Error)
 		s.Send(em)
-	}
+	}))
 }

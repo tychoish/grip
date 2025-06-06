@@ -1,13 +1,11 @@
 package series
 
 import (
-	"io"
 	"strings"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
+	fn "github.com/tychoish/fun/fn"
 	"github.com/tychoish/fun/ft"
-	"github.com/tychoish/fun/risky"
 	"github.com/tychoish/grip/message"
 )
 
@@ -118,7 +116,7 @@ func extractMetrics[T eventObjects | extractableMessageTypes | extractableMessag
 		return out
 	}
 
-	if ft.IgnoreSecond(isEventTyped(msg)) {
+	if isEventTyped(msg) {
 		return &MetricMessage{Events: getEvents(msg)}
 	}
 
@@ -129,16 +127,16 @@ func extractMetrics[T eventObjects | extractableMessageTypes | extractableMessag
 	return ft.Ptr(resolveEvents(msg, buildMessage))
 }
 
-func isEventTyped(in any) (bool, error) {
+func isEventTyped(in any) bool {
 	switch in.(type) {
 	case Event, *Event, []Event, []*Event:
-		return true, io.EOF
+		return true
 	case func() Event, func() *Event, func() []Event, func() []*Event:
-		return true, io.EOF
+		return true
 	case EventExtractor, MetricMessage, *MetricMessage:
-		return true, io.EOF
+		return true
 	default:
-		return false, nil
+		return false
 	}
 }
 
@@ -183,35 +181,30 @@ func hasMetrics[T extractableMessageTypes](in T) (isMetric bool) {
 		return true
 	case func() Event, func() *Event, func() []Event, func() []*Event:
 		return true
-	case fun.Future[Event], fun.Future[*Event], fun.Future[[]Event], fun.Future[[]*Event]:
+	case fn.Future[Event], fn.Future[*Event], fn.Future[[]Event], fn.Future[[]*Event]:
 		return true
 	case map[string]any: // also mesage.Fields
-		dt.NewMap(ev).Values().Process(fun.MakeProcessor(func(in any) (err error) {
-			isMetric, err = isEventTyped(in)
-			return
-		})).Ignore().Wait()
+		dt.NewMap(ev).Values().ReadAll(func(in any) {
+			isMetric = isEventTyped(in)
+		}).Ignore().Wait()
 	case *dt.Pairs[string, any]:
-		ev.Values().Process(fun.MakeProcessor(func(in any) (err error) {
-			isMetric, err = isEventTyped(in)
-			return
-		})).Ignore().Wait()
+		ev.Values().ReadAll(func(in any) {
+			isMetric = isEventTyped(in)
+		}).Ignore().Wait()
 	case []dt.Pair[string, any]:
-		dt.NewSlice(ev).Iterator().Process(fun.MakeProcessor(func(in dt.Pair[string, any]) (err error) {
-			isMetric, err = isEventTyped(in.Value)
-			return
-		})).Ignore().Wait()
+		dt.NewSlice(ev).Stream().ReadAll(func(in dt.Pair[string, any]) {
+			isMetric = isEventTyped(in.Value)
+		}).Ignore().Wait()
 	case []*dt.Pair[string, any]:
-		dt.NewSlice(ev).Iterator().Process(fun.MakeProcessor(func(in *dt.Pair[string, any]) (err error) {
-			isMetric, err = isEventTyped(in.Value)
-			return
-		})).Ignore().Wait()
+		dt.NewSlice(ev).Stream().ReadAll(func(in *dt.Pair[string, any]) {
+			isMetric = isEventTyped(in.Value)
+		}).Ignore().Wait()
 	case []any:
-		dt.NewSlice(ev).Iterator().Process(fun.MakeProcessor(func(in any) (err error) {
-			isMetric, err = isEventTyped(in)
-			return
-		})).Ignore().Wait()
+		dt.NewSlice(ev).Stream().ReadAll(func(in any) {
+			isMetric = isEventTyped(in)
+		}).Ignore().Wait()
 	case any:
-		isMetric = ft.IgnoreSecond(isEventTyped(ev))
+		isMetric = isEventTyped(ev)
 	}
 	return
 }
@@ -230,7 +223,7 @@ func resolveEvents(in any, buildMessage metricMessageExtractOption) (out MetricM
 		}
 
 		for k, v := range msg {
-			if ft.IgnoreSecond(isEventTyped(v)) {
+			if isEventTyped(v) {
 				out.Events = append(out.Events, getEvents(v)...)
 				continue
 			}
@@ -242,57 +235,59 @@ func resolveEvents(in any, buildMessage metricMessageExtractOption) (out MetricM
 		if buildMessage {
 			p = &dt.Pairs[string, any]{}
 		}
-		risky.Observe(msg.Iterator(), func(item dt.Pair[string, any]) {
-			if ft.IgnoreSecond(isEventTyped(item.Value)) {
+
+		for _, item := range msg.Slice() {
+			if isEventTyped(item.Value) {
 				out.Events = append(out.Events, getEvents(item.Value)...)
 				return
 			}
 			if buildMessage {
 				p.Append(item)
 			}
-		})
+		}
 	case []dt.Pair[string, any]:
 		if buildMessage {
 			p = &dt.Pairs[string, any]{}
 		}
-		risky.Observe(fun.SliceIterator(msg), func(item dt.Pair[string, any]) {
-			if ft.IgnoreSecond(isEventTyped(item.Value)) {
+
+		for _, item := range msg {
+			if isEventTyped(item.Value) {
 				out.Events = append(out.Events, getEvents(item.Value)...)
 				return
 			}
 			if buildMessage {
 				p.Append(item)
 			}
-		})
+		}
 	case []*dt.Pair[string, any]:
 		if buildMessage {
 			p = &dt.Pairs[string, any]{}
 		}
-		risky.Observe(fun.SliceIterator(msg), func(item *dt.Pair[string, any]) {
-			if ft.IgnoreSecond(isEventTyped(item.Value)) {
+
+		for _, item := range msg {
+			if isEventTyped(item.Value) {
 				out.Events = append(out.Events, getEvents(item.Value)...)
 				return
 			}
 			if buildMessage {
 				p.Append(*item)
 			}
-		})
+		}
 	case []any:
 		var mm []any
 		if buildMessage {
 			mm = make([]any, 0, len(msg))
-
 		}
 
-		risky.Observe(fun.SliceIterator(msg), func(in any) {
-			if ft.IgnoreSecond(isEventTyped(in)) {
+		for _, in := range msg {
+			if isEventTyped(in) {
 				out.Events = append(out.Events, getEvents(in)...)
 				return
 			}
 			if buildMessage {
 				mm = append(mm, in)
 			}
-		})
+		}
 		if buildMessage {
 			out.Composer = message.Convert(mm)
 		}

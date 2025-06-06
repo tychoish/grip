@@ -3,6 +3,7 @@ package series
 import (
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/erc"
+	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/pubsub"
 	"github.com/tychoish/grip/send"
 )
@@ -15,8 +16,8 @@ type CollectorConf struct {
 
 func (conf *CollectorConf) Validate() error {
 	ec := &erc.Collector{}
-	erc.When(ec, len(conf.Backends) == 0, "must specify one or more backends")
-	erc.When(ec, conf.Buffer == 0, "must define buffer size (positive) or negative (unlimited)")
+	ec.When(len(conf.Backends) == 0, ers.New("must specify one or more backends"))
+	ec.When(conf.Buffer == 0, ers.New("must define buffer size (positive) or negative (unlimited)"))
 	// TODO validate broker options make sense with other buffer options
 	return ec.Resolve()
 }

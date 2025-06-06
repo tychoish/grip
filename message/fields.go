@@ -104,7 +104,7 @@ func (m *fieldMessage) String() string {
 			m.fields[FieldsMsgName] = m.message
 		}
 
-		if m.message != "" && !m.Base.MessageIsSpecial {
+		if m.message != "" && !m.MessageIsSpecial {
 			m.message = fmt.Sprintf("%s='%v'", FieldsMsgName, m.message)
 		}
 

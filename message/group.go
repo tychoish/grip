@@ -6,7 +6,6 @@ import (
 
 	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/fun/dt"
-	"github.com/tychoish/fun/risky"
 	"github.com/tychoish/grip/level"
 )
 
@@ -53,15 +52,10 @@ func (g *GroupComposer) String() string {
 		}
 
 		out := make([]string, 0, list.Len())
-		prod := list.Producer()
-
-		for {
-			val, ok := prod.CheckForce()
-			if !ok {
-				break
-			}
-			if val != nil && val.Loggable() {
-				out = append(out, val.String())
+		for el := list.Front(); el.Ok(); el = el.Next() {
+			m := el.Value()
+			if m != nil && m.Loggable() {
+				out = append(out, m.String())
 			}
 		}
 		g.cache.Set(strings.Join(out, "\n"))
@@ -76,15 +70,8 @@ func (g *GroupComposer) Raw() any {
 	var out []any
 	g.messages.With(func(list *dt.List[Composer]) {
 		out = make([]any, 0, list.Len())
-
-		iter := list.Producer()
-		for {
-			m, ok := iter.CheckForce()
-			if !ok {
-				break
-			}
-
-			out = append(out, m.Raw())
+		for el := list.Front(); el.Ok(); el = el.Next() {
+			out = append(out, el.Value().Raw())
 		}
 	})
 
@@ -97,13 +84,8 @@ func (g *GroupComposer) Loggable() bool {
 	var isLoggable bool
 
 	g.messages.With(func(list *dt.List[Composer]) {
-		prod := list.Producer()
-		for {
-			m, ok := prod.CheckForce()
-			if !ok {
-				break
-			}
-			if m.Loggable() {
+		for el := list.Front(); el.Ok(); el = el.Next() {
+			if el.Value().Loggable() {
 				isLoggable = true
 				break
 			}
@@ -116,13 +98,8 @@ func (g *GroupComposer) Loggable() bool {
 func (g *GroupComposer) Structured() bool {
 	var isStructured bool
 	g.messages.With(func(list *dt.List[Composer]) {
-		prod := list.Producer()
-		for {
-			m, ok := prod.CheckForce()
-			if !ok {
-				break
-			}
-			isStructured = m.Structured()
+		for el := list.Front(); el.Ok(); el = el.Next() {
+			isStructured = el.Value().Structured()
 			if isStructured {
 				break
 			}
@@ -137,13 +114,8 @@ func (g *GroupComposer) Priority() level.Priority {
 	var highest level.Priority
 
 	g.messages.With(func(list *dt.List[Composer]) {
-		prod := list.Producer()
-		for {
-			m, ok := prod.CheckForce()
-			if !ok {
-				break
-			}
-			pri := m.Priority()
+		for el := list.Front(); el.Ok(); el = el.Next() {
+			pri := el.Value().Priority()
 			if pri > highest {
 				highest = pri
 			}
@@ -161,9 +133,9 @@ func (g *GroupComposer) Priority() level.Priority {
 // *not* unset the level of a constituent composer.
 func (g *GroupComposer) SetPriority(l level.Priority) {
 	g.messages.With(func(list *dt.List[Composer]) {
-		risky.Observe(list.Iterator(), func(m Composer) {
-			m.SetPriority(l)
-		})
+		for el := list.Front(); el.Ok(); el = el.Next() {
+			el.Value().SetPriority(l)
+		}
 	})
 }
 
@@ -171,13 +143,16 @@ func (g *GroupComposer) SetPriority(l level.Priority) {
 func (g *GroupComposer) Messages() []Composer {
 	var out []Composer
 	g.messages.With(func(list *dt.List[Composer]) {
-		out = risky.Slice(list.Iterator())
+		out = make([]Composer, 0, list.Len())
+		for el := list.Front(); el.Ok(); el = el.Next() {
+			out = append(out, el.Value())
+		}
 	})
 
 	return out
 }
 
-func (g *GroupComposer) Unwrap() Composer {
+func (g *GroupComposer) Unwind() Composer {
 	var out Composer
 
 	g.messages.With(func(list *dt.List[Composer]) {
@@ -192,20 +167,23 @@ func (g *GroupComposer) Unwrap() Composer {
 				Composer: list.Back().Value(),
 			}
 		default:
-			prod := list.Producer()
-			val, ok := prod.CheckForce()
-			if !ok {
+			// Fall back to simple slice iteration when there are
+			// three or more messages.  We build a chain of
+			// wrappedImpl objects so that Unwrap() mirrors the
+			// behaviour of earlier versions that walked the list
+			// from the front.
+			if list.Len() == 0 {
 				return
 			}
 
-			wrapped := &wrappedImpl{parent: val}
+			start := list.Front()
+			if !start.Ok() {
+				return
+			}
 
-			for {
-				val, ok := prod.CheckForce()
-				if !ok {
-					break
-				}
-				wrapped.Composer = val
+			wrapped := &wrappedImpl{parent: start.Value()}
+			for el := start.Next(); el.Ok(); el = el.Next() {
+				wrapped.Composer = el.Value()
 				wrapped = &wrappedImpl{parent: wrapped}
 			}
 			out = wrapped
@@ -233,16 +211,16 @@ func (g *GroupComposer) Append(msgs ...Composer) { g.Extend(msgs) }
 // Composer.
 func (g *GroupComposer) Annotate(k string, v any) {
 	g.messages.With(func(list *dt.List[Composer]) {
-		risky.Observe(list.Iterator(), func(m Composer) {
-			m.Annotate(k, v)
-		})
+		for el := list.Front(); el.Ok(); el = el.Next() {
+			el.Value().Annotate(k, v)
+		}
 	})
 }
 
 func (g *GroupComposer) SetOption(opts ...Option) {
 	g.messages.With(func(list *dt.List[Composer]) {
-		risky.Observe(list.Iterator(), func(m Composer) {
-			m.SetOption(opts...)
-		})
+		for el := list.Front(); el.Ok(); el = el.Next() {
+			el.Value().SetOption(opts...)
+		}
 	})
 }

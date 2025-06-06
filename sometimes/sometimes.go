@@ -4,15 +4,15 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/fn"
 )
 
-var random fun.Future[int]
+var random fn.Future[int]
 
 func init() {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	random = fun.Futurize(func() int {
+	random = fn.MakeFuture(func() int {
 		return r.Intn(101)
 	}).Lock()
 }

@@ -38,7 +38,7 @@ func (m *errorComposerWrap) String() string {
 
 func (*errorComposerWrap) Structured() bool           { return true }
 func (m *errorComposerWrap) Error() string            { return m.String() }
-func (m *errorComposerWrap) Unwrap() Composer         { return m.Composer }
+func (m *errorComposerWrap) Unwind() Composer         { return m.Composer } // nolint
 func (m *errorComposerWrap) Is(err error) bool        { return errors.Is(m.err, err) }
 func (m *errorComposerWrap) As(err any) bool          { return errors.As(m.err, err) }
 func (m *errorComposerWrap) Loggable() bool           { return m.err != nil && m.Composer.Loggable() }

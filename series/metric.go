@@ -9,7 +9,7 @@ import (
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/fun/dt"
-	"github.com/tychoish/fun/risky"
+	"github.com/tychoish/fun/fn"
 )
 
 // MetricType determines the kind of metric, in particular how the
@@ -35,8 +35,9 @@ type Metric struct {
 	Type   MetricType
 	labels dt.Set[dt.Pair[string, string]]
 
-	labelCache fun.Future[*dt.Pairs[string, string]]
-	labelstr   fun.Future[string]
+	// TODO: labelCache should be => adt.Once[fn.Future[*dt.Pairs[string, string]]]
+	labelCache fn.Future[*dt.Pairs[string, string]]
+	labelstr   fn.Future[string]
 
 	bufferPool maybeBufferPool
 
@@ -84,12 +85,12 @@ func Histogram(id string, opts ...HistogramOptionProvider) *Metric {
 func (m *Metric) Label(k, v string) *Metric       { m.labels.Add(dt.MakePair(k, v)); return m }
 func (m *Metric) MetricType(t MetricType) *Metric { m.Type = t; return m }
 func (m *Metric) Annotate(pairs ...dt.Pair[string, string]) *Metric {
-	m.labels.Populate(dt.NewSlice(pairs).Iterator())
+	m.labels.AppendStream(dt.NewSlice(pairs).Stream())
 	return m
 }
 
 func (m *Metric) Labels(set *dt.Set[dt.Pair[string, string]]) *Metric {
-	m.labels.Populate(set.Iterator())
+	m.labels.AppendStream(set.Stream())
 	return m
 }
 
@@ -151,12 +152,12 @@ func (m *Metric) Set(v int64) *Event {
 	return &Event{m: m, ts: time.Now().UTC(), op: func(int64) int64 { return v }}
 }
 
-func (m *Metric) Collect(fn fun.Future[int64]) *Event {
-	return &Event{m: m, ts: time.Now().UTC(), op: func(int64) int64 { return fn() }}
+func (m *Metric) Collect(fp fn.Future[int64]) *Event {
+	return &Event{m: m, ts: time.Now().UTC(), op: func(int64) int64 { return fp() }}
 }
 
-func (m *Metric) CollectAdd(fn fun.Future[int64]) *Event {
-	return &Event{m: m, ts: time.Now().UTC(), op: func(in int64) int64 { return in + fn() }}
+func (m *Metric) CollectAdd(fp fn.Future[int64]) *Event {
+	return &Event{m: m, ts: time.Now().UTC(), op: func(in int64) int64 { return in + fp() }}
 }
 
 func (m *Metric) factory() localMetricValue {
@@ -178,8 +179,8 @@ func (m *Metric) factory() localMetricValue {
 
 func (m *Metric) resolve() {
 	if m.labelCache == nil {
-		m.labelCache = fun.Futurize(func() *dt.Pairs[string, string] {
-			ps := dt.ConsumePairs(m.labels.Iterator()).Force().Resolve()
+		m.labelCache = fn.MakeFuture(func() *dt.Pairs[string, string] {
+			ps := dt.ConsumePairs(m.labels.Stream()).Force().Resolve()
 
 			ps.SortQuick(func(a, b dt.Pair[string, string]) bool {
 				return a.Key < b.Key && a.Value < b.Value
@@ -190,20 +191,20 @@ func (m *Metric) resolve() {
 	}
 
 	if m.labelstr == nil {
-		m.labelstr = fun.Futurize(func() string {
+		m.labelstr = fn.MakeFuture(func() string {
 			ps := m.labelCache()
 
 			buf := m.bufferPool.Get()
 			defer m.bufferPool.Put(buf)
 
-			risky.Observe(ps.Iterator(), func(p dt.Pair[string, string]) {
+			for _, p := range ps.Slice() {
 				if buf.Len() > 0 {
 					buf.WriteByte(',')
 				}
 				buf.WriteString(p.Key)
 				buf.WriteByte('=')
 				buf.WriteString(p.Value)
-			})
+			}
 
 			return buf.String()
 		}).Once()

@@ -12,6 +12,7 @@ import (
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/ers"
+	"github.com/tychoish/fun/fn"
 	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/fun/pubsub"
 	"github.com/tychoish/grip"
@@ -20,7 +21,7 @@ import (
 // MetricValueRenderer takes an event and writes the output to a
 // buffer. This provides the ability to add support arbitrary output
 // formats and targets via dependency injection.
-type MetricValueRenderer func(writer *bytes.Buffer, key string, labels fun.Future[*dt.Pairs[string, string]], value int64, ts time.Time)
+type MetricValueRenderer func(writer *bytes.Buffer, key string, labels fn.Future[*dt.Pairs[string, string]], value int64, ts time.Time)
 
 // Collector maintains the local state of collected metrics: metric
 // series are registered lazily when they are first sent, and the
@@ -30,7 +31,7 @@ type Collector struct {
 
 	// synchronized map tracking metrics and periodic collection operations.
 	local adt.Map[string, *dt.List[*tracked]]
-	loops adt.Map[time.Duration, fun.Handler[*tracked]]
+	loops adt.Map[time.Duration, func(*tracked) error]
 	pool  adt.Pool[*bytes.Buffer]
 
 	// broker is for cases where there are more than one output
@@ -72,7 +73,7 @@ type MetricSnapshot struct {
 //
 // Output from a collector is managed by CollectorBackends, which may
 // be implemented externally (a backend is a fun.Processor function
-// that consumes (and processes!) fun.Iterator[series.MetricPublisher]
+// that consumes (and processes!) *fun.Stream[series.MetricPublisher]
 // objects. Metrics publishers, then are closures that write the
 // metrics format to an io.Writer, while the formatting of a message
 // is controlled by the <>Renderer function in the Collector
@@ -90,13 +91,10 @@ func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collec
 	c.local.Default.SetConstructor(func() *dt.List[*tracked] { return &dt.List[*tracked]{} })
 	c.pool.SetConstructor(func() *bytes.Buffer { return &bytes.Buffer{} })
 	c.pool.SetCleanupHook(func(buf *bytes.Buffer) *bytes.Buffer { buf.Reset(); return buf })
-	ec := c.errs.Handler().Lock() // Join(func(err error) { ft.WhenCall(err != nil, c.cancel) }).
 
 	if len(conf.Backends) == 1 {
 		c.wg.Launch(c.ctx, func(ctx context.Context) {
-			err := conf.Backends[0].Worker(c.publish.Distributor().Iterator()).Run(ctx)
-			// .Operation(func(err error) { grip.Warning(err) }))
-			grip.Critical(err)
+			grip.Critical(conf.Backends[0].Worker(c.publish.Distributor().Stream()).Run(ctx))
 		})
 
 		return c, nil
@@ -113,15 +111,18 @@ func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collec
 	for idx := range conf.Backends {
 		ch := c.broker.Subscribe(c.ctx)
 
-		c.wg.Launch(c.ctx, conf.Backends[idx].Worker(pubsub.DistributorChannel(ch).Iterator()).
-			Operation(ec).PostHook(func() { c.broker.Unsubscribe(c.ctx, ch) }))
+		c.wg.Launch(c.ctx,
+			conf.Backends[idx].
+				Worker(pubsub.DistributorChannel(ch).Stream()).
+				Operation(c.errs.Push).
+				PostHook(func() { c.broker.Unsubscribe(c.ctx, ch) }))
 	}
 
 	return c, nil
 }
 
 func (c *Collector) Close() error {
-	ft.SafeCall(c.cancel)
+	ft.CallSafe(c.cancel)
 	c.wg.Operation().Wait()
 	if c.broker != nil {
 		c.broker.Stop()
@@ -130,19 +131,22 @@ func (c *Collector) Close() error {
 	return c.errs.Resolve()
 }
 
-func (c *Collector) Stream(
-	iter *fun.Iterator[*Event],
-	opts ...fun.OptionProvider[*fun.WorkerGroupConf],
-) fun.Worker {
-	return iter.ProcessParallel(fun.Handle(c.PushEvent).Processor(), opts...)
+// ReadAll ingests all events from the input stream (in parallel)
+func (c *Collector) ReadAll(st *fun.Stream[*Event], opts ...fun.OptionProvider[*fun.WorkerGroupConf]) fun.Worker {
+	return st.Parallel(c.pushHandler, opts...)
 }
 
 func (c *Collector) Push(events ...*Event)   { c.Publish(events) }
-func (c *Collector) Publish(events []*Event) { dt.NewSlice(events).Observe(c.PushEvent) }
+func (c *Collector) Publish(events []*Event) { ft.IgnoreError(c.publishHandler(c.ctx, events)) }
+func (c *Collector) PushEvent(e *Event)      { ft.IgnoreError(c.pushHandler(c.ctx, e)) }
 
-func (c *Collector) PushEvent(e *Event) {
+func (c *Collector) publishHandler(ctx context.Context, events []*Event) error {
+	return fun.SliceStream(events).ReadAll(c.PushEvent).Run(ctx)
+}
+
+func (c *Collector) pushHandler(ctx context.Context, e *Event) error {
 	if e.m == nil {
-		return
+		return nil
 	}
 
 	tr := c.getRegisteredTracked(e)
@@ -153,10 +157,10 @@ func (c *Collector) PushEvent(e *Event) {
 	tr.lastMod.Set(dt.MakePair(val, e.ts))
 
 	if tr.dur.Load() != 0 {
-		return
+		return nil
 	}
 
-	c.distribute(func(wr io.Writer, r Renderer) error {
+	return c.distribute(ctx, func(wr io.Writer, r Renderer) error {
 		buf := c.pool.Get()
 		defer c.pool.Put(buf)
 
@@ -167,54 +171,52 @@ func (c *Collector) PushEvent(e *Event) {
 
 		return ft.IgnoreFirst(wr.Write(buf.Bytes()))
 	})
+
 }
 
-// Register runs an event producing function,
-func (c *Collector) Register(prod fun.Producer[[]*Event], dur time.Duration) {
-	c.wg.Launch(c.ctx, prod.Operation(c.Publish, c.errs.Handler()).Interval(dur))
-}
-
-// Iterator iterates through every metric and label combination, and
-// takes a (rough) snapshot of each metric. Rough only because the
-// timestamps and last metric may not always be (exactly) synchronized
-// with regards to eachother.
-func (c *Collector) Iterator() *fun.Iterator[MetricSnapshot] {
-	pipe := fun.Blocking(make(chan *tracked))
-	proc := pipe.Send().Processor()
-	ec := &erc.Collector{}
-
-	// This is a pretty terse way of implementing this
-	// transformation pipeline, but:
-	//
-	// map[ids][]trackedMetrics => join([][]trackedMetrics) => []trackedMetrics =>transformationFunction => []MetricSnapshot
-
-	return fun.ConvertIterator(
-		// the pipe is just a channel that we turn into an
-		// iterator, with a "pre hook" that populates the pipe
-		// by starting a goroutine. Errors are captured in the
-		// collector.
-		pipe.Producer().PreHook(
-			c.local.Values().Process(func(ctx context.Context, list *dt.List[*tracked]) error {
-				return list.Iterator().Process(proc).PostHook(pipe.Close).Run(ctx)
-			}).Operation(ec.Handler()).Go().Once(),
-		).IteratorWithHook(erc.IteratorHook[*tracked](ec)),
-		// transformation function to convert the iterator of
-		// trackedMetrics to metrics snapshots.
-		fun.Converter(func(tr *tracked) MetricSnapshot {
-			last := tr.lastMod.Load()
-			return MetricSnapshot{Name: tr.meta.ID, Labels: tr.meta.labelstr(), Value: last.Key, Timestamp: last.Value}
-		}),
+// Register starts an event-generating function at the specified interval.
+func (c *Collector) Register(prod fun.Generator[[]*Event], dur time.Duration) {
+	c.wg.Launch(
+		c.ctx,
+		prod.Stream().Parallel(c.publishHandler).Interval(dur).Ignore(),
 	)
 }
 
-func (c *Collector) distribute(fn MetricPublisher) {
+// Stream returns a *fun.Stream that emits a MetricSnapshot for every
+// metric series currently known to the Collector.
+//
+// The stream is created on demand. When Stream is invoked it walks the
+// Collector's internal map of tracked metrics exactly once, converts each
+// tracked series to a MetricSnapshot (capturing the most recent value and
+// timestamp), sends it downstream, and then closes.  Because the Collector's
+// data structures are concurrency-safe, it is safe to call Stream at any
+// time—even while metrics are actively being collected or published from other
+// goroutines.
+//
+// The returned stream inherits the Collector's context, so canceling the
+// Collector or exhausting the stream will release all underlying resources.
+func (c *Collector) Stream() *fun.Stream[MetricSnapshot] {
+	return fun.MakeConverter(func(tr *tracked) MetricSnapshot {
+		last := tr.lastMod.Load()
+		return MetricSnapshot{
+			Name:      tr.meta.ID,
+			Labels:    tr.meta.labelstr(),
+			Value:     last.Key,
+			Timestamp: last.Value,
+		}
+	}).Stream(fun.MergeStreams(fun.MakeConverter(func(list *dt.List[*tracked]) *fun.Stream[*tracked] {
+		return list.StreamFront()
+	}).Stream(c.local.Values())))
+}
+
+func (c *Collector) distribute(ctx context.Context, fn MetricPublisher) error {
 	switch {
 	case c.broker != nil:
-		c.broker.Publish(c.ctx, fn)
+		return c.broker.Handler(ctx, fn)
 	case c.publish != nil:
-		ers.Ignore(c.publish.PushBack(fn))
+		return c.publish.PushBack(fn)
 	default:
-		fun.Invariant.Failure("configuration issue, publication error")
+		return ers.New("configuration issue, publication error")
 	}
 }
 
@@ -285,7 +287,7 @@ func (c *Collector) submitBackground(dur time.Duration, tr *tracked) {
 
 	handler, ok := c.loops.Load(dur)
 	fun.Invariant.Ok(ok)
-	handler(tr)
+	fun.Invariant.Must(handler(tr))
 }
 
 func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
@@ -298,7 +300,7 @@ func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
 			return
 		}
 
-		if c.loops.EnsureStore(dur, fun.MakeProcessor(pipe.PushBack).Force) {
+		if c.loops.EnsureStore(dur, pipe.PushBack) {
 			c.wg.Launch(c.ctx, func(ctx context.Context) {
 				ticker := time.NewTicker(dur)
 				defer ticker.Stop()
@@ -308,7 +310,7 @@ func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
 					case <-ctx.Done():
 						return
 					case <-ticker.C:
-						if err := pipe.Iterator().Observe(func(tr *tracked) {
+						err := pipe.StreamFront().ReadAll(func(tr *tracked) {
 							c.broker.Publish(c.ctx, func(wr io.Writer, r Renderer) error {
 								buf := c.pool.Get()
 								defer c.pool.Put(buf)
@@ -317,7 +319,8 @@ func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
 
 								return ft.IgnoreFirst(wr.Write(buf.Bytes()))
 							})
-						}).Run(ctx); err != nil {
+						}).Run(c.ctx)
+						if err != nil {
 							return
 						}
 					}

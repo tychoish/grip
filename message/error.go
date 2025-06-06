@@ -47,7 +47,7 @@ func (e *errorMessage) Raw() any {
 		Fields `bson:",omitempty" json:",omitempty" yaml:",omitempty"`
 	}{
 		Error:  e.String(),
-		Fields: e.Base.Context,
+		Fields: e.Context,
 	}
 
 }

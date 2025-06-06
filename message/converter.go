@@ -3,8 +3,8 @@ package message
 import (
 	"fmt"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/fn"
 )
 
 // Converter is an interface for converting arbitrary types to
@@ -26,8 +26,7 @@ type ConverterFunc func(any) (Composer, bool)
 func (cf ConverterFunc) Convert(m any) Composer {
 	switch {
 	case cf != nil:
-		out, ok := cf(m)
-		if ok {
+		if out, ok := cf(m); ok {
 			return out
 		}
 		fallthrough
@@ -46,15 +45,12 @@ func (defaultConverter) Convert(m any) Composer { return Convert(m) }
 
 // Convert produces a composer interface for arbitrary input.
 //
-// The result is almost never (typed nil values may pass through)
-// Convert.
-//
 // Use this directly in your implementation of the Converter
 // interface. The DefaultConverter implementation provides a wrapper
 // around this implementation. The ConverterFunc-based implementations
 // fall back to this implementation
-func Convert[T any](input T) Composer {
-	switch message := any(input).(type) {
+func Convert(input any) Composer {
+	switch message := input.(type) {
 	case Composer:
 		return message
 	case []Composer:
@@ -81,13 +77,13 @@ func Convert[T any](input T) Composer {
 		return MakeFields(Fields(message))
 	case []byte:
 		return MakeBytes(message)
-	case fun.Future[Fields]:
+	case fn.Future[Fields]:
 		return MakeFuture(message)
-	case fun.Future[*dt.Pairs[string, any]]:
+	case fn.Future[*dt.Pairs[string, any]]:
 		return MakeFuture(message)
 	case func() Fields:
 		return MakeFuture(message)
-	case fun.Future[Composer]:
+	case fn.Future[Composer]:
 		return MakeFuture(message)
 	case func() Composer:
 		return MakeFuture(message)
@@ -95,7 +91,7 @@ func Convert[T any](input T) Composer {
 		return MakeFuture(message)
 	case func() map[string]any:
 		return MakeFuture(message)
-	case fun.Future[error]:
+	case fn.Future[error]:
 		return MakeFuture(message)
 	case func() error:
 		return MakeFuture(message)
@@ -109,17 +105,17 @@ func Convert[T any](input T) Composer {
 		return convertSlice(message)
 	case []Fields:
 		return convertSlice(message)
-	case []fun.Future[Fields]:
+	case []fn.Future[Fields]:
 		return convertSlice(message)
 	case []func() Fields:
 		return convertSlice(message)
 	case []func() map[string]any:
 		return convertSlice(message)
-	case []fun.Future[Composer]:
+	case []fn.Future[Composer]:
 		return convertSlice(message)
 	case []func() Composer:
 		return convertSlice(message)
-	case []fun.Future[error]:
+	case []fn.Future[error]:
 		return convertSlice(message)
 	case []func() error:
 		return convertSlice(message)
@@ -133,7 +129,7 @@ func Convert[T any](input T) Composer {
 	// 	if message.IsZero() {
 	// 		return MakeKV()
 	// 	}
-
+	//
 	// 	return MakeFormat("%+v", message)
 	default:
 		return MakeFormat("%+v", message)
@@ -143,8 +139,7 @@ func Convert[T any](input T) Composer {
 func convertSlice[T any](in []T) Composer {
 	switch len(in) {
 	case 0:
-		m := MakeKV()
-		return m
+		return MakeKV()
 	case 1:
 		return Convert(in[0])
 	default:
@@ -158,8 +153,7 @@ func convertSlice[T any](in []T) Composer {
 
 func buildFromSlice(vals []any) Composer {
 	if len(vals) == 0 {
-		m := MakeKV()
-		return m
+		return MakeKV()
 	}
 
 	// check to see that the even numbered items are strings, if
@@ -169,9 +163,9 @@ func buildFromSlice(vals []any) Composer {
 		switch vals[i].(type) {
 		case string:
 			continue
-		case Composer, fun.Future[Composer], fun.Future[error], fun.Future[Fields], Fields, dt.Pairs[string, any]:
+		case Composer, fn.Future[Composer], fn.Future[error], fn.Future[Fields], Fields, dt.Pairs[string, any]:
 			return convertSlice(vals)
-		case []Composer, []fun.Future[Composer], []fun.Future[error], []fun.Future[Fields], []error, []Fields, []dt.Pairs[string, any]:
+		case []Composer, []fn.Future[Composer], []fn.Future[error], []fn.Future[Fields], []error, []Fields, []dt.Pairs[string, any]:
 			return convertSlice(vals)
 		default:
 			return MakeLines(vals...)

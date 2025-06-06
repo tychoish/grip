@@ -24,7 +24,7 @@ func MakeFormat(base string, args ...any) Composer {
 
 func (f *formatMessenger) setupField() {
 	f.fm = &fieldMessage{
-		fields:  f.Base.Context,
+		fields:  f.Context,
 		Base:    f.Base,
 		message: f.Message,
 	}
@@ -44,7 +44,7 @@ func (f *formatMessenger) String() string {
 
 	f.setupMessage()
 
-	if len(f.Base.Context) > 0 {
+	if len(f.Context) > 0 {
 		f.setupField()
 		return f.fm.String()
 	}
@@ -68,7 +68,7 @@ func (f *formatMessenger) SetOption(opts ...Option) {
 }
 
 func (f *formatMessenger) Loggable() bool {
-	return f.base != "" || f.Message != "" || len(f.Base.Context) > 0 || (f.fm != nil && f.fm.Loggable())
+	return f.base != "" || f.Message != "" || len(f.Context) > 0 || (f.fm != nil && f.fm.Loggable())
 }
 
 func (f *formatMessenger) Raw() any {
@@ -78,7 +78,7 @@ func (f *formatMessenger) Raw() any {
 
 	f.setupMessage()
 
-	if len(f.Base.Context) > 0 {
+	if len(f.Context) > 0 {
 		f.setupField()
 		return f.fm.Raw()
 	}

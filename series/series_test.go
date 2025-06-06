@@ -1,15 +1,28 @@
 package series
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
+	"os"
+	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/assert"
+	"github.com/tychoish/fun/assert/check"
+	"github.com/tychoish/fun/testt"
 	"github.com/tychoish/grip"
+	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
+	"github.com/tychoish/grip/send"
 )
 
 func TestIntegration(t *testing.T) {
@@ -93,6 +106,224 @@ func TestIntegration(t *testing.T) {
 			err = coll.Close()
 			assert.NotError(t, err)
 		})
+	})
+	t.Run("Backends", func(t *testing.T) {
+		t.Run("File", func(t *testing.T) {
+			dir := t.TempDir()
 
+			fbConf := &CollectorBackendFileConf{
+				Directory:      dir,
+				FilePrefix:     "metrics",
+				Extension:      ".jsonl",
+				CounterPadding: 3,
+				Megabytes:      10,
+				Renderer:       MakeJSONRenderer(),
+			}
+
+			fileBackend, err := FileBackend(CollectorBackendFileConfSet(fbConf))
+			assert.NotError(t, err)
+
+			var (
+				mu       sync.Mutex
+				captured []string
+			)
+			captureFn := fun.MakeHandler(func(msg string) error {
+				mu.Lock()
+				captured = append(captured, msg)
+				mu.Unlock()
+				return nil
+			})
+
+			passBackend := PassthroughBackend(MakeJSONRenderer(), captureFn)
+
+			ctx := t.Context()
+
+			coll, err := NewCollector(ctx,
+				CollectorConfBuffer(1024),
+				CollectorConfAppendBackends(passBackend, fileBackend),
+			)
+			assert.NotError(t, err)
+
+			memSender, err := send.NewInMemorySender("integrationFile", level.Info, 256)
+			assert.NotError(t, err)
+			wrappedSender := Sender(memSender, coll)
+
+			const iterations = 32
+			for i := 0; i < iterations; i++ {
+				coll.Push(Gauge("integration_file_gauge").Label("iteration", fmt.Sprint(i)).Set(int64(i)))
+				wrappedSender.Send(message.MakeString(fmt.Sprintf("hello-log-%d", i)))
+			}
+
+			time.Sleep(100 * time.Millisecond)
+			assert.NotError(t, memSender.Flush(ctx))
+			assert.NotError(t, coll.Close())
+
+			// Poll until at least one metrics file appears or the test context is done.
+			var files []string
+			for {
+				files, err = filepath.Glob(filepath.Join(dir, fmt.Sprint(fbConf.FilePrefix, "*")))
+				assert.NotError(t, err)
+				if len(files) > 0 {
+					break
+				}
+
+				select {
+				case <-t.Context().Done():
+					t.Fatalf("timed out waiting for metrics files to be written")
+				case <-time.After(100 * time.Millisecond):
+				}
+			}
+
+			type metricLine struct {
+				Metric string `json:"metric"`
+				Value  int64  `json:"value"`
+			}
+
+			var metricsFromFile []metricLine
+			for _, fp := range files {
+				b, err := os.ReadFile(fp)
+				assert.NotError(t, err)
+
+				dec := json.NewDecoder(bytes.NewReader(b))
+				for {
+					var ml metricLine
+					if err := dec.Decode(&ml); err != nil {
+						if errors.Is(err, io.EOF) {
+							break
+						}
+						testt.Log(t, string(b))
+						t.Fatalf("failed decoding %q: %v", fp, err)
+					}
+					metricsFromFile = append(metricsFromFile, ml)
+				}
+			}
+
+			testt.Log(t, metricsFromFile)
+			testt.Log(t, captured)
+			check.Equal(t, iterations, len(metricsFromFile))
+			check.Equal(t, len(captured), len(metricsFromFile))
+
+		})
+		t.Run("Socket", func(t *testing.T) {
+			t.Run("Graphite", func(t *testing.T) {
+				inst := startVictoriaMetrics(t)
+				if inst == nil {
+					t.Fatal("startVictoria returned nil instance")
+				}
+
+				captureCh := make(chan string, 128)
+				captureFn := fun.MakeHandler(func(s string) error {
+					select {
+					case captureCh <- s:
+					default:
+					}
+					return nil
+				})
+
+				sb, err := GraphiteBackend("127.0.0.1:2003")
+				assert.NotError(t, err)
+
+				passBackend := PassthroughBackend(MakeGraphiteRenderer(), captureFn)
+
+				ctx := t.Context()
+
+				coll, err := NewCollector(ctx,
+					CollectorConfBuffer(512),
+					CollectorConfAppendBackends(passBackend, sb),
+				)
+				assert.NotError(t, err)
+
+				metricName := "integration_graphite_metric"
+				for i := 0; i < 32; i++ {
+					coll.Push(Gauge(metricName).Label("step", fmt.Sprint(i)).Set(int64(i + 1)))
+				}
+
+				time.Sleep(10 * time.Millisecond)
+				check.NotError(t, coll.Close())
+
+				queryCtx, qCancel := context.WithTimeout(t.Context(), 15*time.Second)
+				defer qCancel()
+
+			RETRY:
+				for {
+					has, err := victoriaHasMetric(queryCtx, t, metricName)
+					check.NotError(t, err)
+					if has {
+						break
+					}
+
+					select {
+					case <-queryCtx.Done():
+						t.Errorf("timed out waiting for graphite metric %q to be ingested", metricName)
+						break RETRY
+					case <-time.After(100 * time.Millisecond):
+					}
+				}
+
+				// close(captureCh)
+				testt.Log(t, "capture chan", len(captureCh))
+				check.True(t, len(captureCh) >= 16)
+				testt.Log(t, "capture chan", len(captureCh))
+
+			})
+			t.Run("Statsd", func(t *testing.T) {
+				t.Skip("until statsd implementation makes sense to retain")
+
+				inst := startVictoriaMetrics(t)
+				if inst == nil {
+					t.Fatal("startVictoria returned nil instance")
+				}
+
+				capCh := make(chan string, 128)
+				handler := fun.MakeHandler(func(s string) error {
+					select {
+					case capCh <- s:
+					default:
+					}
+					return nil
+				})
+
+				sb, err := StatsdBackend("127.0.0.1:2003")
+				assert.NotError(t, err)
+
+				passBackend := PassthroughBackend(MakeStatsdRenderer(), handler)
+
+				ctx := t.Context()
+
+				coll, err := NewCollector(ctx,
+					CollectorConfBuffer(512),
+					CollectorConfAppendBackends(passBackend, sb),
+				)
+				assert.NotError(t, err)
+
+				metricName := "integration_statsd_metric"
+				for i := 0; i < 10; i++ {
+					coll.Push(Gauge(metricName).Label("step", fmt.Sprint(i)).Set(int64(i + 1)))
+				}
+
+				assert.NotError(t, coll.Close())
+
+				queryCtx, qCancel := context.WithTimeout(t.Context(), 5*time.Second)
+				defer qCancel()
+
+				for {
+					has, err := victoriaHasMetric(queryCtx, t, metricName)
+					testt.Log(t, err)
+					assert.NotError(t, err)
+					if has {
+						break
+					}
+
+					select {
+					case <-queryCtx.Done():
+						t.Fatalf("timed out waiting for statsd metric %q to be ingested", metricName)
+					case <-time.After(250 * time.Millisecond):
+					}
+				}
+
+				close(capCh)
+				assert.True(t, len(capCh) >= 5)
+			})
+		})
 	})
 }
