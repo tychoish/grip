@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/tychoish/fun/erc"
+	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -47,8 +48,8 @@ func (opts *Options) Validate() error {
 	}
 
 	ec := &erc.Collector{}
-	erc.When(ec, opts.Token == "", "must specify a token")
-	erc.When(ec, opts.Target == "", "must specify a target or chatID")
+	ec.When(opts.Token == "", ers.New("must specify a token"))
+	ec.When(opts.Target == "", ers.New("must specify a target or chatID"))
 	return ec.Resolve()
 }
 

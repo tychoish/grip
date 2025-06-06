@@ -109,10 +109,6 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 				if test.Msg.Raw() == nil {
 					t.Fatal("message must not be nil in raw form")
 				}
-
-				if _, ok := test.Msg.(message.Composer); !ok {
-					t.Errorf("%T should implement message.Composer, but doesn't", test.Msg)
-				}
 				if !test.Msg.Loggable() {
 					t.Error("should be true")
 				}
@@ -157,9 +153,6 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 				for _, msg := range test.Group {
 					if msg == nil {
 						t.Fatal("msg not be nill")
-					}
-					if _, ok := msg.(message.Composer); !ok {
-						t.Errorf("%T should implement message.Composer, but doesn't", msg)
 					}
 					if msg.String() == "" {
 						t.Fatal("message must not be empty")

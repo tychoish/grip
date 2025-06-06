@@ -29,7 +29,7 @@ type SystemInfo struct {
 		IOStat     []disk.IOCountersStat `json:"iostat" bson:"iostat"`
 		Errors     []string              `json:"errors" bson:"errors"`
 	}
-	message.Base `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	message.Base `json:"metadata,omitempty" bson:"metadata,omitempty"`
 	loggable     bool
 	rendered     string
 }

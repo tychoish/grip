@@ -10,6 +10,7 @@ import (
 
 	"github.com/tychoish/birch/x/ftdc"
 	"github.com/tychoish/fun/erc"
+	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
@@ -42,11 +43,11 @@ type CollectOptions struct {
 
 func (opts CollectOptions) Validate() error {
 	ec := &erc.Collector{}
-	erc.When(ec, opts.FlushInterval < 10*time.Millisecond, "flush interval must be greater than 10ms")
-	erc.When(ec, opts.SampleCount < 10, "sample count must be greater than 10")
-	erc.When(ec, opts.BlockCount < 10, "block count must be greater than 10")
-	erc.When(ec, opts.OutputFilePrefix == "", "must specify prefix for output files")
-	erc.When(ec, opts.WriterConstructor == nil, "must specify a constructor ")
+	ec.When(opts.FlushInterval < 10*time.Millisecond, ers.Error("flush interval must be greater than 10ms"))
+	ec.When(opts.SampleCount < 10, ers.Error("sample count must be greater than 10"))
+	ec.When(opts.BlockCount < 10, ers.Error("block count must be greater than 10"))
+	ec.When(opts.OutputFilePrefix == "", ers.Error("must specify prefix for output files"))
+	ec.When(opts.WriterConstructor == nil, ers.Error("must specify a constructor"))
 	return ec.Resolve()
 }
 
@@ -73,7 +74,7 @@ type metricsFilterImpl struct {
 }
 
 // NewFilter produces a sender that persists metrics collection to
-// ftdc files by filtering out appropratly typed messages to the
+// ftdc files by filtering out appropriately typed messages to the
 // logger. In this model, applications can send metrics to the logger
 // without needing to configure any additional logging infrastructure
 // or setup. Metrics get persisted to the timeseries files of the
@@ -91,7 +92,7 @@ type metricsFilterImpl struct {
 // ErrorHandling facility.
 //
 // While this implementation is robust, and the birch/FTDC data format
-// is compact and useable, it is also minimal and is perhaps a better
+// is compact and usable, it is also minimal and is perhaps a better
 // model for other kinds of integration: production systems might want
 // to stream metrics to some kind of central service or use a
 // different persistence format, but the general model is robust.
@@ -173,7 +174,7 @@ func (mf *metricsFilterImpl) Close() error {
 
 	catcher := &erc.Collector{}
 	for _, fn := range mf.closers {
-		erc.Check(catcher, fn)
+		catcher.Push(fn())
 	}
 	catcher.Add(mf.Sender.Close())
 
@@ -265,8 +266,7 @@ func (mf *metricsFilterImpl) rotatingCollector(ctx context.Context, name string)
 			defer mtx.Unlock()
 
 			return collector
-		},
-		func() error {
+		}, func() error {
 			cancel()
 			<-sig
 			return nil

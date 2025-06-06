@@ -2,7 +2,7 @@ package system
 
 import (
 	"github.com/coreos/go-systemd/journal"
-	"github.com/tychoish/fun/ers"
+	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -16,7 +16,7 @@ type systemdJournal struct {
 }
 
 // MakeSystemdSender creates a Sender object that writes log messages
-// to the sysemd journal service directly. If such a service does not
+// to the systemd journal service directly. If such a service does not
 // exist on the current system, returns a sender that writes all
 // messages to standard output.
 func MakeSystemdSender() send.Sender {
@@ -54,7 +54,7 @@ func (s *systemdJournal) Send(m message.Composer) {
 		return
 	}
 
-	if err := ers.WithRecoverCall(func() {
+	if err := ft.WithRecoverCall(func() {
 		outstr, err := s.Format(m)
 		if !s.HandleErrorOK(send.WrapError(err, m)) {
 			return

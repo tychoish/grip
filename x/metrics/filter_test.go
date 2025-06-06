@@ -82,7 +82,6 @@ func TestFilter(t *testing.T) {
 		opts.BlockCount = 10
 		opts.CaptureStructured = false
 		opts.WriterConstructor = func(f string) (io.WriteCloser, error) {
-			fmt.Println(f)
 			return b, nil
 		}
 

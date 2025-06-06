@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/tychoish/fun/dt"
-	"github.com/tychoish/fun/risky"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -66,9 +65,9 @@ func (s *shim) Send(m message.Composer) {
 		case []error:
 			fields = append(fields, zap.Errors("errors", data))
 		case *dt.Pairs[string, any]:
-			risky.Observe(data.Iterator(), func(kv dt.Pair[string, any]) {
+			for _, kv := range data.Slice() {
 				fields = append(fields, zap.Any(kv.Key, kv.Value))
-			})
+			}
 		case message.Fields:
 			fields = append(fields, convertMapTypes(data)...)
 		case map[string]any:

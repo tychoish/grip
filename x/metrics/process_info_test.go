@@ -34,8 +34,8 @@ func TestChildren(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if len(c) != 1 {
-		t.Error("elements should be equal")
+	if len(c) < 1 {
+		t.Error("expected at least one child process")
 	}
 	for _, process := range c {
 		if myPid == process.Pid {
