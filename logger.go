@@ -107,6 +107,7 @@ func (g Logger) Sender() send.Sender                         { return g.impl.Get
 func (g Logger) Convert(m any) message.Composer              { return g.conv.Get().Convert(m) }
 func (g Logger) SetSender(s send.Sender)                     { g.impl.Set(sender{s}) }
 func (g Logger) SetConverter(m message.Converter)            { g.conv.Set(converter{m}) }
+func (g Logger) Send(m message.Composer)                     { g.Sender().Send(m) }
 func (g Logger) Log(l level.Priority, m any)                 { g.send(l, m) }
 func (g Logger) Logf(l level.Priority, msg string, a ...any) { g.send(l, composerf(msg, a)) }
 func (g Logger) Logln(l level.Priority, a ...any)            { g.send(l, composerln(a)) }
@@ -156,6 +157,7 @@ func Build() *message.Builder                           { return std.Build() }
 func Convert(m any) message.Composer                    { return std.Convert(m) }
 func SetSender(s send.Sender)                           { std.SetSender(s) }
 func SetConverter(c message.Converter)                  { std.SetConverter(c) }
+func Send(m message.Composer)                           { std.Send(m) }
 func Log(l level.Priority, msg any)                     { std.Log(l, msg) }
 func Logf(l level.Priority, msg string, a ...any)       { std.Logf(l, msg, a...) }
 func Logln(l level.Priority, a ...any)                  { std.Logln(l, a...) }
@@ -205,10 +207,15 @@ func TraceWhen(conditional bool, m any)                 { std.TraceWhen(conditio
 //
 // method implementation
 
-func (g Logger) send(l level.Priority, in any) {
+func (g Logger) make(l level.Priority, in any) message.Composer {
 	m := g.Convert(in)
 	m.SetPriority(l)
-	g.impl.Get().Send(m)
+	return m
+}
+
+func (g Logger) send(l level.Priority, i any) { g.Send(g.make(l, i)) }
+func (g Logger) ms(l level.Priority, i any) (message.Composer, send.Sender) {
+	return g.make(l, i), g.Sender()
 }
 
 // Convert runs the custom converter if set, falling back to
@@ -223,28 +230,16 @@ func (g Logger) makeWhen(cond bool, m any) message.Composer {
 // Journaler.sender.Send() method, but we have a couple of methods to
 // use for the Panic/Fatal helpers.
 func (g Logger) sendPanic(l level.Priority, in any) {
-	m := g.Convert(in)
-	m.SetPriority(l)
-
-	s := g.impl.Get()
-
-	// the Send method in the Sender interface will perform this
-	// check but to add fatal methods we need to do this here.
-	if send.ShouldLog(s, m) {
+	if m, s := g.ms(l, in); send.ShouldLog(s, m) {
 		s.Send(m)
 		panic(m.String())
 	}
 }
 
 func (g Logger) sendFatal(l level.Priority, in any) {
-	m := g.Convert(in)
-	m.SetPriority(l)
-
-	s := g.impl.Get()
-
 	// the Send method in the Sender interface will perform this
 	// check but to add fatal methods we need to do this here.
-	if send.ShouldLog(s, m) {
+	if m, s := g.ms(l, in); send.ShouldLog(s, m) {
 		s.Send(m)
 		os.Exit(1)
 	}
