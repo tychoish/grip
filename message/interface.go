@@ -1,8 +1,6 @@
 package message
 
-import (
-	"github.com/tychoish/grip/level"
-)
+import "github.com/tychoish/grip/level"
 
 // Composer defines an interface with a String() method that returns
 // the message in string format, as well as a Raw() method that may
@@ -37,11 +35,6 @@ type Composer interface {
 	// sender as structured data.
 	Structured() bool
 
-	// Annotate makes it possible for users (including internally)
-	// to add structured data to a log message. Implementations may
-	// choose to override key/value pairs that already exist.
-	Annotate(string, any)
-
 	// Priority returns the priority of the message.
 	Priority() level.Priority
 
@@ -59,6 +52,11 @@ type Composer interface {
 	// to respect them. In the case where two options that
 	// contradict eachother, the last one should win.
 	SetOption(...Option)
+
+	// Annotate makes it possible for users (including internally)
+	// to add structured data to a log message. Implementations may
+	// choose to override key/value pairs that already exist.
+	Annotate(string, any)
 }
 
 // Options control the behavior and output of a message, specifically
