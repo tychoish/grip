@@ -103,8 +103,7 @@ func ShouldLog(s Sender, m message.Composer) bool {
 	if m == nil || s == nil {
 		return false
 	}
-	mp := m.Priority()
-	if mp == level.Invalid || mp < s.Priority() {
+	if mp := m.Priority(); mp == level.Invalid || mp < s.Priority() {
 		return false
 	}
 	return m.Loggable()

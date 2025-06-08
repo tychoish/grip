@@ -108,48 +108,48 @@ func (g Logger) Convert(m any) message.Composer              { return g.conv.Get
 func (g Logger) SetSender(s send.Sender)                     { g.impl.Set(sender{s}) }
 func (g Logger) SetConverter(m message.Converter)            { g.conv.Set(converter{m}) }
 func (g Logger) Send(m message.Composer)                     { g.Sender().Send(m) }
-func (g Logger) Log(l level.Priority, m any)                 { g.send(l, m) }
-func (g Logger) Logf(l level.Priority, msg string, a ...any) { g.send(l, composerf(msg, a)) }
-func (g Logger) Logln(l level.Priority, a ...any)            { g.send(l, composerln(a)) }
-func (g Logger) LogWhen(c bool, l level.Priority, m any)     { g.send(l, g.makeWhen(c, m)) }
+func (g Logger) Log(l level.Priority, m any)                 { g.Send(g.make(l, m)) }
+func (g Logger) Logf(l level.Priority, msg string, a ...any) { g.Log(l, composerf(msg, a)) }
+func (g Logger) Logln(l level.Priority, a ...any)            { g.Log(l, composerln(a)) }
+func (g Logger) LogWhen(c bool, l level.Priority, m any)     { g.Log(l, g.makeWhen(c, m)) }
 func (g Logger) EmergencyPanic(m any)                        { g.sendPanic(level.Emergency, m) }
 func (g Logger) EmergencyFatal(m any)                        { g.sendFatal(level.Emergency, m) }
-func (g Logger) Emergency(m any)                             { g.send(level.Emergency, m) }
-func (g Logger) Emergencyf(m string, a ...any)               { g.send(level.Emergency, composerf(m, a)) }
-func (g Logger) Emergencyln(a ...any)                        { g.send(level.Emergency, composerln(a)) }
-func (g Logger) EmergencyWhen(c bool, m any)                 { g.send(level.Emergency, g.makeWhen(c, m)) }
-func (g Logger) Alert(m any)                                 { g.send(level.Alert, m) }
-func (g Logger) Alertf(m string, a ...any)                   { g.send(level.Alert, composerf(m, a)) }
-func (g Logger) Alertln(a ...any)                            { g.send(level.Alert, composerln(a)) }
-func (g Logger) AlertWhen(c bool, m any)                     { g.send(level.Alert, g.makeWhen(c, m)) }
-func (g Logger) Critical(m any)                              { g.send(level.Critical, m) }
-func (g Logger) Criticalf(m string, a ...any)                { g.send(level.Critical, composerf(m, a)) }
-func (g Logger) Criticalln(a ...any)                         { g.send(level.Critical, composerln(a)) }
-func (g Logger) CriticalWhen(c bool, m any)                  { g.send(level.Critical, g.makeWhen(c, m)) }
-func (g Logger) Error(m any)                                 { g.send(level.Error, m) }
-func (g Logger) Errorf(m string, a ...any)                   { g.send(level.Error, composerf(m, a)) }
-func (g Logger) Errorln(a ...any)                            { g.send(level.Error, composerln(a)) }
-func (g Logger) ErrorWhen(c bool, m any)                     { g.send(level.Error, g.makeWhen(c, m)) }
-func (g Logger) Warning(m any)                               { g.send(level.Warning, m) }
-func (g Logger) Warningf(m string, a ...any)                 { g.send(level.Warning, composerf(m, a)) }
-func (g Logger) Warningln(a ...any)                          { g.send(level.Warning, composerln(a)) }
-func (g Logger) WarningWhen(c bool, m any)                   { g.send(level.Warning, g.makeWhen(c, m)) }
-func (g Logger) Notice(m any)                                { g.send(level.Notice, m) }
-func (g Logger) Noticef(m string, a ...any)                  { g.send(level.Notice, composerf(m, a)) }
-func (g Logger) Noticeln(a ...any)                           { g.send(level.Notice, composerln(a)) }
-func (g Logger) NoticeWhen(c bool, m any)                    { g.send(level.Notice, g.makeWhen(c, m)) }
-func (g Logger) Info(m any)                                  { g.send(level.Info, m) }
-func (g Logger) Infof(m string, a ...any)                    { g.send(level.Info, composerf(m, a)) }
-func (g Logger) Infoln(a ...any)                             { g.send(level.Info, composerln(a)) }
-func (g Logger) InfoWhen(c bool, m any)                      { g.send(level.Info, g.makeWhen(c, m)) }
-func (g Logger) Debug(m any)                                 { g.send(level.Debug, m) }
-func (g Logger) Debugf(m string, a ...any)                   { g.send(level.Debug, composerf(m, a)) }
-func (g Logger) Debugln(a ...any)                            { g.send(level.Debug, composerln(a)) }
-func (g Logger) DebugWhen(c bool, m any)                     { g.send(level.Debug, g.makeWhen(c, m)) }
-func (g Logger) Trace(m any)                                 { g.send(level.Trace, m) }
-func (g Logger) Tracef(m string, a ...any)                   { g.send(level.Trace, composerf(m, a)) }
-func (g Logger) Traceln(a ...any)                            { g.send(level.Trace, composerln(a)) }
-func (g Logger) TraceWhen(c bool, m any)                     { g.send(level.Trace, g.makeWhen(c, m)) }
+func (g Logger) Emergency(m any)                             { g.Log(level.Emergency, m) }
+func (g Logger) Emergencyf(m string, a ...any)               { g.Log(level.Emergency, composerf(m, a)) }
+func (g Logger) Emergencyln(a ...any)                        { g.Log(level.Emergency, composerln(a)) }
+func (g Logger) EmergencyWhen(c bool, m any)                 { g.Log(level.Emergency, g.makeWhen(c, m)) }
+func (g Logger) Alert(m any)                                 { g.Log(level.Alert, m) }
+func (g Logger) Alertf(m string, a ...any)                   { g.Log(level.Alert, composerf(m, a)) }
+func (g Logger) Alertln(a ...any)                            { g.Log(level.Alert, composerln(a)) }
+func (g Logger) AlertWhen(c bool, m any)                     { g.Log(level.Alert, g.makeWhen(c, m)) }
+func (g Logger) Critical(m any)                              { g.Log(level.Critical, m) }
+func (g Logger) Criticalf(m string, a ...any)                { g.Log(level.Critical, composerf(m, a)) }
+func (g Logger) Criticalln(a ...any)                         { g.Log(level.Critical, composerln(a)) }
+func (g Logger) CriticalWhen(c bool, m any)                  { g.Log(level.Critical, g.makeWhen(c, m)) }
+func (g Logger) Error(m any)                                 { g.Log(level.Error, m) }
+func (g Logger) Errorf(m string, a ...any)                   { g.Log(level.Error, composerf(m, a)) }
+func (g Logger) Errorln(a ...any)                            { g.Log(level.Error, composerln(a)) }
+func (g Logger) ErrorWhen(c bool, m any)                     { g.Log(level.Error, g.makeWhen(c, m)) }
+func (g Logger) Warning(m any)                               { g.Log(level.Warning, m) }
+func (g Logger) Warningf(m string, a ...any)                 { g.Log(level.Warning, composerf(m, a)) }
+func (g Logger) Warningln(a ...any)                          { g.Log(level.Warning, composerln(a)) }
+func (g Logger) WarningWhen(c bool, m any)                   { g.Log(level.Warning, g.makeWhen(c, m)) }
+func (g Logger) Notice(m any)                                { g.Log(level.Notice, m) }
+func (g Logger) Noticef(m string, a ...any)                  { g.Log(level.Notice, composerf(m, a)) }
+func (g Logger) Noticeln(a ...any)                           { g.Log(level.Notice, composerln(a)) }
+func (g Logger) NoticeWhen(c bool, m any)                    { g.Log(level.Notice, g.makeWhen(c, m)) }
+func (g Logger) Info(m any)                                  { g.Log(level.Info, m) }
+func (g Logger) Infof(m string, a ...any)                    { g.Log(level.Info, composerf(m, a)) }
+func (g Logger) Infoln(a ...any)                             { g.Log(level.Info, composerln(a)) }
+func (g Logger) InfoWhen(c bool, m any)                      { g.Log(level.Info, g.makeWhen(c, m)) }
+func (g Logger) Debug(m any)                                 { g.Log(level.Debug, m) }
+func (g Logger) Debugf(m string, a ...any)                   { g.Log(level.Debug, composerf(m, a)) }
+func (g Logger) Debugln(a ...any)                            { g.Log(level.Debug, composerln(a)) }
+func (g Logger) DebugWhen(c bool, m any)                     { g.Log(level.Debug, g.makeWhen(c, m)) }
+func (g Logger) Trace(m any)                                 { g.Log(level.Trace, m) }
+func (g Logger) Tracef(m string, a ...any)                   { g.Log(level.Trace, composerf(m, a)) }
+func (g Logger) Traceln(a ...any)                            { g.Log(level.Trace, composerln(a)) }
+func (g Logger) TraceWhen(c bool, m any)                     { g.Log(level.Trace, g.makeWhen(c, m)) }
 
 func Clone() Logger                                     { return std.Clone() }
 func Sender() send.Sender                               { return std.Sender() }
@@ -213,7 +213,6 @@ func (g Logger) make(l level.Priority, in any) message.Composer {
 	return m
 }
 
-func (g Logger) send(l level.Priority, i any) { g.Send(g.make(l, i)) }
 func (g Logger) ms(l level.Priority, i any) (message.Composer, send.Sender) {
 	return g.make(l, i), g.Sender()
 }
