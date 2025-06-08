@@ -18,8 +18,8 @@ github.com/tychoish/birch/x/ftdc v0.0.0-20250506204810-3dda113d1b54 h1:4dmnEgyDj
 github.com/tychoish/birch/x/ftdc v0.0.0-20250506204810-3dda113d1b54/go.mod h1:Kq5gL3Quu3Hhi3n8vPjA2ONntV0IzyyWtwE8k0OV5r8=
 github.com/tychoish/fun v0.12.0 h1:YxYyCTfKL+3Q4wtcPFZsRVOWF12llUCbqkkK53MdwNs=
 github.com/tychoish/fun v0.12.0/go.mod h1:ghjR/9EyWh8h8oBg2+WJhsEcF/W4JXMWpo6btMRNusE=
-github.com/tychoish/grip v0.3.9-0.20250425134421-fd099d1c46f4 h1:kikE0jn1GfxizNhMVi5mceBjPBdqhRmkXU57x0CgXz0=
-github.com/tychoish/grip v0.3.9-0.20250425134421-fd099d1c46f4/go.mod h1:jCO0mMQqP/Qxy/wgwTj5n5wFUhWK5lB3ZvqcYGORWwA=
+github.com/tychoish/grip v0.4.0 h1:5WL5H4raAqj+1eG0p7JsXABvqElPuE3+0G95V0MmrPQ=
+github.com/tychoish/grip v0.4.0/go.mod h1:/0IsKegfHVZ4R2E+3iOB2yarhLh4XL3yyhO2Brv98LA=
 github.com/yusufpapurcu/wmi v1.2.2 h1:KBNDSne4vP5mbSWnJbO+51IMOXJB67QiYCSBrubbPRg=
 github.com/yusufpapurcu/wmi v1.2.2/go.mod h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=
 golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

@@ -6,7 +6,7 @@ toolchain go1.24.0
 
 require (
 	github.com/gen2brain/beeep v0.0.0-20220518085355-d7852edf42fc
-	github.com/tychoish/grip v0.3.9-0.20250425134421-fd099d1c46f4
+	github.com/tychoish/grip v0.4.0
 )
 
 require (

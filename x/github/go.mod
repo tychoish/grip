@@ -6,7 +6,7 @@ toolchain go1.24.0
 
 require (
 	github.com/google/go-github v17.0.0+incompatible
-	github.com/tychoish/grip v0.3.9-0.20250425134421-fd099d1c46f4
+	github.com/tychoish/grip v0.4.0
 	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2
 )
 

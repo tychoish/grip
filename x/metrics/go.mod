@@ -9,7 +9,7 @@ require (
 	github.com/tychoish/birch v0.2.4
 	github.com/tychoish/birch/x/ftdc v0.0.0-20250506204810-3dda113d1b54
 	github.com/tychoish/fun v0.12.0
-	github.com/tychoish/grip v0.3.9-0.20250425134421-fd099d1c46f4
+	github.com/tychoish/grip v0.4.0
 )
 
 require (

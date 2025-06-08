@@ -1,3 +1,4 @@
 github.com/mattn/go-xmpp v0.0.0-20220513082406-1411b9cc8b9a h1:sKMsZuaXOyrN9kzdM3kGS4L5f0JTpno7PMIUVw5smzo=
 github.com/mattn/go-xmpp v0.0.0-20220513082406-1411b9cc8b9a/go.mod h1:Cs5mF0OsrRRmhkyOod//ldNPOwJsrBvJ+1WRspv0xoc=
 github.com/tychoish/fun v0.12.0 h1:YxYyCTfKL+3Q4wtcPFZsRVOWF12llUCbqkkK53MdwNs=
+github.com/tychoish/fun v0.12.0/go.mod h1:ghjR/9EyWh8h8oBg2+WJhsEcF/W4JXMWpo6btMRNusE=

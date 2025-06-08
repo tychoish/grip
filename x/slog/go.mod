@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/tychoish/fun v0.12.0
-	github.com/tychoish/grip v0.3.9-0.20250425134421-fd099d1c46f4
+	github.com/tychoish/grip v0.4.0
 )
 
 replace github.com/tychoish/grip => ../../

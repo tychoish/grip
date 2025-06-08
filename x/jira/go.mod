@@ -7,7 +7,7 @@ toolchain go1.24.0
 require (
 	github.com/andygrunwald/go-jira v1.15.1
 	github.com/dghubble/oauth1 v0.7.1
-	github.com/tychoish/grip v0.3.9-0.20250425134421-fd099d1c46f4
+	github.com/tychoish/grip v0.4.0
 )
 
 require (
