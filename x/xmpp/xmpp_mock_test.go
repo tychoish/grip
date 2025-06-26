@@ -3,7 +3,7 @@ package xmpp
 import (
 	"errors"
 
-	xmpp "github.com/mattn/go-xmpp"
+	xmpp "github.com/xmppo/go-xmpp"
 )
 
 type xmppClientMock struct {
@@ -14,7 +14,7 @@ type xmppClientMock struct {
 	numSent   int
 }
 
-func (c *xmppClientMock) Create(_ ConnectionInfo) error {
+func (c *xmppClientMock) Create(ConnectionInfo) error {
 	if c.failCreate {
 		return errors.New("creation failed")
 	}
@@ -22,7 +22,7 @@ func (c *xmppClientMock) Create(_ ConnectionInfo) error {
 	return nil
 }
 
-func (c *xmppClientMock) Send(_ xmpp.Chat) (int, error) {
+func (c *xmppClientMock) Send(xmpp.Chat) (int, error) {
 	if c.failSend {
 		return 0, errors.New("sending failed")
 	}

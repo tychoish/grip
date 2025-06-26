@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	xmpp "github.com/mattn/go-xmpp"
 	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
+	xmpp "github.com/xmppo/go-xmpp"
 )
 
 type xmppLogger struct {
