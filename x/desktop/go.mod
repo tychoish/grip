@@ -2,8 +2,6 @@ module github.com/tychoish/grip/x/desktop
 
 go 1.24
 
-toolchain go1.24.0
-
 require (
 	github.com/gen2brain/beeep v0.0.0-20220518085355-d7852edf42fc
 	github.com/tychoish/grip v0.4.0
@@ -18,4 +16,4 @@ require (
 	golang.org/x/sys v0.33.0 // indirect
 )
 
-replace github.com/tychoish/grip => ../../
+// replace github.com/tychoish/grip => ../../

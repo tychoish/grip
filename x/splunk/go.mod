@@ -2,8 +2,6 @@ module github.com/tychoish/grip/x/splunk
 
 go 1.24
 
-toolchain go1.24.0
-
 require (
 	github.com/fuyufjh/splunk-hec-go v0.4.0
 	github.com/tychoish/grip v0.4.0

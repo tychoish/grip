@@ -2,8 +2,6 @@ module github.com/tychoish/grip/x/twitter
 
 go 1.24
 
-toolchain go1.24.0
-
 require (
 	github.com/dghubble/go-twitter v0.0.0-20220626024101-68c0170dc641
 	github.com/dghubble/oauth1 v0.7.1

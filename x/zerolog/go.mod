@@ -2,8 +2,6 @@ module github.com/tychoish/grip/x/zerolog
 
 go 1.24
 
-toolchain go1.24.0
-
 require (
 	github.com/rs/zerolog v1.27.0
 	github.com/tychoish/fun v0.12.0

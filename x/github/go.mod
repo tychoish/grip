@@ -2,8 +2,6 @@ module github.com/tychoish/grip/x/github
 
 go 1.24
 
-toolchain go1.24.0
-
 require (
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/tychoish/grip v0.4.0

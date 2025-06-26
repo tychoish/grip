@@ -2,8 +2,6 @@ module github.com/tychoish/grip/x/jira
 
 go 1.24
 
-toolchain go1.24.0
-
 require (
 	github.com/andygrunwald/go-jira v1.15.1
 	github.com/dghubble/oauth1 v0.7.1
