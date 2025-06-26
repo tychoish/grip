@@ -8,4 +8,4 @@ require github.com/tychoish/grip v0.4.0
 
 require github.com/tychoish/fun v0.12.0 // indirect
 
-replace github.com/tychoish/grip => ../../
+// replace github.com/tychoish/grip => ../../

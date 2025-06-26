@@ -19,3 +19,5 @@ require (
 	github.com/trivago/tgo v1.0.7 // indirect
 	github.com/tychoish/fun v0.12.0 // indirect
 )
+
+// replace github.com/tychoish/grip => ../../

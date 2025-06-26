@@ -2,8 +2,6 @@ module github.com/tychoish/grip/x/sumologic
 
 go 1.24
 
-toolchain go1.24.0
-
 replace github.com/nutmegdevelopment/sumologic => github.com/tychoish/sumologic v1.0.0
 
 require (
@@ -16,4 +14,4 @@ require (
 	github.com/tychoish/fun v0.12.0 // indirect
 )
 
-replace github.com/tychoish/grip => ../../
+// replace github.com/tychoish/grip => ../../

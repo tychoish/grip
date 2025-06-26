@@ -14,4 +14,4 @@ require (
 	golang.org/x/net v0.41.0 // indirect
 )
 
-replace github.com/tychoish/grip => ../../
+// replace github.com/tychoish/grip => ../../

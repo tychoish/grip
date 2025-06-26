@@ -17,4 +17,4 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 )
 
-replace github.com/tychoish/grip => ../../
+// replace github.com/tychoish/grip => ../../
