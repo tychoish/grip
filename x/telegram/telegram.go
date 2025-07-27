@@ -23,8 +23,8 @@ type Options struct {
 	// Optional: BaseURL defaults to https://api.telegram.org, and
 	// a new [unconfigured] HTTP client is constructed if one is
 	// not provided.
-	BaseURL string `bson:"base_url" json:"base_url" yaml:"base_url"`
-	Client  *http.Client
+	BaseURL string       `bson:"base_url" json:"base_url" yaml:"base_url"`
+	Client  *http.Client `bson:"-" json:"-" yaml:"-"`
 }
 
 type sender struct {
