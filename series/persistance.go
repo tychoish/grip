@@ -17,6 +17,7 @@ import (
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/fn"
+	"github.com/tychoish/fun/fnx"
 	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/fun/intish"
 	"github.com/tychoish/fun/pubsub"
@@ -25,14 +26,14 @@ import (
 
 type MetricPublisher func(io.Writer, Renderer) error
 
-type CollectorBackend fun.Handler[*fun.Stream[MetricPublisher]]
+type CollectorBackend fnx.Handler[*fun.Stream[MetricPublisher]]
 
 type Renderer struct {
 	Metric    MetricValueRenderer
 	Histogram MetricHistogramRenderer
 }
 
-func (cb CollectorBackend) Worker(iter *fun.Stream[MetricPublisher]) fun.Worker {
+func (cb CollectorBackend) Worker(iter *fun.Stream[MetricPublisher]) fnx.Worker {
 	return func(ctx context.Context) error { return cb(ctx, iter) }
 }
 
@@ -50,12 +51,12 @@ type CollectorBackendFileConf struct {
 
 func (conf *CollectorBackendFileConf) Validate() error {
 	ec := &erc.Collector{}
-	ec.When(conf.Megabytes < 1, ers.New("must specify at least 1mb rotation size"))
-	ec.When(conf.CounterPadding < 1, ers.New("must specify at least 1 didget for counter padding"))
+	ec.If(conf.Megabytes < 1, ers.New("must specify at least 1mb rotation size"))
+	ec.If(conf.CounterPadding < 1, ers.New("must specify at least 1 didget for counter padding"))
 	stat, err := os.Stat(conf.Directory)
-	ec.When(os.IsNotExist(err) || stat != nil && !stat.IsDir(), ers.New("directory must either not exist or be a directory"))
-	ec.When(conf.FilePrefix == "", ers.New("must specify a prefix for data files"))
-	ec.When(conf.Extension == "", ers.New("must specify at prefix for data files"))
+	ec.If(os.IsNotExist(err) || stat != nil && !stat.IsDir(), ers.New("directory must either not exist or be a directory"))
+	ec.If(conf.FilePrefix == "", ers.New("must specify a prefix for data files"))
+	ec.If(conf.Extension == "", ers.New("must specify at prefix for data files"))
 
 	return ec.Resolve()
 }
@@ -63,21 +64,27 @@ func (conf *CollectorBackendFileConf) Validate() error {
 func CollectorBackendFileConfSet(c *CollectorBackendFileConf) CollectorBakendFileOptionProvider {
 	return func(conf *CollectorBackendFileConf) error { *conf = *c; return nil }
 }
+
 func CollectorBackendFileConfDirectory(path string) CollectorBakendFileOptionProvider {
 	return func(conf *CollectorBackendFileConf) error { conf.Directory = path; return nil }
 }
+
 func CollectorBackendFileConfPrefix(prefix string) CollectorBakendFileOptionProvider {
 	return func(conf *CollectorBackendFileConf) error { conf.FilePrefix = prefix; return nil }
 }
+
 func CollectorBackendFileConfExtension(ext string) CollectorBakendFileOptionProvider {
 	return func(conf *CollectorBackendFileConf) error { conf.Extension = ext; return nil }
 }
+
 func CollectorBackendFileConfCounterPadding(v int) CollectorBakendFileOptionProvider {
 	return func(conf *CollectorBackendFileConf) error { conf.CounterPadding = v; return nil }
 }
+
 func CollectorBackendFileConfRotationSizeMB(v int) CollectorBakendFileOptionProvider {
 	return func(conf *CollectorBackendFileConf) error { conf.Megabytes = v; return nil }
 }
+
 func CollectorBackendFileConfWithRenderer(r Renderer) CollectorBakendFileOptionProvider {
 	return func(conf *CollectorBackendFileConf) error { conf.Renderer = r; return nil }
 }
@@ -165,19 +172,20 @@ func LoggerBackend(sender send.Sender, r Renderer) CollectorBackend {
 	}
 }
 
-func PassthroughBackend(r Renderer, handler fun.Handler[string], opts ...fun.OptionProvider[*fun.WorkerGroupConf]) CollectorBackend {
+func PassthroughBackend(r Renderer, handler fnx.Handler[string], opts ...fun.OptionProvider[*fun.WorkerGroupConf]) CollectorBackend {
 	pool := &adt.Pool[*bytes.Buffer]{}
 	pool.SetConstructor(func() *bytes.Buffer { return &bytes.Buffer{} })
 	pool.SetCleanupHook(func(buf *bytes.Buffer) *bytes.Buffer { buf.Reset(); return buf })
 
 	return func(ctx context.Context, iter *fun.Stream[MetricPublisher]) error {
-		return fun.MakeConverter(
+		return fun.Convert(fnx.MakeConverter(
 			func(mp MetricPublisher) string {
 				buf := pool.Get()
 				defer pool.Put(buf)
 				fun.Invariant.Must(mp(buf, r))
 				return buf.String()
-			}).Stream(iter).
+			})).
+			Stream(iter).
 			Parallel(handler, opts...).
 			Run(ctx)
 	}
@@ -216,12 +224,12 @@ func (conf *CollectorBackendSocketConf) Validate() error {
 	conf.MaxMessageRetryDelay = max(conf.MinMessageRetryDelay, conf.MaxMessageRetryDelay)
 
 	ec := &erc.Collector{}
-	ec.Add(conf.DialErrorHandling.Validate())
-	ec.Add(conf.MessageErrorHandling.Validate())
+	ec.Push(conf.DialErrorHandling.Validate())
+	ec.Push(conf.MessageErrorHandling.Validate())
 
-	ec.When(conf.Network != "tcp" && conf.Network != "udp", ers.New("network must be 'tcp' or 'udp'"))
-	ec.When(conf.Renderer.Histogram == nil, ers.New("must specify histogram renderer"))
-	ec.When(conf.Renderer.Metric == nil, ers.New("must specify scalar metrics renderer"))
+	ec.If(conf.Network != "tcp" && conf.Network != "udp", ers.New("network must be 'tcp' or 'udp'"))
+	ec.If(conf.Renderer.Histogram == nil, ers.New("must specify histogram renderer"))
+	ec.If(conf.Renderer.Metric == nil, ers.New("must specify scalar metrics renderer"))
 
 	return ec.Resolve()
 }
@@ -229,48 +237,63 @@ func (conf *CollectorBackendSocketConf) Validate() error {
 func CollectorBackendSocketConfWithRenderer(r Renderer) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.Renderer = r; return nil }
 }
+
 func CollectorBackendSocketConfSet(c *CollectorBackendSocketConf) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { *conf = *c; return nil }
 }
+
 func CollectorBackendSocketConfDialer(d net.Dialer) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.Dialer = d; return nil }
 }
+
 func CollectorBackendSocketConfNetowrkTCP() CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.Network = "tcp"; return nil }
 }
+
 func CollectorBackendSocketConfNetowrkUDP() CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.Network = "udp"; return nil }
 }
+
 func CollectorBackendSocketConfAddress(addr string) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.Address = addr; return nil }
 }
+
 func CollectorBackendSocketConfDialWorkers(n int) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.DialWorkers = n; return nil }
 }
+
 func CollectorBackendSocketConfIdleConns(n int) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.IdleConns = n; return nil }
 }
+
 func CollectorBackendSocketConfMinDialRetryDelay(d time.Duration) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.MinDialRetryDelay = d; return nil }
 }
+
 func CollectorBackendSocketConfMaxDialRetryDelay(d time.Duration) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.MaxDialRetryDelay = d; return nil }
 }
+
 func CollectorBackendSocketConfDialErrorHandling(eh CollectorBackendSocketErrorOption) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.DialErrorHandling = eh; return nil }
 }
+
 func CollectorBackendSocketConfMessageWorkers(n int) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.MessageWorkers = n; return nil }
 }
+
 func CollectorBackendSocketConfNumMessageRetries(n int) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.NumMessageRetries = n; return nil }
 }
+
 func CollectorBackendSocketConfMinMessageRetryDelay(d time.Duration) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.MinMessageRetryDelay = d; return nil }
 }
+
 func CollectorBackendSocketConfMaxMessageRetryDelay(d time.Duration) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.MaxMessageRetryDelay = d; return nil }
 }
+
 func CollectorBackendSocketConfMessageErrorHandling(eh CollectorBackendSocketErrorOption) CollectorBakendSocketOptionProvider {
 	return func(conf *CollectorBackendSocketConf) error { conf.MessageErrorHandling = eh; return nil }
 }
@@ -378,7 +401,7 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 	connCacheSize := &intish.Atomic[int]{}
 
 	ec := &erc.Collector{}
-	var dialOperation fun.Operation = func(ctx context.Context) {
+	var dialOperation fnx.Operation = func(ctx context.Context) {
 		timer := time.NewTimer(0)
 		defer timer.Stop()
 
@@ -428,7 +451,7 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 					return
 				}
 				if err == nil {
-					ec.Add(fun.BlockingSend(connCache).Write(ctx, conn))
+					ec.Push(fun.BlockingSend(connCache).Write(ctx, conn))
 					connCacheSize.Add(1)
 					return
 				}

@@ -71,7 +71,7 @@ func AddToMulti(multi Sender, s Sender) error {
 func (s *multiSender) Close() error {
 	catcher := &erc.Collector{}
 	for _, sender := range s.senders {
-		catcher.Add(sender.Close())
+		catcher.Push(sender.Close())
 	}
 	return catcher.Resolve()
 }
@@ -115,7 +115,7 @@ func (s *multiSender) Flush(ctx context.Context) error {
 	catcher := &erc.Collector{}
 
 	for _, sender := range s.senders {
-		catcher.Add(sender.Flush(ctx))
+		catcher.Push(sender.Flush(ctx))
 	}
 
 	return catcher.Resolve()

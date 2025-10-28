@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/fn"
+	"github.com/tychoish/fun/fnx"
 )
 
 func renderLabelsJSON(buf *bytes.Buffer, labels *dt.Pairs[string, string]) {
@@ -17,7 +17,7 @@ func renderLabelsJSON(buf *bytes.Buffer, labels *dt.Pairs[string, string]) {
 
 	buf.WriteString(`"tags":{`)
 	first := true
-	labels.ReadAll(fun.FromHandler(func(label dt.Pair[string, string]) {
+	labels.Stream().ReadAll(fnx.FromHandler(func(label dt.Pair[string, string]) {
 		switch {
 		case first:
 			first = false
@@ -48,7 +48,7 @@ func RenderHistogramJSON(
 	buf.WriteString(`"value":{`)
 
 	first := true
-	sample.ReadAll(fun.FromHandler(func(pair dt.Pair[float64, int64]) {
+	sample.Stream().ReadAll(fnx.FromHandler(func(pair dt.Pair[float64, int64]) {
 		switch {
 		case first:
 			first = false
@@ -71,7 +71,7 @@ func RenderMetricOpenTSB(buf *bytes.Buffer, key string, labels fn.Future[*dt.Pai
 	fmt.Fprint(buf, value)
 	if tags := labels(); tags != nil && tags.Len() > 0 {
 		buf.WriteByte(' ')
-		tags.ReadAll(fun.FromHandler(func(label dt.Pair[string, string]) {
+		tags.Stream().ReadAll(fnx.FromHandler(func(label dt.Pair[string, string]) {
 			buf.WriteString(label.Key)
 			buf.WriteByte('=')
 			buf.WriteString(label.Value)
@@ -84,7 +84,7 @@ func RenderMetricOpenTSB(buf *bytes.Buffer, key string, labels fn.Future[*dt.Pai
 func RenderMetricGraphite(buf *bytes.Buffer, key string, labels fn.Future[*dt.Pairs[string, string]], value int64, ts time.Time) {
 	buf.WriteString(key)
 	if tags := labels(); tags != nil && tags.Len() > 0 {
-		tags.ReadAll(fun.FromHandler(func(label dt.Pair[string, string]) {
+		tags.Stream().ReadAll(fnx.FromHandler(func(label dt.Pair[string, string]) {
 			fmt.Fprintf(buf, ";%s=%s", label.Key, label.Value)
 		})).Ignore().Wait()
 	}
@@ -92,6 +92,7 @@ func RenderMetricGraphite(buf *bytes.Buffer, key string, labels fn.Future[*dt.Pa
 	fmt.Fprint(buf, value)
 	buf.WriteByte(' ')
 	fmt.Fprint(buf, ts.UTC().Unix())
+	buf.WriteByte('\n')
 }
 
 func MakeOpenTSBLineRenderer() Renderer {
@@ -99,8 +100,8 @@ func MakeOpenTSBLineRenderer() Renderer {
 		Metric:    RenderMetricOpenTSB,
 		Histogram: MakeDefaultHistogramMetricRenderer(RenderMetricOpenTSB),
 	}
-
 }
+
 func MakeGraphiteRenderer() Renderer {
 	return Renderer{
 		Metric:    RenderMetricGraphite,

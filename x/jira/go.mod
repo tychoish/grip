@@ -15,7 +15,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/trivago/tgo v1.0.7 // indirect
-	github.com/tychoish/fun v0.12.0 // indirect
+	github.com/tychoish/fun v0.13.0 // indirect
 )
 
 // replace github.com/tychoish/grip => ../../

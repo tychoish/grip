@@ -7,6 +7,7 @@ import (
 
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/erc"
+	"github.com/tychoish/fun/fnx"
 	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/fun/pubsub"
 	"github.com/tychoish/grip/level"
@@ -16,7 +17,7 @@ import (
 type asyncGroupSender struct {
 	broker         *pubsub.Broker[message.Composer]
 	senders        *pubsub.Deque[Sender]
-	wg             fun.WaitGroup
+	wg             fnx.WaitGroup
 	cancel         context.CancelFunc
 	ctx            context.Context
 	baseCtx        context.Context
@@ -64,17 +65,17 @@ func MakeAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Send
 			ec := &erc.Collector{}
 			defer func() { err = ec.Resolve() }()
 			defer s.cancel()
-			ec.Add(s.senders.Close())
+			ec.Push(s.senders.Close())
 
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				s.senders.StreamFront().ReadAll(func(sender Sender) {
-					ec.Add(sender.Close())
-				}).Ignore().Wait()
+				s.senders.StreamFront().ReadAll(fnx.FromHandler(func(sender Sender) {
+					ec.Push(sender.Close())
+				})).Ignore().Wait()
 			}()
 
-			ec.Add(s.senders.Close())
+			ec.Push(s.senders.Close())
 			close(shutdown)
 			wg.Wait(ctx)
 			s.cancel()
@@ -112,9 +113,9 @@ func (s *asyncGroupSender) SetPriority(p level.Priority) {
 
 	s.senders.
 		StreamFront().
-		ReadAll(func(sender Sender) {
+		ReadAll(fnx.FromHandler(func(sender Sender) {
 			sender.SetPriority(p)
-		}).
+		})).
 		Ignore().
 		Wait()
 }
@@ -124,9 +125,9 @@ func (s *asyncGroupSender) SetErrorHandler(erh ErrorHandler) {
 
 	s.senders.
 		StreamFront().
-		ReadAll(func(sender Sender) {
+		ReadAll(fnx.FromHandler(func(sender Sender) {
 			sender.SetErrorHandler(erh)
-		}).
+		})).
 		Ignore().
 		Wait()
 }
@@ -136,9 +137,9 @@ func (s *asyncGroupSender) SetFormatter(fmtr MessageFormatter) {
 
 	s.senders.
 		StreamFront().
-		ReadAll(func(sender Sender) {
+		ReadAll(fnx.FromHandler(func(sender Sender) {
 			sender.SetFormatter(fmtr)
-		}).
+		})).
 		Ignore().
 		Wait()
 }
@@ -155,9 +156,9 @@ func (s *asyncGroupSender) Flush(ctx context.Context) error {
 
 	s.senders.
 		StreamFront().
-		ReadAll(func(sender Sender) {
-			catcher.Add(sender.Flush(ctx))
-		}).
+		ReadAll(fnx.FromHandler(func(sender Sender) {
+			catcher.Push(sender.Flush(ctx))
+		})).
 		Ignore().
 		Wait()
 

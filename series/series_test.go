@@ -15,9 +15,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/assert"
 	"github.com/tychoish/fun/assert/check"
+	"github.com/tychoish/fun/fn"
+	"github.com/tychoish/fun/fnx"
 	"github.com/tychoish/fun/testt"
 	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/level"
@@ -46,7 +47,6 @@ func TestIntegration(t *testing.T) {
 				CollectorBackendSocketConfMaxDialRetryDelay(time.Second),
 				CollectorBackendSocketConfMessageErrorHandling(CollectorBackendSocketErrorAbort),
 				CollectorBackendSocketConfDialErrorHandling(CollectorBackendSocketErrorAbort))
-
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -61,17 +61,15 @@ func TestIntegration(t *testing.T) {
 			assert.NotError(t, err)
 			assert.True(t, coll != nil)
 
-			for i := int64(0); i < 100; i++ {
-				coll.Push(Counter("grip_counter").
-					Label("case", t.Name()).
-					Label("origin", "static").
-					Label("itermod", fmt.Sprint(i%10)).Add(100))
-				coll.Push(Gauge("grip_gauge").
-					Label("case", t.Name()).
-					Label("origin", "random").
-					Label("itermod", fmt.Sprint(i%10)).Set(rand.Int63n((i + 1) * 100)))
+			counter := Counter("grip_counter").Label("type", "incrementing")
+			gauge := Gauge("grip_gauge").Label("type", "variable")
+
+			for i := range int64(128) {
+				coll.Push(counter.Add(i))
+				coll.Push(gauge.Set(rand.Int63n(128)))
 				time.Sleep(time.Millisecond)
 			}
+
 			time.Sleep(time.Second)
 			err = coll.Close()
 			assert.NotError(t, err)
@@ -91,17 +89,15 @@ func TestIntegration(t *testing.T) {
 			assert.NotError(t, err)
 			assert.True(t, coll != nil)
 
-			for i := int64(0); i < 100; i++ {
-				coll.Push(Counter("grip_counter").
-					Label("case", t.Name()).
-					Label("origin", "static").
-					Label("itermod", fmt.Sprint(i%10)).Add(100))
-				coll.Push(Gauge("grip_gauge").
-					Label("origin", "random").
-					Label("case", t.Name()).
-					Label("itermod", fmt.Sprint(i%10)).Set(rand.Int63n((i + 1) * 100)))
+			counter := Counter("grip_counter").Label("case", t.Name()).Label("origin", "static")
+			gauge := Gauge("grip_gauge").Label("case", t.Name()).Label("origin", "random")
+
+			for i := range int64(128) {
+				coll.Push(counter.Add(i))
+				coll.Push(gauge.Set(rand.Int63n(128)))
 				time.Sleep(time.Millisecond)
 			}
+
 			time.Sleep(time.Second)
 			err = coll.Close()
 			assert.NotError(t, err)
@@ -127,12 +123,13 @@ func TestIntegration(t *testing.T) {
 				mu       sync.Mutex
 				captured []string
 			)
-			captureFn := fun.MakeHandler(func(msg string) error {
+			captureFn := fnx.MakeHandler(func(msg string) error {
 				mu.Lock()
+				defer mu.Unlock()
+
 				captured = append(captured, msg)
-				mu.Unlock()
 				return nil
-			})
+			}).Lock()
 
 			passBackend := PassthroughBackend(MakeJSONRenderer(), captureFn)
 
@@ -150,8 +147,9 @@ func TestIntegration(t *testing.T) {
 
 			const iterations = 32
 			for i := 0; i < iterations; i++ {
-				coll.Push(Gauge("integration_file_gauge").Label("iteration", fmt.Sprint(i)).Set(int64(i)))
+				coll.Push(Gauge("integration_file_gauge").Set(int64(i)))
 				wrappedSender.Send(message.MakeString(fmt.Sprintf("hello-log-%d", i)))
+				time.Sleep(time.Millisecond)
 			}
 
 			time.Sleep(100 * time.Millisecond)
@@ -199,10 +197,11 @@ func TestIntegration(t *testing.T) {
 			}
 
 			testt.Log(t, metricsFromFile)
+			mu.Lock()
+			defer mu.Unlock()
 			testt.Log(t, captured)
 			check.Equal(t, iterations, len(metricsFromFile))
 			check.Equal(t, len(captured), len(metricsFromFile))
-
 		})
 		t.Run("Socket", func(t *testing.T) {
 			t.Run("Graphite", func(t *testing.T) {
@@ -212,7 +211,7 @@ func TestIntegration(t *testing.T) {
 				}
 
 				captureCh := make(chan string, 128)
-				captureFn := fun.MakeHandler(func(s string) error {
+				captureFn := fnx.MakeHandler(func(s string) error {
 					select {
 					case captureCh <- s:
 					default:
@@ -234,8 +233,12 @@ func TestIntegration(t *testing.T) {
 				assert.NotError(t, err)
 
 				metricName := "integration_graphite_metric"
-				for i := 0; i < 32; i++ {
-					coll.Push(Gauge(metricName).Label("step", fmt.Sprint(i)).Set(int64(i + 1)))
+				gauge := Gauge(metricName).Label("test", t.Name())
+				source := fn.MakeFuture(func() int64 { return rand.Int63n(128) }).Lock()
+
+				for i := int64(0); i < 128; i++ {
+					coll.Push(gauge.Add(source()))
+					time.Sleep(time.Millisecond)
 				}
 
 				time.Sleep(10 * time.Millisecond)
@@ -264,7 +267,6 @@ func TestIntegration(t *testing.T) {
 				testt.Log(t, "capture chan", len(captureCh))
 				check.True(t, len(captureCh) >= 16)
 				testt.Log(t, "capture chan", len(captureCh))
-
 			})
 			t.Run("Statsd", func(t *testing.T) {
 				t.Skip("until statsd implementation makes sense to retain")
@@ -275,7 +277,7 @@ func TestIntegration(t *testing.T) {
 				}
 
 				capCh := make(chan string, 128)
-				handler := fun.MakeHandler(func(s string) error {
+				handler := fnx.MakeHandler(func(s string) error {
 					select {
 					case capCh <- s:
 					default:
@@ -297,8 +299,10 @@ func TestIntegration(t *testing.T) {
 				assert.NotError(t, err)
 
 				metricName := "integration_statsd_metric"
-				for i := 0; i < 10; i++ {
-					coll.Push(Gauge(metricName).Label("step", fmt.Sprint(i)).Set(int64(i + 1)))
+				gauge := Gauge(metricName).Label("test", t.Name())
+				for i := int64(0); i < 128; i++ {
+					coll.Push(gauge.Add(rand.Int63n(i * i)))
+					time.Sleep(time.Millisecond)
 				}
 
 				assert.NotError(t, coll.Close())

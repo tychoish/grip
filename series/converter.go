@@ -5,6 +5,7 @@ import (
 
 	"github.com/tychoish/fun/dt"
 	fn "github.com/tychoish/fun/fn"
+	"github.com/tychoish/fun/fnx"
 	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/grip/message"
 )
@@ -61,7 +62,6 @@ func (m *MetricMessage) Raw() any {
 			return
 		}(),
 	}
-
 }
 
 // Message is a simple constructor around *MetricMessage (which
@@ -184,25 +184,25 @@ func hasMetrics[T extractableMessageTypes](in T) (isMetric bool) {
 	case fn.Future[Event], fn.Future[*Event], fn.Future[[]Event], fn.Future[[]*Event]:
 		return true
 	case map[string]any: // also mesage.Fields
-		dt.NewMap(ev).Values().ReadAll(func(in any) {
+		dt.NewMap(ev).Values().ReadAll(fnx.FromHandler(func(in any) {
 			isMetric = isEventTyped(in)
-		}).Ignore().Wait()
+		})).Ignore().Wait()
 	case *dt.Pairs[string, any]:
-		ev.Values().ReadAll(func(in any) {
+		ev.Values().ReadAll(fnx.FromHandler(func(in any) {
 			isMetric = isEventTyped(in)
-		}).Ignore().Wait()
+		})).Ignore().Wait()
 	case []dt.Pair[string, any]:
-		dt.NewSlice(ev).Stream().ReadAll(func(in dt.Pair[string, any]) {
+		dt.NewSlice(ev).Stream().ReadAll(fnx.FromHandler(func(in dt.Pair[string, any]) {
 			isMetric = isEventTyped(in.Value)
-		}).Ignore().Wait()
+		})).Ignore().Wait()
 	case []*dt.Pair[string, any]:
-		dt.NewSlice(ev).Stream().ReadAll(func(in *dt.Pair[string, any]) {
+		dt.NewSlice(ev).Stream().ReadAll(fnx.FromHandler(func(in *dt.Pair[string, any]) {
 			isMetric = isEventTyped(in.Value)
-		}).Ignore().Wait()
+		})).Ignore().Wait()
 	case []any:
-		dt.NewSlice(ev).Stream().ReadAll(func(in any) {
+		dt.NewSlice(ev).Stream().ReadAll(fnx.FromHandler(func(in any) {
 			isMetric = isEventTyped(in)
-		}).Ignore().Wait()
+		})).Ignore().Wait()
 	case any:
 		isMetric = isEventTyped(ev)
 	}
@@ -242,7 +242,7 @@ func resolveEvents(in any, buildMessage metricMessageExtractOption) (out MetricM
 				return
 			}
 			if buildMessage {
-				p.Append(item)
+				p.Push(item)
 			}
 		}
 	case []dt.Pair[string, any]:
@@ -256,7 +256,7 @@ func resolveEvents(in any, buildMessage metricMessageExtractOption) (out MetricM
 				return
 			}
 			if buildMessage {
-				p.Append(item)
+				p.Push(item)
 			}
 		}
 	case []*dt.Pair[string, any]:
@@ -270,7 +270,7 @@ func resolveEvents(in any, buildMessage metricMessageExtractOption) (out MetricM
 				return
 			}
 			if buildMessage {
-				p.Append(*item)
+				p.Push(*item)
 			}
 		}
 	case []any:

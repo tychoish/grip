@@ -56,12 +56,12 @@ func TestBuilder(t *testing.T) {
 	})
 	t.Run("ErrorsBecomeMessages", func(t *testing.T) {
 		b := NewBuilder(mockSenderMessage(t, "kip"), testConverter(t, true))
-		b.catcher.Add(errors.New("kip"))
+		b.catcher.Push(errors.New("kip"))
 		b.Send()
 	})
 	t.Run("ErrorsAreAnnotated", func(t *testing.T) {
 		b := NewBuilder(mockSenderMessage(t, "bad cat error='kip'"), testConverter(t, true)).String("bad cat").SetGroup(true)
-		b.catcher.Add(errors.New("kip"))
+		b.catcher.Push(errors.New("kip"))
 		b.Send()
 	})
 	t.Run("SetLevelInvalidIsAnError", func(t *testing.T) {
@@ -117,7 +117,5 @@ func TestBuilder(t *testing.T) {
 		t.Run("False", func(t *testing.T) {
 			NewBuilder(mockSender(t, 1), testConverter(t, true)).String("hello").When(false).Group().Send()
 		})
-
 	})
-
 }

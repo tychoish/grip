@@ -121,7 +121,7 @@ func victoriaHasMetric(ctx context.Context, t *testing.T, metric string) (_ bool
 	if err != nil {
 		return false, err
 	}
-	defer func() { ft.IgnoreError(resp.Body.Close()) }()
+	defer func() { ft.Ignore(resp.Body.Close()) }()
 
 	var payload struct {
 		Status string `json:"status"`

@@ -7,6 +7,7 @@ import (
 
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/fnx"
 	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/grip/level"
 )
@@ -27,14 +28,18 @@ type PairBuilder struct {
 func BuildPair() *PairBuilder { return &PairBuilder{} }
 
 // Composer returns the builder as a composer-type
-func (p *PairBuilder) Composer() Composer                             { return p }
-func (p *PairBuilder) Pair(key string, value any) *PairBuilder        { p.kvs.Add(key, value); return p }
-func (p *PairBuilder) AddPair(in dt.Pair[string, any]) *PairBuilder   { p.kvs.Append(in); return p }
-func (p *PairBuilder) Option(f Option) *PairBuilder                   { p.SetOption(f); return p }
-func (p *PairBuilder) Level(l level.Priority) *PairBuilder            { p.SetPriority(l); return p }
-func (p *PairBuilder) Fields(f Fields) *PairBuilder                   { p.kvs.ConsumeMap(f); return p }
-func (p *PairBuilder) Extend(in *dt.Pairs[string, any]) *PairBuilder  { p.kvs.Extend(in); return p }
-func (p *PairBuilder) Append(in ...dt.Pair[string, any]) *PairBuilder { p.kvs.Append(in...); return p }
+func (p *PairBuilder) Composer() Composer                            { return p }
+func (p *PairBuilder) Pair(key string, value any) *PairBuilder       { p.kvs.Add(key, value); return p }
+func (p *PairBuilder) AddPair(in dt.Pair[string, any]) *PairBuilder  { p.kvs.Push(in); return p }
+func (p *PairBuilder) Option(f Option) *PairBuilder                  { p.SetOption(f); return p }
+func (p *PairBuilder) Level(l level.Priority) *PairBuilder           { p.SetPriority(l); return p }
+func (p *PairBuilder) Fields(f Fields) *PairBuilder                  { p.kvs.AppendMap(f); return p }
+func (p *PairBuilder) Extend(in *dt.Pairs[string, any]) *PairBuilder { p.kvs.AppendPairs(in); return p }
+func (p *PairBuilder) Append(in ...dt.Pair[string, any]) *PairBuilder {
+	p.kvs.AppendPairs(dt.MakePairs(in...))
+	return p
+}
+
 func (p *PairBuilder) PairWhen(cond bool, k string, v any) *PairBuilder {
 	ft.CallWhen(cond, func() { p.Pair(k, v) })
 	return p
@@ -43,7 +48,7 @@ func (p *PairBuilder) PairWhen(cond bool, k string, v any) *PairBuilder {
 // Stream consumes a fun.Stream of dt.Pair and appends its contents to the builder.
 // Any error encountered during consumption is recorded under the "gripErr" key.
 func (p *PairBuilder) Stream(ctx context.Context, iter *fun.Stream[dt.Pair[string, any]]) *PairBuilder {
-	err := p.kvs.Consume(iter).Run(ctx)
+	err := p.kvs.AppendStream(iter).Run(ctx)
 	return p.PairWhen(err != nil, "gripErr", err)
 }
 
@@ -52,7 +57,7 @@ func MakeKV(kvs ...dt.Pair[string, any]) Composer { return BuildPair().Append(kv
 
 func MakePairs(kvs *dt.Pairs[string, any]) Composer {
 	p := &PairBuilder{}
-	p.kvs.Consume(kvs.Stream()).Ignore().Wait()
+	p.kvs.AppendStream(kvs.Stream()).Ignore().Wait()
 	return p
 }
 
@@ -86,7 +91,7 @@ func (p *PairBuilder) String() string {
 	out := make([]string, 0, p.kvs.Len())
 	var seenMetadata bool
 
-	p.kvs.Stream().ReadAll(func(kv dt.Pair[string, any]) {
+	p.kvs.Stream().ReadAll(fnx.FromHandler(func(kv dt.Pair[string, any]) {
 		if kv.Key == "meta" && (seenMetadata || !p.IncludeMetadata) {
 			seenMetadata = true
 			return
@@ -103,7 +108,7 @@ func (p *PairBuilder) String() string {
 			p.hasMetadata = true
 			seenMetadata = true
 		}
-	}).Ignore().Wait()
+	})).Ignore().Wait()
 	p.cachedOutput = strings.Join(out, " ")
 	p.cachedSize = p.kvs.Len()
 

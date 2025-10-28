@@ -6,7 +6,7 @@ require (
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/tychoish/birch v0.3.0
 	github.com/tychoish/birch/x/ftdc v0.0.0-20250610225000-f5dba0d9b062
-	github.com/tychoish/fun v0.12.0
+	github.com/tychoish/fun v0.13.0
 	github.com/tychoish/grip v0.4.0
 )
 

@@ -1,8 +1,6 @@
 package message
 
 import (
-	"errors"
-
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/fn"
@@ -43,7 +41,7 @@ func NewBuilder(send func(Composer), convert Converter) *Builder {
 // is used, otherwise, each message is sent individually.
 func (b *Builder) Send() {
 	if b.send == nil {
-		b.catcher.Add(errors.New("cannot send message to unconfigured builder"))
+		b.catcher.New("cannot send message to unconfigured builder")
 		return
 	}
 

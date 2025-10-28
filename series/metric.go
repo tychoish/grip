@@ -2,6 +2,7 @@ package series
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -31,9 +32,9 @@ const (
 )
 
 type Metric struct {
-	ID     string
-	Type   MetricType
-	labels dt.Set[dt.Pair[string, string]]
+	ID       string
+	Type     MetricType
+	labelSet adt.Once[*dt.Set[dt.Pair[string, string]]]
 
 	// TODO: labelCache should be => adt.Once[fn.Future[*dt.Pairs[string, string]]]
 	labelCache fn.Future[*dt.Pairs[string, string]]
@@ -44,6 +45,17 @@ type Metric struct {
 	// internal configuration
 	hconf *HistogramConf
 	dur   time.Duration
+}
+
+func (m *Metric) labels() *dt.Set[dt.Pair[string, string]] {
+	return m.labelSet.Call(m.initLabels)
+}
+
+func (m *Metric) initLabels() *dt.Set[dt.Pair[string, string]] {
+	o := &dt.Set[dt.Pair[string, string]]{}
+	o.Order()
+	o.Synchronize()
+	return o
 }
 
 type maybeBufferPool struct {
@@ -57,6 +69,7 @@ func (mbp *maybeBufferPool) Get() *bytes.Buffer {
 
 	return mbp.pool.Get()
 }
+
 func (mbp *maybeBufferPool) Put(buf *bytes.Buffer) {
 	if mbp == nil || mbp.pool == nil {
 		return
@@ -82,20 +95,44 @@ func Histogram(id string, opts ...HistogramOptionProvider) *Metric {
 	return &Metric{ID: id, Type: MetricTypeHistogram, hconf: conf}
 }
 
-func (m *Metric) Label(k, v string) *Metric       { m.labels.Add(dt.MakePair(k, v)); return m }
+func labelCmp(lhs, rhs dt.Pair[string, string]) bool {
+	switch {
+	case lhs.Key < rhs.Key:
+		return true
+	case lhs.Key == rhs.Key && lhs.Value < rhs.Value:
+		return true
+	default:
+		return false
+	}
+}
+
+func (m *Metric) Label(k, v string) *Metric {
+	m.labels().Add(dt.MakePair(k, v))
+	return m
+}
 func (m *Metric) MetricType(t MetricType) *Metric { m.Type = t; return m }
 func (m *Metric) Annotate(pairs ...dt.Pair[string, string]) *Metric {
-	m.labels.AppendStream(dt.NewSlice(pairs).Stream())
+	m.labels().AppendStream(dt.NewSlice(pairs).Stream())
 	return m
 }
 
 func (m *Metric) Labels(set *dt.Set[dt.Pair[string, string]]) *Metric {
-	m.labels.AppendStream(set.Stream())
+	m.labels().AppendStream(set.Stream())
 	return m
 }
 
 func (m *Metric) Equal(two *Metric) bool {
-	return m.Type == two.Type && m.ID == two.ID && m.labels.Equal(&two.labels)
+	if m.Type != two.Type || m.ID != two.ID || m.labels().Len() != two.labels().Len() {
+		return false
+	}
+
+	for p := range m.labels().Stream().Iterator(context.Background()) {
+		if two.labels().Check(p) {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 // Periodic sets an interval for the metrics to be reported: new
@@ -180,13 +217,12 @@ func (m *Metric) factory() localMetricValue {
 func (m *Metric) resolve() {
 	if m.labelCache == nil {
 		m.labelCache = fn.MakeFuture(func() *dt.Pairs[string, string] {
-			ps := dt.ConsumePairs(m.labels.Stream()).Force().Resolve()
+			var ps dt.Pairs[string, string]
+			ps.AppendStream(m.labels().Stream()).Ignore().Wait()
 
-			ps.SortQuick(func(a, b dt.Pair[string, string]) bool {
-				return a.Key < b.Key && a.Value < b.Value
-			})
+			ps.SortQuick(labelCmp)
 
-			return ps
+			return &ps
 		}).Once()
 	}
 

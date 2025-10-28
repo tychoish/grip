@@ -11,7 +11,6 @@ import (
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/dt/hdrhist"
 	"github.com/tychoish/fun/erc"
-	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/fn"
 )
 
@@ -95,12 +94,11 @@ func (conf *HistogramConf) Validate() error {
 	conf.Interval = max(conf.Interval, 100*time.Millisecond)
 
 	ec := &erc.Collector{}
-	ec.When(conf.Min > conf.Max, ers.New("min cannot be larget than the max"))
-	ec.When(len(conf.Quantiles) <= 1, ers.New("must specify more than one bucket"))
+	ec.When(conf.Min > conf.Max, "min cannot be larget than the max")
+	ec.When(len(conf.Quantiles) <= 1, "must specify more than one bucket")
 	ec.When(conf.OutOfRange <= HistogramOutOfRangeINVALID ||
 		conf.OutOfRange >= HistogramOutOfRangeUNSPECIFIED,
-		ers.New("must specify valid behavior for out of range"),
-	)
+		"must specify valid behavior for out of range")
 	// TODO decide if we need to validate: conf.SignificantDigits > math.Log10(float64(conf.Max-conf.Min))
 	return ec.Resolve()
 }
@@ -110,24 +108,31 @@ type HistogramOptionProvider = fun.OptionProvider[*HistogramConf]
 func HistogramConfOutOfRange(spec HistogramOutOfRangeOption) HistogramOptionProvider {
 	return func(conf *HistogramConf) error { conf.OutOfRange = spec; return nil }
 }
+
 func HistogramConfSet(arg *HistogramConf) HistogramOptionProvider {
 	return func(conf *HistogramConf) error { *conf = *arg; return nil }
 }
+
 func HistogramConfReset() HistogramOptionProvider {
 	return func(conf *HistogramConf) error { *conf = HistogramConf{}; return nil }
 }
+
 func HistogramConfLowerBound(in int64) HistogramOptionProvider {
 	return func(conf *HistogramConf) error { conf.Min = in; return nil }
 }
+
 func HistogramConfBounds(min, max int64) HistogramOptionProvider {
 	return func(conf *HistogramConf) error { conf.Min = min; conf.Max = max; return nil }
 }
+
 func HistogramConfUpperBound(in int64) HistogramOptionProvider {
 	return func(conf *HistogramConf) error { conf.Max = in; return nil }
 }
+
 func HistogramConfSignifcantDigits(in int) HistogramOptionProvider {
 	return func(conf *HistogramConf) error { conf.SignificantDigits = in; return nil }
 }
+
 func HistogramConfInterval(dur time.Duration) HistogramOptionProvider {
 	return func(conf *HistogramConf) error { conf.Interval = max(dur, 100*time.Millisecond); return nil }
 }

@@ -68,11 +68,11 @@ func LogStackTraceAndContinue(opDetails ...string) {
 //	func operation() (err error) {}
 func HandlePanicWithError(p any, err error, opDetails ...string) error {
 	catcher := &erc.Collector{}
-	catcher.Add(err)
+	catcher.Push(err)
 
 	if p != nil {
 		perr := panicError(p)
-		catcher.Add(perr)
+		catcher.Push(perr)
 
 		handleWithError(perr, err, grip.Clone(), message.MakeFields(getMessage(opDetails)))
 	}
@@ -133,11 +133,11 @@ func SendStackTraceMessageAndExit(logger grip.Logger, m any) {
 // with the stack trace and panic information.
 func AnnotateMessageWithPanicError(p any, err error, m any) error {
 	catcher := &erc.Collector{}
-	catcher.Add(err)
+	catcher.Push(err)
 
 	if p != nil {
 		perr := panicError(p)
-		catcher.Add(perr)
+		catcher.Push(perr)
 
 		handleWithError(perr, err, grip.Clone(), grip.Convert(m))
 	}
@@ -150,11 +150,11 @@ func AnnotateMessageWithPanicError(p any, err error, m any) error {
 // grip.Jounaler interface to receive the log message.
 func SendMessageWithPanicError(p any, err error, logger grip.Logger, m any) error {
 	catcher := &erc.Collector{}
-	catcher.Add(err)
+	catcher.Push(err)
 
 	if p != nil {
 		perr := panicError(p)
-		catcher.Add(perr)
+		catcher.Push(perr)
 
 		handleWithError(perr, err, logger, grip.Convert(m))
 	}

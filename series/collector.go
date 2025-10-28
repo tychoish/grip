@@ -13,6 +13,7 @@ import (
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/fn"
+	"github.com/tychoish/fun/fnx"
 	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/fun/pubsub"
 	"github.com/tychoish/grip"
@@ -43,7 +44,7 @@ type Collector struct {
 	// lifecycle an error collection.
 	ctx    context.Context
 	cancel context.CancelFunc
-	wg     fun.WaitGroup
+	wg     fnx.WaitGroup
 	errs   erc.Collector
 }
 
@@ -127,21 +128,21 @@ func (c *Collector) Close() error {
 	if c.broker != nil {
 		c.broker.Stop()
 	}
-	c.errs.Add(c.publish.Close())
+	c.errs.Push(c.publish.Close())
 	return c.errs.Resolve()
 }
 
 // ReadAll ingests all events from the input stream (in parallel)
-func (c *Collector) ReadAll(st *fun.Stream[*Event], opts ...fun.OptionProvider[*fun.WorkerGroupConf]) fun.Worker {
+func (c *Collector) ReadAll(st *fun.Stream[*Event], opts ...fun.OptionProvider[*fun.WorkerGroupConf]) fnx.Worker {
 	return st.Parallel(c.pushHandler, opts...)
 }
 
 func (c *Collector) Push(events ...*Event)   { c.Publish(events) }
-func (c *Collector) Publish(events []*Event) { ft.IgnoreError(c.publishHandler(c.ctx, events)) }
-func (c *Collector) PushEvent(e *Event)      { ft.IgnoreError(c.pushHandler(c.ctx, e)) }
+func (c *Collector) Publish(events []*Event) { ft.Ignore(c.publishHandler(c.ctx, events)) }
+func (c *Collector) PushEvent(e *Event)      { ft.Ignore(c.pushHandler(c.ctx, e)) }
 
 func (c *Collector) publishHandler(ctx context.Context, events []*Event) error {
-	return fun.SliceStream(events).ReadAll(c.PushEvent).Run(ctx)
+	return fun.SliceStream(events).ReadAll(fnx.FromHandler(c.PushEvent)).Run(ctx)
 }
 
 func (c *Collector) pushHandler(ctx context.Context, e *Event) error {
@@ -171,14 +172,13 @@ func (c *Collector) pushHandler(ctx context.Context, e *Event) error {
 
 		return ft.IgnoreFirst(wr.Write(buf.Bytes()))
 	})
-
 }
 
 // Register starts an event-generating function at the specified interval.
-func (c *Collector) Register(prod fun.Generator[[]*Event], dur time.Duration) {
+func (c *Collector) Register(prod fnx.Future[[]*Event], dur time.Duration) {
 	c.wg.Launch(
 		c.ctx,
-		prod.Stream().Parallel(c.publishHandler).Interval(dur).Ignore(),
+		fun.MakeStream(prod).Parallel(c.publishHandler).Interval(dur).Ignore(),
 	)
 }
 
@@ -196,7 +196,7 @@ func (c *Collector) Register(prod fun.Generator[[]*Event], dur time.Duration) {
 // The returned stream inherits the Collector's context, so canceling the
 // Collector or exhausting the stream will release all underlying resources.
 func (c *Collector) Stream() *fun.Stream[MetricSnapshot] {
-	return fun.MakeConverter(func(tr *tracked) MetricSnapshot {
+	return fun.Convert(fnx.MakeConverter(func(tr *tracked) MetricSnapshot {
 		last := tr.lastMod.Load()
 		return MetricSnapshot{
 			Name:      tr.meta.ID,
@@ -204,15 +204,15 @@ func (c *Collector) Stream() *fun.Stream[MetricSnapshot] {
 			Value:     last.Key,
 			Timestamp: last.Value,
 		}
-	}).Stream(fun.MergeStreams(fun.MakeConverter(func(list *dt.List[*tracked]) *fun.Stream[*tracked] {
+	})).Stream(fun.MergeStreams(fun.Convert(fnx.MakeConverter(func(list *dt.List[*tracked]) *fun.Stream[*tracked] {
 		return list.StreamFront()
-	}).Stream(c.local.Values())))
+	})).Stream(c.local.Values())))
 }
 
 func (c *Collector) distribute(ctx context.Context, fn MetricPublisher) error {
 	switch {
 	case c.broker != nil:
-		return c.broker.Handler(ctx, fn)
+		return c.broker.Send(ctx, fn)
 	case c.publish != nil:
 		return c.publish.PushBack(fn)
 	default:
@@ -310,7 +310,7 @@ func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
 					case <-ctx.Done():
 						return
 					case <-ticker.C:
-						err := pipe.StreamFront().ReadAll(func(tr *tracked) {
+						err := pipe.StreamFront().ReadAll(fnx.FromHandler(func(tr *tracked) {
 							c.broker.Publish(c.ctx, func(wr io.Writer, r Renderer) error {
 								buf := c.pool.Get()
 								defer c.pool.Put(buf)
@@ -319,7 +319,7 @@ func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
 
 								return ft.IgnoreFirst(wr.Write(buf.Bytes()))
 							})
-						}).Run(c.ctx)
+						})).Run(c.ctx)
 						if err != nil {
 							return
 						}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/ers"
+	"github.com/tychoish/fun/fnx"
 )
 
 type sizeAccountingWriter struct {
@@ -44,7 +45,7 @@ func intPow(val, exp int64) int64 {
 	return result
 }
 
-func (conf *CollectorBackendFileConf) RotatingFilePath() fun.Generator[string] {
+func (conf *CollectorBackendFileConf) RotatingFilePath() fnx.Future[string] {
 	counter := &atomic.Int64{}
 	tmpl := fmt.Sprintf("%s%%0%dd", conf.FilePrefix, conf.CounterPadding)
 	counter.Add(-1)
@@ -65,11 +66,11 @@ func (conf *CollectorBackendFileConf) RotatingFilePath() fun.Generator[string] {
 	}
 }
 
-func (conf *CollectorBackendFileConf) RotatingFileProducer() fun.Generator[io.WriteCloser] {
+func (conf *CollectorBackendFileConf) RotatingFileProducer() fnx.Future[io.WriteCloser] {
 	getNextFileName := conf.RotatingFilePath().Wait
 
-	return fun.Generator[io.WriteCloser](func(ctx context.Context) (io.WriteCloser, error) {
-		if err := os.MkdirAll(conf.Directory, 0755); err != nil {
+	return fnx.Future[io.WriteCloser](func(ctx context.Context) (io.WriteCloser, error) {
+		if err := os.MkdirAll(conf.Directory, 0o755); err != nil {
 			return nil, err
 		}
 
