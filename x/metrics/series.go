@@ -25,7 +25,7 @@ func RenderMetricBSON(buf *bytes.Buffer, key string, labels fn.Future[*dt.Pairs[
 	doc := birch.DC.Elements(birch.EC.String("metric", key))
 	if tags := labels(); tags != nil {
 		tagdoc := birch.DC.Make(tags.Len())
-		tags.ReadAll(fnx.FromHandler(func(kv dt.Pair[string, string]) { tagdoc.Append(birch.EC.String(kv.Key, kv.Value)) })).Ignore().Wait()
+		tags.Stream().ReadAll(fnx.FromHandler(func(kv dt.Pair[string, string]) { tagdoc.Append(birch.EC.String(kv.Key, kv.Value)) })).Ignore().Wait()
 		doc.Append(birch.EC.SubDocument("labels", tagdoc))
 	}
 	doc.Append(
@@ -46,7 +46,7 @@ func RenderHistogramBSON(
 
 	if tags := labels(); tags != nil {
 		tagdoc := birch.DC.Make(tags.Len())
-		tags.ReadAll(fnx.FromHandler(func(kv dt.Pair[string, string]) { tagdoc.Append(birch.EC.String(kv.Key, kv.Value)) })).Ignore().Wait()
+		tags.Stream().ReadAll(fnx.FromHandler(func(kv dt.Pair[string, string]) { tagdoc.Append(birch.EC.String(kv.Key, kv.Value)) })).Ignore().Wait()
 		doc.Append(birch.EC.SubDocument("labels", tagdoc))
 	}
 

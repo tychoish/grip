@@ -43,11 +43,11 @@ type CollectOptions struct {
 
 func (opts CollectOptions) Validate() error {
 	ec := &erc.Collector{}
-	ec.When(opts.FlushInterval < 10*time.Millisecond, ers.Error("flush interval must be greater than 10ms"))
-	ec.When(opts.SampleCount < 10, ers.Error("sample count must be greater than 10"))
-	ec.When(opts.BlockCount < 10, ers.Error("block count must be greater than 10"))
-	ec.When(opts.OutputFilePrefix == "", ers.Error("must specify prefix for output files"))
-	ec.When(opts.WriterConstructor == nil, ers.Error("must specify a constructor"))
+	ec.If(opts.FlushInterval < 10*time.Millisecond, ers.Error("flush interval must be greater than 10ms"))
+	ec.If(opts.SampleCount < 10, ers.Error("sample count must be greater than 10"))
+	ec.If(opts.BlockCount < 10, ers.Error("block count must be greater than 10"))
+	ec.If(opts.OutputFilePrefix == "", ers.Error("must specify prefix for output files"))
+	ec.If(opts.WriterConstructor == nil, ers.Error("must specify a constructor"))
 	return ec.Resolve()
 }
 
@@ -176,7 +176,7 @@ func (mf *metricsFilterImpl) Close() error {
 	for _, fn := range mf.closers {
 		catcher.Push(fn())
 	}
-	catcher.Add(mf.Sender.Close())
+	catcher.Push(mf.Sender.Close())
 
 	return catcher.Resolve()
 }
