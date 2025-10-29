@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/google/go-github v17.0.0+incompatible
-	github.com/tychoish/grip v0.4.0
+	github.com/tychoish/grip v0.4.1
 	golang.org/x/oauth2 v0.27.0
 )
 
