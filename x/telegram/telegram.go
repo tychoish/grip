@@ -48,8 +48,8 @@ func (opts *Options) Validate() error {
 	}
 
 	ec := &erc.Collector{}
-	ec.When(opts.Token == "", ers.New("must specify a token"))
-	ec.When(opts.Target == "", ers.New("must specify a target or chatID"))
+	ec.If(opts.Token == "", ers.New("must specify a token"))
+	ec.If(opts.Target == "", ers.New("must specify a target or chatID"))
 	return ec.Resolve()
 }
 
@@ -106,11 +106,11 @@ func (s *sender) Send(m message.Composer) {
 
 	if resp.StatusCode >= http.StatusBadRequest {
 		ec := &erc.Collector{}
-		ec.Add(fmt.Errorf("received response %s", resp.Status))
+		ec.Push(fmt.Errorf("received response %s", resp.Status))
 
 		out, err := io.ReadAll(resp.Body)
-		ec.Add(err)
-		ec.Add(fmt.Errorf("data: %q", string(out)))
+		ec.Push(err)
+		ec.Push(fmt.Errorf("data: %q", string(out)))
 		if !s.HandleErrorOK(send.WrapError(ec.Resolve(), m)) {
 			return
 		}
