@@ -41,8 +41,7 @@ func (p *PairBuilder) Append(in ...dt.Pair[string, any]) *PairBuilder {
 }
 
 func (p *PairBuilder) PairWhen(cond bool, k string, v any) *PairBuilder {
-	ft.CallWhen(cond, func() { p.Pair(k, v) })
-	return p
+	return ft.DoWhen(cond, func() *PairBuilder { return p.Pair(k, v) })
 }
 
 // Stream consumes a fun.Stream of dt.Pair and appends its contents to the builder.
