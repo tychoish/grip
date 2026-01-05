@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/tychoish/fun/stw"
 )
 
 // FieldsMsgName is the name of the default "message" field in the
@@ -23,7 +25,7 @@ type fieldMessage struct {
 // example:
 //
 //	message.Fields{"key0", <value>, "key1", <value>}
-type Fields map[string]any
+type Fields stw.Map[string, any]
 
 // MakeFields creates a composer interface from *just* a Fields instance.
 func MakeFields(f Fields) Composer {

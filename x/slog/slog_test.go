@@ -3,9 +3,8 @@ package slog_test
 import (
 	"context"
 	"errors"
-	"testing"
-
 	"log/slog"
+	"testing"
 
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -118,7 +117,7 @@ func TestPairBuilder(t *testing.T) {
 	h := &captureHandler{}
 	s := slogx.MakeSender(ctx, slog.New(h))
 
-	builder := &message.PairBuilder{}
+	builder := &message.BuilderKV{}
 	builder.Pair("alpha", 1).
 		Pair("beta", true).
 		Pair("gamma", 3.14).
@@ -264,6 +263,7 @@ func (c *countingComposer) Raw() any {
 	c.resolved = true
 	return nil
 }
+
 func (c *countingComposer) String() string {
 	c.resolved = true
 	return "expensive"

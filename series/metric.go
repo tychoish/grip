@@ -2,15 +2,17 @@ package series
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
+	"iter"
+	"sort"
 	"time"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/fn"
+	"github.com/tychoish/fun/irt"
 )
 
 // MetricType determines the kind of metric, in particular how the
@@ -34,10 +36,10 @@ const (
 type Metric struct {
 	ID       string
 	Type     MetricType
-	labelSet adt.Once[*dt.Set[dt.Pair[string, string]]]
+	labelSet adt.Once[*adt.OrderedSet[irt.KV[string, string]]]
 
-	// TODO: labelCache should be => adt.Once[fn.Future[*dt.Pairs[string, string]]]
-	labelCache fn.Future[*dt.Pairs[string, string]]
+	// TODO: labelCache should be => adt.Once[fn.Future[iter.Seq2[string, string]]]
+	labelCache fn.Future[iter.Seq2[string, string]]
 	labelstr   fn.Future[string]
 
 	bufferPool maybeBufferPool
@@ -47,14 +49,12 @@ type Metric struct {
 	dur   time.Duration
 }
 
-func (m *Metric) labels() *dt.Set[dt.Pair[string, string]] {
+func (m *Metric) labels() *adt.OrderedSet[irt.KV[string, string]] {
 	return m.labelSet.Call(m.initLabels)
 }
 
-func (m *Metric) initLabels() *dt.Set[dt.Pair[string, string]] {
-	o := &dt.Set[dt.Pair[string, string]]{}
-	o.Order()
-	o.Synchronize()
+func (m *Metric) initLabels() *adt.OrderedSet[irt.KV[string, string]] {
+	o := &adt.OrderedSet[irt.KV[string, string]]{}
 	return o
 }
 
@@ -91,11 +91,11 @@ func Delta(id string) *Metric   { return &Metric{ID: id, Type: MetricTypeDeltas}
 
 func Histogram(id string, opts ...HistogramOptionProvider) *Metric {
 	conf := MakeDefaultHistogramConf()
-	fun.Invariant.Must(conf.Apply())
+	erc.Invariant(conf.Apply())
 	return &Metric{ID: id, Type: MetricTypeHistogram, hconf: conf}
 }
 
-func labelCmp(lhs, rhs dt.Pair[string, string]) bool {
+func labelCmp(lhs, rhs irt.KV[string, string]) bool {
 	switch {
 	case lhs.Key < rhs.Key:
 		return true
@@ -107,17 +107,17 @@ func labelCmp(lhs, rhs dt.Pair[string, string]) bool {
 }
 
 func (m *Metric) Label(k, v string) *Metric {
-	m.labels().Add(dt.MakePair(k, v))
+	m.labels().Add(irt.MakeKV(k, v))
 	return m
 }
 func (m *Metric) MetricType(t MetricType) *Metric { m.Type = t; return m }
-func (m *Metric) Annotate(pairs ...dt.Pair[string, string]) *Metric {
-	m.labels().AppendStream(dt.NewSlice(pairs).Stream())
+func (m *Metric) Annotate(pairs ...irt.KV[string, string]) *Metric {
+	m.labels().Extend(irt.Slice(pairs))
 	return m
 }
 
-func (m *Metric) Labels(set *dt.Set[dt.Pair[string, string]]) *Metric {
-	m.labels().AppendStream(set.Stream())
+func (m *Metric) Labels(set *dt.OrderedSet[irt.KV[string, string]]) *Metric {
+	m.labels().Extend(set.Iterator())
 	return m
 }
 
@@ -126,7 +126,7 @@ func (m *Metric) Equal(two *Metric) bool {
 		return false
 	}
 
-	for p := range m.labels().Stream().Iterator(context.Background()) {
+	for p := range m.labels().Iterator() {
 		if two.labels().Check(p) {
 			continue
 		}
@@ -174,7 +174,7 @@ func (e *Event) MarshalJSON() ([]byte, error) {
 	}{
 		ID:    e.m.ID,
 		Type:  e.m.Type,
-		Tags:  e.m.labelCache(),
+		Tags:  json.RawMessage("{}"),
 		Value: e.value,
 	})
 }
@@ -206,40 +206,46 @@ func (m *Metric) factory() localMetricValue {
 	case MetricTypeCounter:
 		return &localIntValue{metric: m}
 	case MetricTypeHistogram:
-		fun.Invariant.Ok(m.hconf != nil, "histograms must have configuration")
+		erc.InvariantOk(m.hconf != nil, "histograms must have configuration")
 		conf := m.hconf.factory()()
 		return conf
 	default:
-		panic(fmt.Errorf("%q is not a valid metric type: %w", m.Type, fun.ErrInvariantViolation))
+		panic(fmt.Errorf("%q is not a valid metric type", m.Type))
 	}
 }
 
 func (m *Metric) resolve() {
 	if m.labelCache == nil {
-		m.labelCache = fn.MakeFuture(func() *dt.Pairs[string, string] {
-			var ps dt.Pairs[string, string]
-			ps.AppendStream(m.labels().Stream()).Ignore().Wait()
+		m.labelCache = fn.MakeFuture(func() iter.Seq2[string, string] {
+			var ps []irt.KV[string, string]
+			for elem := range m.labels().Iterator() {
+				ps = append(ps, elem)
+			}
 
-			ps.SortQuick(labelCmp)
+			sort.Slice(ps, func(i, j int) bool { return labelCmp(ps[i], ps[j]) })
 
-			return &ps
+			return func(yield func(string, string) bool) {
+				for _, p := range ps {
+					if !yield(p.Key, p.Value) {
+						return
+					}
+				}
+			}
 		}).Once()
 	}
 
 	if m.labelstr == nil {
 		m.labelstr = fn.MakeFuture(func() string {
-			ps := m.labelCache()
-
 			buf := m.bufferPool.Get()
 			defer m.bufferPool.Put(buf)
 
-			for _, p := range ps.Slice() {
+			for k, v := range m.labelCache() {
 				if buf.Len() > 0 {
 					buf.WriteByte(',')
 				}
-				buf.WriteString(p.Key)
+				buf.WriteString(k)
 				buf.WriteByte('=')
-				buf.WriteString(p.Value)
+				buf.WriteString(v)
 			}
 
 			return buf.String()

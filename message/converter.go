@@ -2,8 +2,8 @@ package message
 
 import (
 	"fmt"
+	"iter"
 
-	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/fn"
 )
 
@@ -51,6 +51,8 @@ func (defaultConverter) Convert(m any) Composer { return Convert(m) }
 // fall back to this implementation
 func Convert(input any) Composer {
 	switch message := input.(type) {
+	case nil:
+		return Noop()
 	case Composer:
 		return message
 	case []Composer:
@@ -65,29 +67,19 @@ func Convert(input any) Composer {
 		return MakeError(message)
 	case Fields:
 		return MakeFields(message)
-	case *dt.Pairs[string, any]:
-		return MakePairs(message)
-	case dt.Pair[string, any]:
-		return MakeKV(message)
-	case []dt.Pair[string, any]:
-		return MakeKV(message...)
-	case nil:
-		return MakeKV()
 	case map[string]any:
 		return MakeFields(Fields(message))
 	case []byte:
 		return MakeBytes(message)
+	case iter.Seq2[string, any]:
+		return MakeKV(message)
 	case fn.Future[Fields]:
-		return MakeFuture(message)
-	case fn.Future[*dt.Pairs[string, any]]:
 		return MakeFuture(message)
 	case func() Fields:
 		return MakeFuture(message)
 	case fn.Future[Composer]:
 		return MakeFuture(message)
 	case func() Composer:
-		return MakeFuture(message)
-	case func() *dt.Pairs[string, any]:
 		return MakeFuture(message)
 	case func() map[string]any:
 		return MakeFuture(message)
@@ -121,13 +113,11 @@ func Convert(input any) Composer {
 		return convertSlice(message)
 	case [][]any:
 		return convertSlice(message)
-	case []*dt.Pairs[string, any]:
-		return convertSlice(message)
 	case []Marshaler:
 		return convertSlice(message)
 	// case interface{ IsZero() bool }:
 	// 	if message.IsZero() {
-	// 		return MakeKV()
+	// 		return Noop
 	// 	}
 	//
 	// 	return MakeFormat("%+v", message)
@@ -139,7 +129,7 @@ func Convert(input any) Composer {
 func convertSlice[T any](in []T) Composer {
 	switch len(in) {
 	case 0:
-		return MakeKV()
+		return Noop()
 	case 1:
 		return Convert(in[0])
 	default:
@@ -153,7 +143,7 @@ func convertSlice[T any](in []T) Composer {
 
 func buildFromSlice(vals []any) Composer {
 	if len(vals) == 0 {
-		return MakeKV()
+		return Noop()
 	}
 
 	// check to see that the even numbered items are strings, if
@@ -161,11 +151,11 @@ func buildFromSlice(vals []any) Composer {
 	// of something.
 	for i := 0; i < len(vals); i += 2 {
 		switch vals[i].(type) {
-		case string:
+		case string, fmt.Stringer:
 			continue
-		case Composer, fn.Future[Composer], fn.Future[error], fn.Future[Fields], Fields, dt.Pairs[string, any]:
+		case Composer, fn.Future[Composer], fn.Future[error], fn.Future[Fields], Fields, iter.Seq2[string, any]:
 			return convertSlice(vals)
-		case []Composer, []fn.Future[Composer], []fn.Future[error], []fn.Future[Fields], []error, []Fields, []dt.Pairs[string, any]:
+		case []Composer, []fn.Future[Composer], []fn.Future[error], []fn.Future[Fields], []error, []Fields, []iter.Seq2[string, any]:
 			return convertSlice(vals)
 		default:
 			return MakeLines(vals...)
@@ -176,11 +166,11 @@ func buildFromSlice(vals []any) Composer {
 		return MakeLines(vals...)
 	}
 
-	fields := &dt.Pairs[string, any]{}
-
-	for i := 0; i < len(vals); i += 2 {
-		fields.Add(fmt.Sprint(vals[i]), vals[i+1])
-	}
-
-	return MakePairs(fields)
+	return MakeKV(func(yield func(string, any) bool) {
+		for i := 0; i < len(vals); i += 2 {
+			if !yield(fmt.Sprint(vals[i]), vals[i+1]) {
+				return
+			}
+		}
+	})
 }

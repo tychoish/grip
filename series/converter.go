@@ -1,12 +1,15 @@
 package series
 
 import (
+	"iter"
+	"maps"
 	"strings"
 
+	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/fun/dt"
 	fn "github.com/tychoish/fun/fn"
-	"github.com/tychoish/fun/fnx"
 	"github.com/tychoish/fun/ft"
+	"github.com/tychoish/fun/irt"
 	"github.com/tychoish/grip/message"
 )
 
@@ -25,17 +28,21 @@ type MetricMessage struct {
 }
 
 func (e *Event) Export() Record {
+	labels := &dt.OrderedMap[string, string]{}
+	for k, v := range e.m.labelCache() {
+		labels.Store(k, v)
+	}
 	return Record{
 		ID:     e.m.ID,
 		Value:  e.value,
-		Labels: e.m.labelCache(),
+		Labels: labels,
 	}
 }
 
 type Record struct {
-	ID     string                    `bson:"metric" json:"metric" yaml:"metric"`
-	Value  int64                     `bson:"Value" json:"Value" yaml:"Value"`
-	Labels *dt.Pairs[string, string] `bson:"labels" json:"labels" yaml:"labels"`
+	ID     string                         `bson:"metric" json:"metric" yaml:"metric"`
+	Value  int64                          `bson:"Value" json:"Value" yaml:"Value"`
+	Labels *dt.OrderedMap[string, string] `bson:"labels" json:"labels" yaml:"labels"`
 }
 
 func (m *MetricMessage) Structured() bool { return true }
@@ -92,7 +99,11 @@ func WithMetrics(c any, events ...*Event) message.Composer {
 // Machinery...
 
 type extractableMessageTypes interface {
-	any | []any | *dt.Pairs[string, any] | ~map[string]any | []dt.Pair[string, any] | []*dt.Pair[string, any]
+	any | []any | ~map[string]any | irt.KV[string, any] |
+		iter.Seq2[string, any] | iter.Seq[irt.KV[string, any]] |
+		*adt.Map[string, any] | *adt.OrderedMap[string, any] |
+		*dt.Set[irt.KV[string, any]] | *dt.OrderedSet[irt.KV[string, any]] |
+		*adt.OrderedSet[irt.KV[string, any]] | *adt.Set[irt.KV[string, any]]
 }
 
 type eventObjects interface {
@@ -184,33 +195,43 @@ func hasMetrics[T extractableMessageTypes](in T) (isMetric bool) {
 	case fn.Future[Event], fn.Future[*Event], fn.Future[[]Event], fn.Future[[]*Event]:
 		return true
 	case map[string]any: // also mesage.Fields
-		dt.NewMap(ev).Values().ReadAll(fnx.FromHandler(func(in any) {
-			isMetric = isEventTyped(in)
-		})).Ignore().Wait()
-	case *dt.Pairs[string, any]:
-		ev.Values().ReadAll(fnx.FromHandler(func(in any) {
-			isMetric = isEventTyped(in)
-		})).Ignore().Wait()
-	case []dt.Pair[string, any]:
-		dt.NewSlice(ev).Stream().ReadAll(fnx.FromHandler(func(in dt.Pair[string, any]) {
-			isMetric = isEventTyped(in.Value)
-		})).Ignore().Wait()
-	case []*dt.Pair[string, any]:
-		dt.NewSlice(ev).Stream().ReadAll(fnx.FromHandler(func(in *dt.Pair[string, any]) {
-			isMetric = isEventTyped(in.Value)
-		})).Ignore().Wait()
+		for v := range maps.Values(ev) {
+			if isEventTyped(v) {
+				return true
+			}
+		}
+	case iter.Seq2[string, any]:
+		for v := range ev {
+			if isEventTyped(v) {
+				return true
+			}
+		}
+	case []irt.KV[string, any]:
+		for v := range irt.Second(irt.KVsplit(irt.Slice(ev))) {
+			if isEventTyped(v) {
+				return true
+			}
+		}
+	case []*irt.KV[string, any]:
+		for v := range irt.Second(irt.KVsplit(irt.DerefWithZeros(irt.Slice(ev)))) {
+			if isEventTyped(v) {
+				return true
+			}
+		}
 	case []any:
-		dt.NewSlice(ev).Stream().ReadAll(fnx.FromHandler(func(in any) {
-			isMetric = isEventTyped(in)
-		})).Ignore().Wait()
+		for v := range irt.Slice(ev) {
+			if isEventTyped(v) {
+				return true
+			}
+		}
 	case any:
-		isMetric = isEventTyped(ev)
+		return isEventTyped(ev)
 	}
-	return
+	return false
 }
 
 func resolveEvents(in any, buildMessage metricMessageExtractOption) (out MetricMessage) {
-	var p *dt.Pairs[string, any]
+	var p []irt.KV[string, any]
 
 	switch msg := in.(type) {
 	case Event, *Event, []Event, []*Event:
@@ -219,7 +240,7 @@ func resolveEvents(in any, buildMessage metricMessageExtractOption) (out MetricM
 		out.Events = getEvents(msg)
 	case map[string]any:
 		if buildMessage {
-			p = &dt.Pairs[string, any]{}
+			p = []irt.KV[string, any]{}
 		}
 
 		for k, v := range msg {
@@ -228,40 +249,26 @@ func resolveEvents(in any, buildMessage metricMessageExtractOption) (out MetricM
 				continue
 			}
 			if buildMessage {
-				p.Add(k, v)
+				p = append(p, irt.KV[string, any]{Key: k, Value: v})
 			}
 		}
-	case *dt.Pairs[string, any]:
+	case iter.Seq2[string, any]:
 		if buildMessage {
-			p = &dt.Pairs[string, any]{}
+			p = []irt.KV[string, any]{}
 		}
 
-		for _, item := range msg.Slice() {
-			if isEventTyped(item.Value) {
-				out.Events = append(out.Events, getEvents(item.Value)...)
+		for k, v := range msg {
+			if isEventTyped(v) {
+				out.Events = append(out.Events, getEvents(v)...)
 				return
 			}
 			if buildMessage {
-				p.Push(item)
+				p = append(p, irt.KV[string, any]{Key: k, Value: v})
 			}
 		}
-	case []dt.Pair[string, any]:
+	case []irt.KV[string, any]:
 		if buildMessage {
-			p = &dt.Pairs[string, any]{}
-		}
-
-		for _, item := range msg {
-			if isEventTyped(item.Value) {
-				out.Events = append(out.Events, getEvents(item.Value)...)
-				return
-			}
-			if buildMessage {
-				p.Push(item)
-			}
-		}
-	case []*dt.Pair[string, any]:
-		if buildMessage {
-			p = &dt.Pairs[string, any]{}
+			p = []irt.KV[string, any]{}
 		}
 
 		for _, item := range msg {
@@ -270,7 +277,21 @@ func resolveEvents(in any, buildMessage metricMessageExtractOption) (out MetricM
 				return
 			}
 			if buildMessage {
-				p.Push(*item)
+				p = append(p, item)
+			}
+		}
+	case []*irt.KV[string, any]:
+		if buildMessage {
+			p = []irt.KV[string, any]{}
+		}
+
+		for _, item := range msg {
+			if isEventTyped(item.Value) {
+				out.Events = append(out.Events, getEvents(item.Value)...)
+				return
+			}
+			if buildMessage {
+				p = append(p, *item)
 			}
 		}
 	case []any:

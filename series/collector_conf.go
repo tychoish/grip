@@ -1,8 +1,8 @@
 package series
 
 import (
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/erc"
+	"github.com/tychoish/fun/opt"
 	"github.com/tychoish/fun/pubsub"
 	"github.com/tychoish/grip/send"
 )
@@ -21,7 +21,7 @@ func (conf *CollectorConf) Validate() error {
 	return ec.Resolve()
 }
 
-type CollectorOptionProvider = fun.OptionProvider[*CollectorConf]
+type CollectorOptionProvider = opt.Provider[*CollectorConf]
 
 func CollectorConfSet(c *CollectorConf) CollectorOptionProvider {
 	return func(conf *CollectorConf) error {

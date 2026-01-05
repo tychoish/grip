@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/tychoish/birch"
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/adt"
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/message"
 )
 
@@ -289,7 +289,7 @@ func (s *GoRuntimeInfo) build() {
 		s.Payload.GC = goStatsCache.gcRate.current
 		s.Payload.CgoCalls = goStatsCache.cgoCalls.current
 	default:
-		fun.Invariant.Failure(s.ct, "invalid counter type")
+		erc.Whenf(true, "invalid counter type: %v", s.ct)
 	}
 
 	s.loggable = true

@@ -5,7 +5,6 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/fnx"
 	"github.com/tychoish/fun/ft"
@@ -41,7 +40,7 @@ func MakeAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Send
 		baseCtx: ctx,
 		// unlimited number of senders, bufferSize is
 		// constrained buy the buffer size in the broker.
-		senders: ft.Must(pubsub.NewDeque[Sender](pubsub.DequeOptions{Unlimited: true})),
+		senders: erc.Must(pubsub.NewDeque[Sender](pubsub.DequeOptions{Unlimited: true})),
 		broker: pubsub.NewBroker[message.Composer](ctx, pubsub.BrokerOptions{
 			BufferSize:       bufferSize,
 			ParallelDispatch: true,
@@ -49,7 +48,7 @@ func MakeAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Send
 		}),
 	}
 	for idx := range senders {
-		fun.Invariant.Must(s.senders.PushBack(senders[idx]), "populate senders")
+		erc.Invariant(s.senders.PushBack(senders[idx]), "populate senders")
 	}
 
 	shutdown := make(chan struct{})
@@ -70,9 +69,9 @@ func MakeAsyncGroup(ctx context.Context, bufferSize int, senders ...Sender) Send
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				s.senders.StreamFront().ReadAll(fnx.FromHandler(func(sender Sender) {
+				for sender := range s.senders.IteratorFront(ctx) {
 					ec.Push(sender.Close())
-				})).Ignore().Wait()
+				}
 			}()
 
 			ec.Push(s.senders.Close())
@@ -110,38 +109,30 @@ func (s *asyncGroupSender) startSenderWorker(newSender Sender) {
 
 func (s *asyncGroupSender) SetPriority(p level.Priority) {
 	s.Base.SetPriority(p)
-
-	s.senders.
-		StreamFront().
-		ReadAll(fnx.FromHandler(func(sender Sender) {
+	ft.WithContextCall(func(ctx context.Context) {
+		for sender := range s.senders.IteratorFront(ctx) {
 			sender.SetPriority(p)
-		})).
-		Ignore().
-		Wait()
+		}
+	})
 }
 
 func (s *asyncGroupSender) SetErrorHandler(erh ErrorHandler) {
 	s.Base.SetErrorHandler(erh)
 
-	s.senders.
-		StreamFront().
-		ReadAll(fnx.FromHandler(func(sender Sender) {
+	ft.WithContextCall(func(ctx context.Context) {
+		for sender := range s.senders.IteratorFront(ctx) {
 			sender.SetErrorHandler(erh)
-		})).
-		Ignore().
-		Wait()
+		}
+	})
 }
 
 func (s *asyncGroupSender) SetFormatter(fmtr MessageFormatter) {
 	s.Base.SetFormatter(fmtr)
-
-	s.senders.
-		StreamFront().
-		ReadAll(fnx.FromHandler(func(sender Sender) {
+	ft.WithContextCall(func(ctx context.Context) {
+		for sender := range s.senders.IteratorFront(ctx) {
 			sender.SetFormatter(fmtr)
-		})).
-		Ignore().
-		Wait()
+		}
+	})
 }
 
 func (s *asyncGroupSender) Send(m message.Composer) {
@@ -153,14 +144,10 @@ func (s *asyncGroupSender) Send(m message.Composer) {
 
 func (s *asyncGroupSender) Flush(ctx context.Context) error {
 	catcher := &erc.Collector{}
-
-	s.senders.
-		StreamFront().
-		ReadAll(fnx.FromHandler(func(sender Sender) {
+	ft.WithContextCall(func(ctx context.Context) {
+		for sender := range s.senders.IteratorFront(ctx) {
 			catcher.Push(sender.Flush(ctx))
-		})).
-		Ignore().
-		Wait()
-
+		}
+	})
 	return catcher.Resolve()
 }

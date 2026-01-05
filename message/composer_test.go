@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/tychoish/fun/assert/check"
-	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/fn"
+	"github.com/tychoish/fun/irt"
 	"github.com/tychoish/fun/testt"
 	"github.com/tychoish/grip/level"
 )
@@ -112,13 +112,12 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 				t.Errorf("string value %T: [%s]", msg, msg.String())
 			}
 		})
-
 	}
 }
 
 func TestStackMessages(t *testing.T) {
 	const testMsg = "hello"
-	var stackMsg = "message/composer_test"
+	stackMsg := "message/composer_test"
 
 	// map objects to output (prefix)
 	cases := map[Composer]string{
@@ -203,7 +202,6 @@ func TestComposerConverter(t *testing.T) {
 				t.Errorf("%T", msg)
 			}
 		})
-
 	}
 
 	outputCases := map[string]any{
@@ -224,7 +222,6 @@ func TestComposerConverter(t *testing.T) {
 			t.Error("value should be true")
 		}
 	}
-
 }
 
 func TestErrors(t *testing.T) {
@@ -273,13 +270,22 @@ func TestSlice(t *testing.T) {
 		{
 			name:  "PairsStrings",
 			input: []any{"hello", "world", "val", "3000"},
-			output: MakeKV(dt.MakePair[string, any]("hello", "world"),
-				dt.MakePair[string, any]("val", "3000")),
+			output: MakeKV(
+				irt.KVargs(
+					irt.MakeKV[string, any]("hello", "world"),
+					irt.MakeKV[string, any]("val", "3000"),
+				),
+			),
 		},
 		{
-			name:   "PairsMixed",
-			input:  []any{"hello", "world", "val", 3000},
-			output: MakeKV(dt.MakePair[string, any]("hello", "world"), dt.MakePair[string, any]("val", 3000)),
+			name:  "PairsMixed",
+			input: []any{"hello", "world", "val", 3000},
+			output: MakeKV(
+				irt.KVargs(
+					irt.MakeKV[string, any]("hello", "world"),
+					irt.MakeKV[string, any]("val", 3000),
+				),
+			),
 		},
 		{
 			name:   "KeyNotString",
@@ -299,7 +305,6 @@ func TestSlice(t *testing.T) {
 					ex, c.output)
 			}
 		})
-
 	}
 }
 
@@ -311,7 +316,7 @@ func fixTimestamps(t *testing.T, msgs ...Composer) {
 			m.Time = ts
 		case *lineMessenger:
 			m.Time = ts
-		case *PairBuilder:
+		case *BuilderKV:
 			m.Time = ts
 		case *GroupComposer:
 			fixTimestamps(t, m.Messages()...)
@@ -338,14 +343,14 @@ func TestConverter(t *testing.T) {
 		{
 			Name:         "ComposerNilFunction",
 			Input:        fn.Future[Composer](nil),
-			Expected:     MakeKV(),
+			Expected:     Noop(),
 			IsStructured: true,
 			Unloggable:   true,
 		},
 		{
 			Name:         "NilComposerProducer",
 			Input:        &composerFutureMessage{},
-			Expected:     MakeKV(),
+			Expected:     Noop(),
 			IsStructured: true,
 			Unloggable:   true,
 		},

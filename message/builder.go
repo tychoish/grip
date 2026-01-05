@@ -1,9 +1,12 @@
 package message
 
 import (
-	"github.com/tychoish/fun/dt"
+	"iter"
+
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/fn"
+	"github.com/tychoish/fun/irt"
+	"github.com/tychoish/fun/stw"
 	"github.com/tychoish/grip/level"
 )
 
@@ -128,8 +131,8 @@ func (b *Builder) Strings(ss []string) *Builder           { return b.set(newLine
 func (b *Builder) Bytes(in []byte) *Builder               { return b.set(MakeBytes(in)) }
 func (b *Builder) AnyMap(f map[string]any) *Builder       { return b.Fields(f) }
 func (b *Builder) StringMap(f map[string]string) *Builder { return b.Fields(FieldsFromMap(f)) }
-func (b *Builder) Annotate(key string, val any) *Builder  { return b.Pair(key, val) }
-func (b *Builder) Pair(k string, v any) *Builder          { return b.Pairs(dt.MakePair(k, v)) }
+func (b *Builder) Annotate(key string, val any) *Builder  { return b.KV(key, val) }
+func (b *Builder) KV(k string, v any) *Builder            { return b.Pairs(stw.Map[string, any]{k: v}) }
 func (b *Builder) Group() *Builder                        { return b.SetGroup(true) }
 func (b *Builder) Ungroup() *Builder                      { return b.SetGroup(false) }
 func (b *Builder) P() *BuilderP                           { return b.PairBuilder() }
@@ -139,16 +142,16 @@ func (b *Builder) Future() *BuilderFuture                 { return &BuilderFutur
 // wrapper, that makes it possible to access the original builder and
 // send the message, as needed.
 func (b *Builder) PairBuilder() *BuilderP {
-	return setMsgOn(b, &BuilderP{outer: b, PairBuilder: BuildPair()})
+	return setMsgOn(b, &BuilderP{outer: b, BuilderKV: BuildPair()})
 }
 
 type BuilderP struct {
-	*PairBuilder
+	*BuilderKV
 	outer *Builder
 }
 
 func (b *BuilderP) Send()             { b.outer.Send() }
-func (b *BuilderP) Message() Composer { return b.PairBuilder }
+func (b *BuilderP) Message() Composer { return b.BuilderKV }
 func (b *BuilderP) Builder() *Builder { return b.outer }
 
 type BuilderFuture struct{ uilder *Builder }
@@ -167,7 +170,7 @@ func (b *BuilderFuture) Map(f fn.Future[map[string]any]) *BuilderFuture { return
 func (b *BuilderFuture) Composer(f fn.Future[Composer]) *BuilderFuture  { return addFuture(b, f) }
 func (b *BuilderFuture) Error(f fn.Future[error]) *BuilderFuture        { return addFuture(b, f) }
 func (b *BuilderFuture) String(f fn.Future[string]) *BuilderFuture      { return addFuture(b, f) }
-func (b *BuilderFuture) Pairs(f fn.Future[dt.Pairs[string, any]]) *BuilderFuture {
+func (b *BuilderFuture) Pairs(f fn.Future[iter.Seq2[string, any]]) *BuilderFuture {
 	return addFuture(b, f)
 }
 
@@ -196,15 +199,14 @@ func (b *Builder) Fields(f Fields) *Builder {
 // defined, and otherwise annotates the existing message with the
 // content of the input set. This is the same semantics as the Fields
 // method.
-func (b *Builder) Pairs(kvs ...dt.Pair[string, any]) *Builder {
+func (b *Builder) Pairs(mps interface{ Iterator() iter.Seq2[string, any] }) *Builder {
 	if b.composer == nil {
-		b.composer = MakeKV(kvs...)
+		b.composer = MakeKV(mps.Iterator())
 		return b
 	}
 
-	for _, kv := range kvs {
-		b.composer.Annotate(kv.Key, kv.Value)
-	}
+	irt.Apply2(mps.Iterator(), b.composer.Annotate)
+
 	return b
 }
 

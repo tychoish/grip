@@ -3,22 +3,23 @@ package series
 import (
 	"bytes"
 	"fmt"
+	"iter"
 	"sync/atomic"
 	"time"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/dt/hdrhist"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/fn"
+	"github.com/tychoish/fun/opt"
 )
 
 type MetricHistogramRenderer func(
 	wr *bytes.Buffer,
 	key string,
-	labels fn.Future[*dt.Pairs[string, string]],
-	sample *dt.Pairs[float64, int64],
+	labels fn.Future[iter.Seq2[string, string]],
+	sample *dt.OrderedMap[float64, int64],
 	ts time.Time,
 )
 
@@ -26,17 +27,16 @@ func MakeDefaultHistogramMetricRenderer(mr MetricValueRenderer) MetricHistogramR
 	return func(
 		wr *bytes.Buffer,
 		key string,
-		labels fn.Future[*dt.Pairs[string, string]],
-		sample *dt.Pairs[float64, int64],
+		labels fn.Future[iter.Seq2[string, string]],
+		sample *dt.OrderedMap[float64, int64],
 		ts time.Time,
 	) {
-		for _, point := range sample.Slice() {
-			quantile := point.Key
+		for k, v := range sample.Iterator() {
 			mr(
 				wr,
-				fmt.Sprintf("%s.p%d", key, int(quantile*100)),
+				fmt.Sprintf("%s.p%d", key, int(k*100)),
 				labels,
-				point.Value,
+				v,
 				ts,
 			)
 		}
@@ -74,7 +74,7 @@ func MakeDefaultHistogramConf() *HistogramConf {
 }
 
 func (conf *HistogramConf) Apply(opts ...HistogramOptionProvider) error {
-	return fun.JoinOptionProviders(opts...).Apply(conf)
+	return opt.Join(opts...).Apply(conf)
 }
 
 func (conf *HistogramConf) factory() fn.Future[localMetricValue] {
@@ -103,7 +103,7 @@ func (conf *HistogramConf) Validate() error {
 	return ec.Resolve()
 }
 
-type HistogramOptionProvider = fun.OptionProvider[*HistogramConf]
+type HistogramOptionProvider = opt.Provider[*HistogramConf]
 
 func HistogramConfOutOfRange(spec HistogramOutOfRangeOption) HistogramOptionProvider {
 	return func(conf *HistogramConf) error { conf.OutOfRange = spec; return nil }
@@ -183,7 +183,7 @@ func (lh *localHistogram) Apply(op func(int64) int64) int64 {
 		}
 
 		lh.last.Store(val)
-		fun.Invariant.Must(hist.RecordValue(val))
+		erc.Invariant(hist.RecordValue(val))
 	})
 	return val
 }
@@ -193,10 +193,10 @@ func (lh *localHistogram) Last() int64 { return lh.last.Load() }
 func (lh *localHistogram) Resolve(wr *bytes.Buffer, r Renderer) {
 	now := time.Now().UTC().Round(time.Millisecond)
 
-	samples := &dt.Pairs[float64, int64]{}
+	samples := &dt.OrderedMap[float64, int64]{}
 	lh.hdrh.With(func(in *hdrhist.Histogram) {
 		for _, bucket := range lh.conf.Quantiles {
-			samples.Add(bucket, in.ValueAtQuantile(bucket))
+			samples.Store(bucket, in.ValueAtQuantile(bucket))
 		}
 	})
 	r.Histogram(

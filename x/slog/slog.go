@@ -142,7 +142,7 @@ func addAttrsFromPayload(ctx context.Context, rec *slog.Record, in any) {
 		}
 	case dt.Pairs[string, any]:
 		addAttrsFromPayload(ctx, rec, &v)
-	case *message.PairBuilder:
+	case *message.BuilderKV:
 		addAttrsFromPayload(ctx, rec, v.Raw())
 	default:
 		rec.Add(slog.Any("payload", in))

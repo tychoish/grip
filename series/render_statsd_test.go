@@ -3,9 +3,9 @@ package series
 import (
 	"bytes"
 	"fmt"
+	"iter"
 	"time"
 
-	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/fn"
 )
 
@@ -15,7 +15,7 @@ import (
 func RenderMetricStatsd(
 	buf *bytes.Buffer,
 	key string,
-	labels fn.Future[*dt.Pairs[string, string]],
+	labels fn.Future[iter.Seq2[string, string]],
 	value int64,
 	_ time.Time, // StatsD ignores the timestamp; the server applies arrival time.
 ) {
@@ -24,17 +24,18 @@ func RenderMetricStatsd(
 	fmt.Fprint(buf, value)
 	buf.WriteString("|g")
 
-	if pairs := labels(); pairs != nil && pairs.Len() > 0 {
-		buf.WriteString("|#")
+	if pairs := labels(); pairs != nil {
 		first := true
-		for p := range pairs.Iterator() {
-			if !first {
+		for k, v := range pairs {
+			if first {
+				buf.WriteString("|#")
+				first = false
+			} else {
 				buf.WriteByte(',')
 			}
-			first = false
-			buf.WriteString(p.Key)
+			buf.WriteString(k)
 			buf.WriteByte(':')
-			buf.WriteString(p.Value)
+			buf.WriteString(v)
 		}
 	}
 

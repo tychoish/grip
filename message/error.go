@@ -15,6 +15,12 @@ type errorMessage struct {
 	Base       `bson:"meta" json:"meta" yaml:"meta"`
 }
 
+func Noop() Composer {
+	m := MakeError(nil)
+	m.SetOption(OptionSkipCollectInfo, OptionSkipMetadata)
+	return m
+}
+
 // MakeError returns a Composer, that wraps an error, and is only
 // loggable for non-nil errors. The message also implements error
 // methods (e.g. Error() string, Is() bool, and Unwrap() error).
@@ -49,7 +55,6 @@ func (e *errorMessage) Raw() any {
 		Error:  e.String(),
 		Fields: e.Context,
 	}
-
 }
 
 func (e *errorMessage) Error() string     { return e.String() }

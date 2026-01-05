@@ -19,7 +19,7 @@ func (wi *wrappedImpl) Unwind() Composer { return wi.parent }
 func Wrap(parent Composer, msg any) Composer {
 	switch {
 	case parent == nil && msg == nil:
-		return MakeKV()
+		return Noop()
 	case msg == nil:
 		return parent
 	case parent == nil:

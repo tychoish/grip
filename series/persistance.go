@@ -7,12 +7,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"iter"
 	"math/rand"
 	"net"
 	"os"
 	"time"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/ers"
@@ -20,24 +20,26 @@ import (
 	"github.com/tychoish/fun/fnx"
 	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/fun/intish"
+	"github.com/tychoish/fun/opt"
 	"github.com/tychoish/fun/pubsub"
+	"github.com/tychoish/fun/wpa"
 	"github.com/tychoish/grip/send"
 )
 
 type MetricPublisher func(io.Writer, Renderer) error
 
-type CollectorBackend fnx.Handler[*fun.Stream[MetricPublisher]]
+type CollectorBackend fnx.Handler[iter.Seq[MetricPublisher]]
 
 type Renderer struct {
 	Metric    MetricValueRenderer
 	Histogram MetricHistogramRenderer
 }
 
-func (cb CollectorBackend) Worker(iter *fun.Stream[MetricPublisher]) fnx.Worker {
+func (cb CollectorBackend) Worker(iter iter.Seq[MetricPublisher]) fnx.Worker {
 	return func(ctx context.Context) error { return cb(ctx, iter) }
 }
 
-type CollectorBakendFileOptionProvider = fun.OptionProvider[*CollectorBackendFileConf]
+type CollectorBakendFileOptionProvider = opt.Provider[*CollectorBackendFileConf]
 
 type CollectorBackendFileConf struct {
 	Directory      string
@@ -91,12 +93,13 @@ func CollectorBackendFileConfWithRenderer(r Renderer) CollectorBakendFileOptionP
 
 func FileBackend(opts ...CollectorBakendFileOptionProvider) (CollectorBackend, error) {
 	conf := &CollectorBackendFileConf{}
-	if err := fun.JoinOptionProviders(opts...).Apply(conf); err != nil {
+	if err := opt.Join(opts...).Apply(conf); err != nil {
 		return nil, err
 	}
 	targetSizeBytes := conf.Megabytes * 1024 * 1024
 	getNextFn := conf.RotatingFileProducer()
-	return func(ctx context.Context, iter *fun.Stream[MetricPublisher]) (err error) {
+	return func(ctx context.Context, seq iter.Seq[MetricPublisher]) (err error) {
+		iter := pubsub.IteratorStream(seq)
 		var file io.WriteCloser
 		var saw *sizeAccountingWriter
 		var buf *bufio.Writer
@@ -159,7 +162,8 @@ func FileBackend(opts ...CollectorBakendFileOptionProvider) (CollectorBackend, e
 
 func LoggerBackend(sender send.Sender, r Renderer) CollectorBackend {
 	wr := send.MakeWriter(sender)
-	return func(ctx context.Context, iter *fun.Stream[MetricPublisher]) error {
+	return func(ctx context.Context, seq iter.Seq[MetricPublisher]) error {
+		iter := pubsub.IteratorStream(seq)
 		count := 0
 		for iter.Next(ctx) {
 			op := iter.Value()
@@ -172,26 +176,26 @@ func LoggerBackend(sender send.Sender, r Renderer) CollectorBackend {
 	}
 }
 
-func PassthroughBackend(r Renderer, handler fnx.Handler[string], opts ...fun.OptionProvider[*fun.WorkerGroupConf]) CollectorBackend {
+func PassthroughBackend(r Renderer, handler fnx.Handler[string], opts ...opt.Provider[*wpa.WorkerGroupConf]) CollectorBackend {
 	pool := &adt.Pool[*bytes.Buffer]{}
 	pool.SetConstructor(func() *bytes.Buffer { return &bytes.Buffer{} })
 	pool.SetCleanupHook(func(buf *bytes.Buffer) *bytes.Buffer { buf.Reset(); return buf })
 
-	return func(ctx context.Context, iter *fun.Stream[MetricPublisher]) error {
-		return fun.Convert(fnx.MakeConverter(
+	return func(ctx context.Context, seq iter.Seq[MetricPublisher]) error {
+		return pubsub.Convert(fnx.MakeConverter(
 			func(mp MetricPublisher) string {
 				buf := pool.Get()
 				defer pool.Put(buf)
-				fun.Invariant.Must(mp(buf, r))
+				erc.Invariant(mp(buf, r))
 				return buf.String()
 			})).
-			Stream(iter).
+			Stream(pubsub.IteratorStream(seq)).
 			Parallel(handler, opts...).
 			Run(ctx)
 	}
 }
 
-type CollectorBakendSocketOptionProvider = fun.OptionProvider[*CollectorBackendSocketConf]
+type CollectorBakendSocketOptionProvider = opt.Provider[*CollectorBackendSocketConf]
 
 type CollectorBackendSocketConf struct {
 	Dialer  net.Dialer
@@ -353,8 +357,8 @@ func (co CollectorBackendSocketErrorOption) Validate() error {
 	return nil
 }
 
-func (co CollectorBackendSocketErrorOption) poolErrorOptions() fun.OptionProvider[*fun.WorkerGroupConf] {
-	return func(conf *fun.WorkerGroupConf) error {
+func (co CollectorBackendSocketErrorOption) poolErrorOptions() opt.Provider[*wpa.WorkerGroupConf] {
+	return func(conf *wpa.WorkerGroupConf) error {
 		switch co {
 		case CollectorBackendSocketErrorAbort:
 			conf.ContinueOnError = false
@@ -393,7 +397,7 @@ func (c *connCacheItem) Close() error { c.closed = true; return ft.DoSafe(c.conn
 
 func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBackend, error) {
 	conf := &CollectorBackendSocketConf{}
-	if err := fun.JoinOptionProviders(opts...).Apply(conf); err != nil {
+	if err := opt.Join(opts...).Apply(conf); err != nil {
 		return nil, err
 	}
 
@@ -414,8 +418,10 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 				switch {
 				case err == nil && cc != nil:
 					connCacheSize.Add(1)
-					if !fun.BlockingSend(connCache).Check(ctx, &connCacheItem{conn: cc}) {
+					select {
+					case <-ctx.Done():
 						return
+					case connCache <- &connCacheItem{conn: cc}:
 					}
 					continue LOOP
 				case err == nil && cc == nil:
@@ -443,7 +449,8 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 		}
 	}
 
-	return func(ctx context.Context, iter *fun.Stream[MetricPublisher]) error {
+	return func(ctx context.Context, seq iter.Seq[MetricPublisher]) error {
+		iter := pubsub.IteratorStream(seq)
 		return iter.Parallel(func(ctx context.Context, pub MetricPublisher) (err error) {
 			var conn *connCacheItem
 			defer func() {
@@ -451,8 +458,12 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 					return
 				}
 				if err == nil {
-					ec.Push(fun.BlockingSend(connCache).Write(ctx, conn))
-					connCacheSize.Add(1)
+					select {
+					case <-ctx.Done():
+						ec.Push(ctx.Err())
+					case connCache <- conn:
+						connCacheSize.Add(1)
+					}
 					return
 				}
 
@@ -470,13 +481,16 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 				}
 
 				if conn == nil {
-					conn, err = fun.BlockingReceive(connCache).Read(ctx)
-					connCacheSize.Add(-1)
-					if err != nil {
-						return err
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					case conn = <-connCache:
+						connCacheSize.Add(-1)
+						if err != nil {
+							return err
+						}
 					}
 				}
-
 				err = pub(conn, conf.Renderer)
 				isFinal, err = conf.handleMessageError(ec.Push, err)
 				if err == nil {
@@ -496,10 +510,10 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 				)
 			}
 
-			return
+			return nil
 		},
-			fun.WorkerGroupConfWithErrorCollector(ec),
-			fun.WorkerGroupConfNumWorkers(conf.MessageWorkers),
+			wpa.WorkerGroupConfWithErrorCollector(ec),
+			wpa.WorkerGroupConfNumWorkers(conf.MessageWorkers),
 			conf.MessageErrorHandling.poolErrorOptions(),
 		).PreHook(dialOperation.Go().Once()).Run(ctx)
 	}, nil

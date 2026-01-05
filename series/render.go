@@ -3,33 +3,34 @@ package series
 import (
 	"bytes"
 	"fmt"
+	"iter"
 	"time"
 
-	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/fn"
-	"github.com/tychoish/fun/fnx"
 )
 
-func renderLabelsJSON(buf *bytes.Buffer, labels *dt.Pairs[string, string]) {
-	if labels == nil || labels.Len() == 0 {
-		return
-	}
-
-	buf.WriteString(`"tags":{`)
+func renderLabelsJSON(buf *bytes.Buffer, labels iter.Seq2[string, string]) {
 	first := true
-	labels.Stream().ReadAll(fnx.FromHandler(func(label dt.Pair[string, string]) {
+	for k, v := range labels {
 		switch {
 		case first:
 			first = false
+			buf.WriteString(`"tags":{`)
 		case !first:
 			buf.WriteByte(',')
 		}
-		fmt.Fprintf(buf, `"%s":"%s"`, label.Key, label.Value)
-	})).Ignore().Wait()
-	buf.WriteString("},")
+		buf.WriteByte('"')
+		buf.WriteString(k)
+		buf.WriteString(`":"`)
+		buf.WriteString(v)
+		buf.WriteByte('"')
+	}
+	if !first {
+		buf.WriteString("},")
+	}
 }
 
-func RenderMetricJSON(buf *bytes.Buffer, key string, labels fn.Future[*dt.Pairs[string, string]], value int64, ts time.Time) {
+func RenderMetricJSON(buf *bytes.Buffer, key string, labels fn.Future[iter.Seq2[string, string]], value int64, ts time.Time) {
 	fmt.Fprintf(buf, `{"metric":"%s","ts":%d,`, key, ts.UTC().UnixMilli())
 	renderLabelsJSON(buf, labels())
 	fmt.Fprintf(buf, `"value":%d}`, value)
@@ -39,8 +40,8 @@ func RenderMetricJSON(buf *bytes.Buffer, key string, labels fn.Future[*dt.Pairs[
 func RenderHistogramJSON(
 	buf *bytes.Buffer,
 	key string,
-	labels fn.Future[*dt.Pairs[string, string]],
-	sample *dt.Pairs[float64, int64],
+	labels fn.Future[iter.Seq2[string, string]],
+	sample iter.Seq2[float64, int64],
 	ts time.Time,
 ) {
 	fmt.Fprintf(buf, `{"metric":"%s",`, key)
@@ -48,7 +49,7 @@ func RenderHistogramJSON(
 	buf.WriteString(`"value":{`)
 
 	first := true
-	sample.Stream().ReadAll(fnx.FromHandler(func(pair dt.Pair[float64, int64]) {
+	for k, v := range sample {
 		switch {
 		case first:
 			first = false
@@ -56,38 +57,40 @@ func RenderHistogramJSON(
 			buf.WriteByte(',')
 		}
 
-		fmt.Fprintf(buf, `"%d":%d`, int(pair.Key*100), pair.Value)
-	})).Ignore().Wait()
+		fmt.Fprintf(buf, `"%d":%d`, int(k*100), v)
+	}
 	fmt.Fprint(buf, "}}")
 	buf.WriteByte('\n')
 }
 
-func RenderMetricOpenTSB(buf *bytes.Buffer, key string, labels fn.Future[*dt.Pairs[string, string]], value int64, ts time.Time) {
+func RenderMetricOpenTSB(buf *bytes.Buffer, key string, labels fn.Future[iter.Seq2[string, string]], value int64, ts time.Time) {
 	buf.WriteString("put ")
 	buf.WriteString(key)
 	buf.WriteByte(' ')
 	fmt.Fprint(buf, ts.UTC().UnixMilli())
 	buf.WriteByte(' ')
 	fmt.Fprint(buf, value)
-	if tags := labels(); tags != nil && tags.Len() > 0 {
-		buf.WriteByte(' ')
-		tags.Stream().ReadAll(fnx.FromHandler(func(label dt.Pair[string, string]) {
-			buf.WriteString(label.Key)
-			buf.WriteByte('=')
-			buf.WriteString(label.Value)
+
+	if tags := labels(); tags != nil {
+		for k, v := range labels() {
 			buf.WriteByte(' ')
-		})).Ignore().Wait()
+			buf.WriteString(k)
+			buf.WriteByte('=')
+			buf.WriteString(v)
+			buf.WriteByte(' ')
+		}
 	}
 	buf.WriteByte('\n')
 }
 
-func RenderMetricGraphite(buf *bytes.Buffer, key string, labels fn.Future[*dt.Pairs[string, string]], value int64, ts time.Time) {
+func RenderMetricGraphite(buf *bytes.Buffer, key string, labels fn.Future[iter.Seq2[string, string]], value int64, ts time.Time) {
 	buf.WriteString(key)
-	if tags := labels(); tags != nil && tags.Len() > 0 {
-		tags.Stream().ReadAll(fnx.FromHandler(func(label dt.Pair[string, string]) {
-			fmt.Fprintf(buf, ";%s=%s", label.Key, label.Value)
-		})).Ignore().Wait()
+	if tags := labels(); tags != nil {
+		for k, v := range labels() {
+			fmt.Fprintf(buf, ";%s=%s", k, v)
+		}
 	}
+
 	buf.WriteByte(' ')
 	fmt.Fprint(buf, value)
 	buf.WriteByte(' ')

@@ -1,23 +1,24 @@
 package series
 
 import (
+	"iter"
 	"runtime"
 	"time"
 
-	"github.com/tychoish/fun"
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/fn"
+	"github.com/tychoish/fun/irt"
 )
 
-func GoRuntimeEvents(labels ...dt.Pair[string, string]) fn.Future[*fun.Stream[*Event]] {
-	ls := &dt.Set[dt.Pair[string, string]]{}
-	ls.AppendStream(fun.SliceStream(labels))
+func GoRuntimeEvents(labels ...irt.KV[string, string]) fn.Future[iter.Seq[*Event]] {
+	ls := &dt.OrderedSet[irt.KV[string, string]]{}
+	ls.Extend(irt.Slice(labels))
 
-	return func() *fun.Stream[*Event] {
+	return func() iter.Seq[*Event] {
 		m := runtime.MemStats{}
 		runtime.ReadMemStats(&m)
 
-		return fun.VariadicStream(
+		return irt.Args(
 			Gauge("memory").Labels(ls).Label("heap", "objects").Set(int64(m.HeapObjects)),
 			Gauge("memory").Labels(ls).Label("heap", "alloc").Set(int64(m.HeapAlloc)),
 			Gauge("memory").Labels(ls).Label("heap", "system").Set(int64(m.HeapSys)),

@@ -74,7 +74,7 @@ type composerFutureMessage struct {
 func (cp *composerFutureMessage) resolve() {
 	cp.exec.Do(func() {
 		if cp.cp == nil {
-			cp.cp = func() Composer { return MakeKV() }
+			cp.cp = Noop
 		}
 
 		cp.cached = cp.cp()
@@ -122,5 +122,4 @@ func (cp *composerFutureMessage) SetOption(opts ...Option) {
 	} else {
 		cp.lazyOps = append(cp.lazyOps, func(c Composer) { c.SetOption(opts...) })
 	}
-
 }

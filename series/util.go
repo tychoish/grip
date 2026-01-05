@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
-	"github.com/tychoish/fun"
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/fnx"
 )
@@ -34,7 +34,7 @@ func (w *sizeAccountingWriter) Write(in []byte) (out int, err error) {
 func (w *sizeAccountingWriter) Size() int { return int(w.Load()) }
 
 func intPow(val, exp int64) int64 {
-	fun.Invariant.IsTrue(exp > 0)
+	erc.InvariantOk(exp > 0)
 	if val == 0 {
 		return 1
 	}
