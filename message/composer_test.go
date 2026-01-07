@@ -343,7 +343,7 @@ func TestConverter(t *testing.T) {
 		{
 			Name:         "ComposerNilFunction",
 			Input:        fn.Future[Composer](nil),
-			Expected:     MakeError(nil),
+			Expected:     MakeFuture[Composer](nil),
 			IsStructured: true,
 			Unloggable:   true,
 		},
@@ -414,7 +414,7 @@ func TestConverter(t *testing.T) {
 		{
 			Name:         "EmptySlice",
 			Input:        []any{},
-			Expected:     MakeLines(),
+			Expected:     Noop(),
 			IsStructured: true,
 			Unloggable:   true,
 		},
@@ -478,8 +478,8 @@ func TestConverter(t *testing.T) {
 					check.Equal(t, got.String(), tt.Expected.String())
 					check.True(t, got.Structured() == tt.IsStructured)
 					check.True(t, got.Loggable() == !tt.Unloggable)
-					testt.Logf(t, "got<%T>:%q", got, got)
-					testt.Logf(t, "had<%T>:%q", tt.Expected, tt.Expected)
+					testt.Logf(t, "expected<%T>:%q", tt.Expected, tt.Expected)
+					testt.Logf(t, "actually<%T>:%q", got, got)
 				})
 			}
 		})

@@ -104,7 +104,7 @@ func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collec
 	}
 
 	pbopts := pubsub.BrokerOptions{
-		BufferSize:       4,
+		BufferSize:       1,
 		WorkerPoolSize:   16,
 		ParallelDispatch: true,
 	}
@@ -128,11 +128,11 @@ func (c *Collector) Close() error {
 	if c.cancel != nil {
 		c.cancel()
 	}
-	c.wg.Operation().Wait()
+	c.errs.Push(c.publish.Close())
 	if c.broker != nil {
 		c.broker.Stop()
 	}
-	c.errs.Push(c.publish.Close())
+	c.wg.Operation().Wait()
 	return c.errs.Resolve()
 }
 

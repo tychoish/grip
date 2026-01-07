@@ -97,7 +97,6 @@ func FileBackend(opts ...CollectorBakendFileOptionProvider) (CollectorBackend, e
 	targetSizeBytes := conf.Megabytes * 1024 * 1024
 	getNextFn := conf.RotatingFileProducer()
 	return func(ctx context.Context, seq iter.Seq[MetricPublisher]) (err error) {
-		iter := pubsub.IteratorStream(seq)
 		var file io.WriteCloser
 		var saw *sizeAccountingWriter
 		var buf *bufio.Writer
@@ -119,7 +118,7 @@ func FileBackend(opts ...CollectorBakendFileOptionProvider) (CollectorBackend, e
 			}
 		}()
 
-		for iter.Next(ctx) {
+		for op := range seq {
 			if file == nil {
 				var err error
 				file, err = getNextFn(ctx)
@@ -135,8 +134,6 @@ func FileBackend(opts ...CollectorBakendFileOptionProvider) (CollectorBackend, e
 					wr = saw
 				}
 			}
-
-			op := iter.Value()
 
 			if err := op(wr, conf.Renderer); err != nil {
 				return err
@@ -161,10 +158,8 @@ func FileBackend(opts ...CollectorBakendFileOptionProvider) (CollectorBackend, e
 func LoggerBackend(sender send.Sender, r Renderer) CollectorBackend {
 	wr := send.MakeWriter(sender)
 	return func(ctx context.Context, seq iter.Seq[MetricPublisher]) error {
-		iter := pubsub.IteratorStream(seq)
 		count := 0
-		for iter.Next(ctx) {
-			op := iter.Value()
+		for op := range seq {
 			if err := op(wr, r); err != nil {
 				return erc.Join(err, wr.Close())
 			}
@@ -446,10 +441,10 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 			}
 		}
 	}
-
+	dialOperation = dialOperation.Go().Once()
 	return func(ctx context.Context, seq iter.Seq[MetricPublisher]) error {
-		iter := pubsub.IteratorStream(seq)
-		return iter.Parallel(func(ctx context.Context, pub MetricPublisher) (err error) {
+		dialOperation.Run(ctx)
+		return wpa.WithHandler(fnx.NewHandler(func(ctx context.Context, pub MetricPublisher) (err error) {
 			var conn *connCacheItem
 			defer func() {
 				if conn == nil || ers.IsExpiredContext(err) {
@@ -509,10 +504,10 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 			}
 
 			return nil
-		},
+		})).RunWithPool(
 			wpa.WorkerGroupConfWithErrorCollector(ec),
 			wpa.WorkerGroupConfNumWorkers(conf.MessageWorkers),
 			conf.MessageErrorHandling.poolErrorOptions(),
-		).PreHook(dialOperation.Go().Once()).Run(ctx)
+		).For(seq).Run(ctx)
 	}, nil
 }
