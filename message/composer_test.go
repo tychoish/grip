@@ -343,14 +343,14 @@ func TestConverter(t *testing.T) {
 		{
 			Name:         "ComposerNilFunction",
 			Input:        fn.Future[Composer](nil),
-			Expected:     Noop(),
+			Expected:     MakeError(nil),
 			IsStructured: true,
 			Unloggable:   true,
 		},
 		{
 			Name:         "NilComposerProducer",
 			Input:        &composerFutureMessage{},
-			Expected:     Noop(),
+			Expected:     MakeKV(irt.Map(map[string]any{})),
 			IsStructured: true,
 			Unloggable:   true,
 		},

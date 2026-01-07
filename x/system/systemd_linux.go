@@ -2,7 +2,7 @@ package system
 
 import (
 	"github.com/coreos/go-systemd/journal"
-	"github.com/tychoish/fun/ft"
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -54,7 +54,8 @@ func (s *systemdJournal) Send(m message.Composer) {
 		return
 	}
 
-	if err := ft.WithRecoverCall(func() {
+	ec := &erc.Collector{}
+	ec.WithRecover(func() {
 		outstr, err := s.Format(m)
 		if !s.HandleErrorOK(send.WrapError(err, m)) {
 			return
@@ -63,7 +64,8 @@ func (s *systemdJournal) Send(m message.Composer) {
 		if err := journal.Send(outstr, convertPrioritySystemd(m.Priority(), 0), s.options); err != nil {
 			s.HandleError(send.WrapError(err, m))
 		}
-	}); err != nil {
+	})
+	if err := ec.Resolve(); err != nil {
 		// there was a panic
 		s.HandleError(send.WrapError(err, m))
 	}

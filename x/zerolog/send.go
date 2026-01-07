@@ -2,9 +2,10 @@ package zerolog
 
 import (
 	"encoding/json"
+	"iter"
 
 	"github.com/rs/zerolog"
-	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/irt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -73,6 +74,7 @@ func (s *shim) Send(m message.Composer) {
 		return
 	}
 
+	addField := func(k string, v any) { event.Fields([]any{k, v}) }
 	// handle payloads to take advantage of the fast paths
 	payload := m.Raw()
 	switch data := payload.(type) {
@@ -80,16 +82,16 @@ func (s *shim) Send(m message.Composer) {
 		event.EmbedObject(data)
 	case zerolog.LogArrayMarshaler:
 		event.Array("payload", data)
-	case *dt.Pairs[string, any]:
-		pair := make([]any, 2)
-		for _, kv := range data.Slice() {
-			pair[0], pair[1] = kv.Key, kv.Value
-			event.Fields(pair)
-		}
+	case iter.Seq2[string, any]:
+		irt.Apply2(data, addField)
+	case iter.Seq[irt.KV[string, any]]:
+		irt.Apply2(irt.KVsplit(data), addField)
+	case []irt.KV[string, any]:
+		irt.Apply2(irt.KVsplit(irt.Slice(data)), addField)
 	case message.Fields:
-		event.Fields(data)
+		irt.Apply2(irt.Map(data), addField)
 	case map[string]any:
-		event.Fields(data)
+		irt.Apply2(irt.Map(data), addField)
 	case json.Marshaler:
 		// message.KVs are json.Marshalers so make sure this
 		// clause stays last.

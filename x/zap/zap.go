@@ -2,8 +2,9 @@ package zap
 
 import (
 	"fmt"
+	"iter"
 
-	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/irt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -57,21 +58,23 @@ func (s *shim) Send(m message.Composer) {
 		case zap.Field:
 			fields = append(fields, data)
 		case []zap.Field:
-			fields = append(fields, data...)
+			fields = data
 		case zapcore.ObjectMarshaler:
 			fields = append(fields, zap.Inline(data))
 		case error:
 			fields = append(fields, zap.Error(data))
 		case []error:
 			fields = append(fields, zap.Errors("errors", data))
-		case *dt.Pairs[string, any]:
-			for _, kv := range data.Slice() {
-				fields = append(fields, zap.Any(kv.Key, kv.Value))
-			}
+		case iter.Seq2[string, any]:
+			fields = convertMapTypes(data, 8)
+		case []irt.KV[string, any]:
+			fields = convertMapTypes(irt.KVsplit(irt.Slice(data)), len(data))
+		case iter.Seq[irt.KV[string, any]]:
+			fields = convertMapTypes(irt.KVsplit(data), 8)
 		case message.Fields:
-			fields = append(fields, convertMapTypes(data)...)
+			fields = convertMapTypes(irt.Map(data), len(data))
 		case map[string]any:
-			fields = append(fields, convertMapTypes(data)...)
+			fields = convertMapTypes(irt.Map(data), len(data))
 		default:
 			fields = append(fields, zap.Any("payload", payload))
 		}
@@ -79,12 +82,10 @@ func (s *shim) Send(m message.Composer) {
 	}
 }
 
-func convertMapTypes[K comparable, V any](in map[K]V) []zap.Field {
-	out := make([]zap.Field, 0, len(in))
-	for k, v := range in {
-		out = append(out, zap.Any(fmt.Sprint(k), v))
-	}
-	return out
+func toField[K comparable, V any](k K, v V) zap.Field { return zap.Any(fmt.Sprint(k), v) }
+
+func convertMapTypes[K comparable, V any](seq iter.Seq2[K, V], hint ...int) []zap.Field {
+	return irt.Collect(irt.Merge(seq, toField))
 }
 
 func convertLevel(in level.Priority) zapcore.Level {

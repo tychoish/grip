@@ -73,6 +73,8 @@ func Convert(input any) Composer {
 		return MakeBytes(message)
 	case iter.Seq2[string, any]:
 		return MakeKV(message)
+	case iter.Seq2[string, string]:
+		return MakeKV(message)
 	case fn.Future[Fields]:
 		return MakeFuture(message)
 	case func() Fields:
@@ -81,11 +83,21 @@ func Convert(input any) Composer {
 		return MakeFuture(message)
 	case func() Composer:
 		return MakeFuture(message)
+	case fn.Future[map[string]any]:
+		return MakeFuture(message)
 	case func() map[string]any:
 		return MakeFuture(message)
 	case fn.Future[error]:
 		return MakeFuture(message)
 	case func() error:
+		return MakeFuture(message)
+	case fn.Future[iter.Seq2[string, any]]:
+		return MakeFuture(message)
+	case func() iter.Seq2[string, any]:
+		return MakeFuture(message)
+	case fn.Future[iter.Seq2[string, string]]:
+		return MakeFuture(message)
+	case func() iter.Seq2[string, string]:
 		return MakeFuture(message)
 	case Marshaler:
 		return MakeFuture(message.MarshalComposer)
@@ -100,6 +112,8 @@ func Convert(input any) Composer {
 	case []fn.Future[Fields]:
 		return convertSlice(message)
 	case []func() Fields:
+		return convertSlice(message)
+	case []fn.Future[map[string]any]:
 		return convertSlice(message)
 	case []func() map[string]any:
 		return convertSlice(message)

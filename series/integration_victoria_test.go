@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/fun/testt"
 )
 
@@ -121,7 +120,7 @@ func victoriaHasMetric(ctx context.Context, t *testing.T, metric string) (_ bool
 	if err != nil {
 		return false, err
 	}
-	defer func() { ft.Ignore(resp.Body.Close()) }()
+	defer func() { _ = resp.Body.Close() }()
 
 	var payload struct {
 		Status string `json:"status"`

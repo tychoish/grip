@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/syslog"
 
-	"github.com/tychoish/fun/ft"
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -76,7 +76,8 @@ func (s *syslogger) Send(m message.Composer) {
 	if !send.ShouldLog(s, m) {
 		return
 	}
-	if err := ft.WithRecoverCall(func() {
+	ec := &erc.Collector{}
+	ec.WithRecover(func() {
 		outstr, err := s.Format(m)
 		if !s.HandleErrorOK(send.WrapError(err, m)) {
 			return
@@ -85,7 +86,9 @@ func (s *syslogger) Send(m message.Composer) {
 		if err := s.sendToSysLog(m.Priority(), outstr); err != nil {
 			s.HandleError(send.WrapError(err, m))
 		}
-	}); err != nil {
+	})
+
+	if err := ec.Resolve(); err != nil {
 		// there was a panic
 		s.HandleError(send.WrapError(err, m))
 	}

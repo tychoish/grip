@@ -18,8 +18,6 @@ import (
 	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/fn"
 	"github.com/tychoish/fun/fnx"
-	"github.com/tychoish/fun/ft"
-	"github.com/tychoish/fun/intish"
 	"github.com/tychoish/fun/opt"
 	"github.com/tychoish/fun/pubsub"
 	"github.com/tychoish/fun/wpa"
@@ -145,7 +143,7 @@ func FileBackend(opts ...CollectorBakendFileOptionProvider) (CollectorBackend, e
 			}
 
 			if saw.Size() >= targetSizeBytes {
-				if err := erc.Join(ft.DoSafe(buf.Flush), ft.DoSafe(gzp.Close), ft.DoSafe(file.Close)); err != nil {
+				if err := erc.Join(buf.Flush(), gzp.Close(), file.Close()); err != nil {
 					return err
 				}
 
@@ -393,7 +391,7 @@ func (c *connCacheItem) Write(in []byte) (int, error) {
 	return n, err
 }
 
-func (c *connCacheItem) Close() error { c.closed = true; return ft.DoSafe(c.conn.Close) }
+func (c *connCacheItem) Close() error { c.closed = true; return c.conn.Close() }
 
 func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBackend, error) {
 	conf := &CollectorBackendSocketConf{}
@@ -402,7 +400,7 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 	}
 
 	connCache := make(chan *connCacheItem, 2*(conf.IdleConns+conf.DialWorkers+conf.MessageWorkers))
-	connCacheSize := &intish.Atomic[int]{}
+	connCacheSize := &adt.AtomicInteger[int]{}
 
 	ec := &erc.Collector{}
 	var dialOperation fnx.Operation = func(ctx context.Context) {
@@ -466,8 +464,8 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 					}
 					return
 				}
-
-				err = erc.Join(err, ft.IgnoreFirst(conf.handleMessageError(ec.Push, conn.conn.Close())))
+				_, err2 := conf.handleMessageError(ec.Push, conn.conn.Close())
+				err = erc.Join(err, err2)
 			}()
 
 			timer := time.NewTimer(0)

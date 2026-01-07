@@ -7,7 +7,6 @@ import (
 
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/fnx"
-	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/fun/pubsub"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -109,7 +108,7 @@ func (s *asyncGroupSender) startSenderWorker(newSender Sender) {
 
 func (s *asyncGroupSender) SetPriority(p level.Priority) {
 	s.Base.SetPriority(p)
-	ft.WithContextCall(func(ctx context.Context) {
+	fnx.WithContextCall(func(ctx context.Context) {
 		for sender := range s.senders.IteratorFront(ctx) {
 			sender.SetPriority(p)
 		}
@@ -119,7 +118,7 @@ func (s *asyncGroupSender) SetPriority(p level.Priority) {
 func (s *asyncGroupSender) SetErrorHandler(erh ErrorHandler) {
 	s.Base.SetErrorHandler(erh)
 
-	ft.WithContextCall(func(ctx context.Context) {
+	fnx.WithContextCall(func(ctx context.Context) {
 		for sender := range s.senders.IteratorFront(ctx) {
 			sender.SetErrorHandler(erh)
 		}
@@ -128,7 +127,7 @@ func (s *asyncGroupSender) SetErrorHandler(erh ErrorHandler) {
 
 func (s *asyncGroupSender) SetFormatter(fmtr MessageFormatter) {
 	s.Base.SetFormatter(fmtr)
-	ft.WithContextCall(func(ctx context.Context) {
+	fnx.WithContextCall(func(ctx context.Context) {
 		for sender := range s.senders.IteratorFront(ctx) {
 			sender.SetFormatter(fmtr)
 		}
@@ -144,7 +143,7 @@ func (s *asyncGroupSender) Send(m message.Composer) {
 
 func (s *asyncGroupSender) Flush(ctx context.Context) error {
 	catcher := &erc.Collector{}
-	ft.WithContextCall(func(ctx context.Context) {
+	fnx.WithContextCall(func(ctx context.Context) {
 		for sender := range s.senders.IteratorFront(ctx) {
 			catcher.Push(sender.Flush(ctx))
 		}

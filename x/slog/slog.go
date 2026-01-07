@@ -17,11 +17,11 @@ package slog
 
 import (
 	"context"
+	"iter"
 	"log/slog"
 	"time"
 
-	"github.com/tychoish/fun"
-	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/irt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
@@ -112,6 +112,8 @@ func (s *sender) Send(m message.Composer) {
 // addAttrsFromPayload enriches the slog.Record in-place with attributes that
 // correspond to Grip’s structured payload formats.
 func addAttrsFromPayload(ctx context.Context, rec *slog.Record, in any) {
+	addField := makeAddAttr(rec)
+
 	switch v := in.(type) {
 	case nil:
 		// Nothing to add for a nil payload.
@@ -125,26 +127,23 @@ func addAttrsFromPayload(ctx context.Context, rec *slog.Record, in any) {
 	case []error:
 		rec.Add(slog.Any("errors", v))
 	case message.Fields: // alias of map[string]any
-		for k, val := range v {
-			rec.Add(slog.Any(k, val))
-		}
+		irt.Apply(irt.Merge(irt.Map(v), slog.Any), addField)
 	case map[string]any:
-		for k, val := range v {
-			rec.Add(slog.Any(k, val))
-		}
-	case *dt.Pairs[string, any]:
-		for k, v := range v.Iterator2() {
-			rec.Add(slog.Any(k, v))
-		}
-	case *fun.Stream[dt.Pair[string, any]]:
-		for p := range v.Iterator(ctx) {
-			rec.Add(slog.Any(p.Key, p.Value))
-		}
-	case dt.Pairs[string, any]:
-		addAttrsFromPayload(ctx, rec, &v)
+		irt.Apply(irt.Merge(irt.Map(v), slog.Any), addField)
+	case iter.Seq2[string, any]:
+		irt.Apply(irt.Merge(v, slog.Any), addField)
+	case []irt.KV[string, any]:
+		irt.Apply(irt.Merge(irt.KVsplit(irt.Slice(v)), slog.Any), addField)
+	case iter.Seq[irt.KV[string, any]]:
+		irt.Apply(irt.Merge(irt.KVsplit(v), slog.Any), addField)
 	case *message.BuilderKV:
 		addAttrsFromPayload(ctx, rec, v.Raw())
 	default:
 		rec.Add(slog.Any("payload", in))
 	}
 }
+
+func makeAddAttr(rec *slog.Record) func(slog.Attr) { return func(a slog.Attr) { addAttr(rec, a) } }
+func addAttr(rec *slog.Record, attr slog.Attr)     { rec.Add(attr) }
+
+func toAttr[V any](k string, v V) slog.Attr { return slog.Any(k, v) }

@@ -14,7 +14,6 @@ import (
 	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/fn"
 	"github.com/tychoish/fun/fnx"
-	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/fun/irt"
 	"github.com/tychoish/fun/opt"
 	"github.com/tychoish/fun/pubsub"
@@ -42,7 +41,7 @@ type Collector struct {
 	// system. the broker is backed by the publish deque, but we
 	// use the deque directly when there's only one output.
 	broker  *pubsub.Broker[MetricPublisher]
-	publish *pubsub.Deque[MetricPublisher]
+	publish *pubsub.Queue[MetricPublisher]
 
 	// lifecycle an error collection.
 	ctx    context.Context
@@ -91,14 +90,14 @@ func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collec
 	conf := c.CollectorConf
 
 	c.ctx, c.cancel = context.WithCancel(ctx)
-	c.publish = pubsub.NewUnlimitedDeque[MetricPublisher]()
+	c.publish = pubsub.NewUnlimitedQueue[MetricPublisher]()
 	c.local.Default.SetConstructor(func() *dt.List[*tracked] { return &dt.List[*tracked]{} })
 	c.pool.SetConstructor(func() *bytes.Buffer { return &bytes.Buffer{} })
 	c.pool.SetCleanupHook(func(buf *bytes.Buffer) *bytes.Buffer { buf.Reset(); return buf })
 
 	if len(conf.Backends) == 1 {
 		c.wg.Launch(c.ctx, func(ctx context.Context) {
-			grip.Critical(conf.Backends[0].Worker(c.publish.IteratorWaitFront(ctx)).Run(ctx))
+			grip.Critical(conf.Backends[0].Worker(c.publish.IteratorWait(ctx)).Run(ctx))
 		})
 
 		return c, nil
@@ -110,7 +109,7 @@ func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collec
 		ParallelDispatch: true,
 	}
 
-	c.broker = pubsub.NewDequeBroker(ctx, c.publish, pbopts)
+	c.broker = pubsub.NewQueueBroker(ctx, c.publish, pbopts)
 
 	for idx := range conf.Backends {
 		ch := c.broker.Subscribe(c.ctx)
@@ -126,7 +125,9 @@ func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collec
 }
 
 func (c *Collector) Close() error {
-	ft.CallSafe(c.cancel)
+	if c.cancel != nil {
+		c.cancel()
+	}
 	c.wg.Operation().Wait()
 	if c.broker != nil {
 		c.broker.Stop()
@@ -144,9 +145,9 @@ func (c *Collector) ReadAll(st iter.Seq[*Event], opts ...opt.Provider[*wpa.Worke
 
 func (c *Collector) Push(events ...*Event) { c.Publish(events) }
 func (c *Collector) Publish(events []*Event) {
-	ft.Ignore(c.ReadAll(irt.Slice(events)).Run(c.ctx))
+	_ = (c.ReadAll(irt.Slice(events)).Run(c.ctx))
 }
-func (c *Collector) PushEvent(e *Event) { ft.Ignore(c.pushHandler(c.ctx, e)) }
+func (c *Collector) PushEvent(e *Event) { _ = c.pushHandler(c.ctx, e) }
 
 func (c *Collector) publishHandler(ctx context.Context, events []*Event) error {
 	return pubsub.SliceStream(events).ReadAll(fnx.FromHandler(c.PushEvent)).Run(ctx)
@@ -176,8 +177,9 @@ func (c *Collector) pushHandler(ctx context.Context, e *Event) error {
 			tr.meta.ID,
 			tr.meta.labelCache,
 			val, e.ts)
+		_, err := wr.Write(buf.Bytes())
 
-		return ft.IgnoreFirst(wr.Write(buf.Bytes()))
+		return err
 	})
 }
 
@@ -227,7 +229,7 @@ func (c *Collector) distribute(ctx context.Context, fn MetricPublisher) error {
 	case c.broker != nil:
 		return c.broker.Send(ctx, fn)
 	case c.publish != nil:
-		return c.publish.PushBack(fn)
+		return c.publish.Push(fn)
 	default:
 		return ers.New("configuration issue, publication error")
 	}
@@ -329,8 +331,9 @@ func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
 								defer c.pool.Put(buf)
 
 								tr.local.Resolve(buf, r)
+								_, err := wr.Write(buf.Bytes())
 
-								return ft.IgnoreFirst(wr.Write(buf.Bytes()))
+								return err
 							})
 						})).Run(c.ctx)
 						if err != nil {

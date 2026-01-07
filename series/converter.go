@@ -7,9 +7,9 @@ import (
 
 	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/fun/dt"
-	fn "github.com/tychoish/fun/fn"
-	"github.com/tychoish/fun/ft"
+	"github.com/tychoish/fun/fn"
 	"github.com/tychoish/fun/irt"
+	"github.com/tychoish/fun/stw"
 	"github.com/tychoish/grip/message"
 )
 
@@ -123,7 +123,7 @@ func extractMetrics[T eventObjects | extractableMessageTypes | extractableMessag
 	msg T,
 	buildMessage metricMessageExtractOption,
 ) *MetricMessage {
-	if out, ok := ft.Cast[*MetricMessage](msg); ok {
+	if out, ok := any(msg).(*MetricMessage); ok {
 		return out
 	}
 
@@ -134,8 +134,8 @@ func extractMetrics[T eventObjects | extractableMessageTypes | extractableMessag
 	if !hasMetrics(msg) {
 		return &MetricMessage{Composer: message.Convert(msg)}
 	}
-
-	return ft.Ptr(resolveEvents(msg, buildMessage))
+	val := resolveEvents(msg, buildMessage)
+	return &val
 }
 
 func isEventTyped(in any) bool {
@@ -162,7 +162,7 @@ func getEvents(in any) []*Event {
 	case []Event:
 		out := make([]*Event, 0, len(ev))
 		for idx := range ev {
-			out[idx] = ft.Ptr(ev[idx])
+			out[idx] = stw.Ptr(ev[idx])
 		}
 		return out
 	case EventExtractor:
