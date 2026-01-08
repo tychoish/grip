@@ -7,4 +7,4 @@ require (
 	github.com/tychoish/grip v0.4.1
 )
 
-// replace github.com/tychoish/grip => ../../
+replace github.com/tychoish/grip => ../../

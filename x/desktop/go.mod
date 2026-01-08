@@ -16,4 +16,4 @@ require (
 	golang.org/x/sys v0.33.0 // indirect
 )
 
-// replace github.com/tychoish/grip => ../../
+replace github.com/tychoish/grip => ../../

@@ -17,4 +17,4 @@ require (
 	github.com/tychoish/fun v0.14.0 // indirect
 )
 
-// replace github.com/tychoish/grip => ../../
+replace github.com/tychoish/grip => ../../
