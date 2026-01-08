@@ -6,7 +6,7 @@ require (
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/tychoish/birch v0.3.1
 	github.com/tychoish/birch/x/ftdc v0.0.0-20251029024444-91e948b0e397
-	github.com/tychoish/fun v0.13.0
+	github.com/tychoish/fun v0.14.0
 	github.com/tychoish/grip v0.4.1
 )
 
@@ -22,9 +22,3 @@ require (
 )
 
 replace github.com/tychoish/grip => ../../
-
-replace github.com/tychoish/birch => ../../../birch/
-
-replace github.com/tychoish/birch/x/ftdc => ../../../birch/x/ftdc/
-
-replace github.com/tychoish/fun => ../../../fun/

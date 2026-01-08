@@ -7,6 +7,6 @@ require (
 	github.com/tychoish/grip v0.4.1
 )
 
-require github.com/tychoish/fun v0.13.0
+require github.com/tychoish/fun v0.14.0
 
 // replace github.com/tychoish/grip => ../../

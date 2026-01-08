@@ -10,7 +10,7 @@ require (
 require (
 	github.com/google/uuid v1.0.0 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
-	github.com/tychoish/fun v0.13.0 // indirect
+	github.com/tychoish/fun v0.14.0 // indirect
 )
 
 // replace github.com/tychoish/grip => ../../

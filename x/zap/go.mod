@@ -3,7 +3,7 @@ module github.com/tychoish/grip/x/zap
 go 1.24
 
 require (
-	github.com/tychoish/fun v0.13.0
+	github.com/tychoish/fun v0.14.0
 	github.com/tychoish/grip v0.4.1
 	go.uber.org/zap v1.24.0
 )
@@ -16,5 +16,3 @@ require (
 )
 
 replace github.com/tychoish/grip => ../../
-
-replace github.com/tychoish/fun => ../../../fun/
