@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/gen2brain/beeep v0.0.0-20220518085355-d7852edf42fc
-	github.com/tychoish/grip v0.4.1
+	github.com/tychoish/grip v0.4.2
 )
 
 require (
@@ -16,4 +16,4 @@ require (
 	golang.org/x/sys v0.33.0 // indirect
 )
 
-replace github.com/tychoish/grip => ../../
+// replace github.com/tychoish/grip => ../../

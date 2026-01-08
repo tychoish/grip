@@ -5,7 +5,7 @@ go 1.24
 require (
 	github.com/dghubble/go-twitter v0.0.0-20220626024101-68c0170dc641
 	github.com/dghubble/oauth1 v0.7.1
-	github.com/tychoish/grip v0.4.1
+	github.com/tychoish/grip v0.4.2
 )
 
 require (
@@ -17,4 +17,4 @@ require (
 	github.com/tychoish/fun v0.14.0 // indirect
 )
 
-replace github.com/tychoish/grip => ../../
+// replace github.com/tychoish/grip => ../../

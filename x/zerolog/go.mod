@@ -5,7 +5,7 @@ go 1.24
 require (
 	github.com/rs/zerolog v1.27.0
 	github.com/tychoish/fun v0.14.0
-	github.com/tychoish/grip v0.4.1
+	github.com/tychoish/grip v0.4.2
 )
 
 require (
@@ -14,4 +14,4 @@ require (
 	golang.org/x/sys v0.33.0 // indirect
 )
 
-replace github.com/tychoish/grip => ../../
+// replace github.com/tychoish/grip => ../../

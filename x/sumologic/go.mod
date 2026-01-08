@@ -6,7 +6,7 @@ replace github.com/nutmegdevelopment/sumologic => github.com/tychoish/sumologic 
 
 require (
 	github.com/nutmegdevelopment/sumologic v0.0.0-00010101000000-000000000000
-	github.com/tychoish/grip v0.4.1
+	github.com/tychoish/grip v0.4.2
 )
 
 require (
@@ -14,4 +14,4 @@ require (
 	github.com/tychoish/fun v0.14.0 // indirect
 )
 
-replace github.com/tychoish/grip => ../../
+// replace github.com/tychoish/grip => ../../

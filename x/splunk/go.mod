@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/fuyufjh/splunk-hec-go v0.4.0
-	github.com/tychoish/grip v0.4.1
+	github.com/tychoish/grip v0.4.2
 )
 
 require (
@@ -13,4 +13,4 @@ require (
 	github.com/tychoish/fun v0.14.0 // indirect
 )
 
-replace github.com/tychoish/grip => ../../
+// replace github.com/tychoish/grip => ../../
