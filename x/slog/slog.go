@@ -138,6 +138,8 @@ func addAttrsFromPayload(ctx context.Context, rec *slog.Record, in any) {
 		irt.Apply(irt.Merge(irt.KVsplit(v), slog.Any), addField)
 	case *message.BuilderKV:
 		addAttrsFromPayload(ctx, rec, v.Raw())
+	case interface{ Iterator() iter.Seq2[string, any] }:
+		irt.Apply(irt.Merge(v.Iterator(), slog.Any), addField)
 	default:
 		rec.Add(slog.Any("payload", in))
 	}
