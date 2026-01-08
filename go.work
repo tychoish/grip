@@ -3,12 +3,10 @@ go 1.24
 use (
 	.
 	./x/desktop
-	./x/email
 	./x/github
 	./x/jira
 	./x/metrics
 	./x/slack
-	./x/slog
 	./x/splunk
 	./x/sumologic
 	./x/system
