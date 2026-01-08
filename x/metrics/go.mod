@@ -23,4 +23,8 @@ require (
 
 replace github.com/tychoish/grip => ../../
 
+replace github.com/tychoish/birch => ../../../birch/
+
+replace github.com/tychoish/birch/x/ftdc => ../../../birch/x/ftdc/
+
 replace github.com/tychoish/fun => ../../../fun/

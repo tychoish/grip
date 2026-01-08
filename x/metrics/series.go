@@ -10,7 +10,6 @@ import (
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/fn"
-	"github.com/tychoish/fun/ft"
 	"github.com/tychoish/grip/series"
 )
 
@@ -34,7 +33,7 @@ func RenderMetricBSON(buf *bytes.Buffer, key string, labels fn.Future[iter.Seq2[
 		birch.EC.Time("ts", ts),
 		birch.EC.Int64("value", value),
 	)
-	erc.Invariant(ft.IgnoreFirst(doc.WriteTo(buf)))
+	erc.Must(doc.WriteTo(buf))
 }
 
 func RenderHistogramBSON(
@@ -56,9 +55,9 @@ func RenderHistogramBSON(
 
 	doc.Append(birch.EC.Time("ts", ts))
 	quants := birch.DC.Make(sample.Len())
-	for key, value := range sample.Iterator2() {
+	for key, value := range sample.Iterator() {
 		quants.Append(birch.EC.Int64(fmt.Sprint(int(key*100)), value))
 	}
 
-	erc.Invariant(ft.IgnoreFirst(doc.WriteTo(wr)))
+	erc.Must(doc.WriteTo(wr))
 }

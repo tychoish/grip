@@ -18,6 +18,7 @@ import (
 	"github.com/tychoish/fun/ers"
 	"github.com/tychoish/fun/fn"
 	"github.com/tychoish/fun/fnx"
+	"github.com/tychoish/fun/irt"
 	"github.com/tychoish/fun/opt"
 	"github.com/tychoish/fun/pubsub"
 	"github.com/tychoish/fun/wpa"
@@ -175,16 +176,17 @@ func PassthroughBackend(r Renderer, handler fnx.Handler[string], opts ...opt.Pro
 	pool.SetCleanupHook(func(buf *bytes.Buffer) *bytes.Buffer { buf.Reset(); return buf })
 
 	return func(ctx context.Context, seq iter.Seq[MetricPublisher]) error {
-		return pubsub.Convert(fnx.MakeConverter(
-			func(mp MetricPublisher) string {
-				buf := pool.Get()
-				defer pool.Put(buf)
-				erc.Invariant(mp(buf, r))
-				return buf.String()
-			})).
-			Stream(pubsub.IteratorStream(seq)).
-			Parallel(handler, opts...).
-			Run(ctx)
+		return wpa.WithHandler(handler).RunWithPool(opts...).For(
+			irt.Convert(
+				seq,
+				func(mp MetricPublisher) string {
+					buf := pool.Get()
+					defer pool.Put(buf)
+					erc.Invariant(mp(buf, r))
+					return buf.String()
+				},
+			),
+		).Run(ctx)
 	}
 }
 

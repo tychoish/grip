@@ -210,18 +210,22 @@ func (c *Collector) Register(prod fnx.Future[[]*Event], dur time.Duration) {
 //
 // The returned stream inherits the Collector's context, so canceling the
 // Collector or exhausting the stream will release all underlying resources.
-func (c *Collector) Stream() *pubsub.Stream[MetricSnapshot] {
-	return pubsub.Convert(fnx.MakeConverter(func(tr *tracked) MetricSnapshot {
-		last := tr.lastMod.Load()
-		return MetricSnapshot{
-			Name:      tr.meta.ID,
-			Labels:    tr.meta.labelstr(),
-			Value:     last.Key,
-			Timestamp: last.Value,
+func (c *Collector) Stream() iter.Seq[MetricSnapshot] {
+	return func(yield func(MetricSnapshot) bool) {
+		for list := range c.local.Values() {
+			for tr := range list.IteratorFront() {
+				last := tr.lastMod.Load()
+				if !yield(MetricSnapshot{
+					Name:      tr.meta.ID,
+					Labels:    tr.meta.labelstr(),
+					Value:     last.Key,
+					Timestamp: last.Value,
+				}) {
+					return
+				}
+			}
 		}
-	})).Stream(pubsub.MergeStreams(pubsub.Convert(fnx.MakeConverter(func(list *dt.List[*tracked]) *pubsub.Stream[*tracked] {
-		return pubsub.IteratorStream(list.IteratorFront())
-	})).Stream(pubsub.IteratorStream(c.local.Values()))))
+	}
 }
 
 func (c *Collector) distribute(ctx context.Context, fn MetricPublisher) error {
@@ -325,7 +329,7 @@ func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
 					case <-ctx.Done():
 						return
 					case <-ticker.C:
-						err := pubsub.IteratorStream(pipe.IteratorFront(c.ctx)).ReadAll(fnx.FromHandler(func(tr *tracked) {
+						for tr := range pipe.IteratorFront(c.ctx) {
 							c.broker.Publish(c.ctx, func(wr io.Writer, r Renderer) error {
 								buf := c.pool.Get()
 								defer c.pool.Put(buf)
@@ -335,9 +339,6 @@ func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
 
 								return err
 							})
-						})).Run(c.ctx)
-						if err != nil {
-							return
 						}
 					}
 				}

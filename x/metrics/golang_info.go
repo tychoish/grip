@@ -7,7 +7,6 @@ import (
 
 	"github.com/tychoish/birch"
 	"github.com/tychoish/fun/adt"
-	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/message"
 )
 
@@ -86,6 +85,7 @@ func (s statRate) float() float64 {
 	}
 	return float64(s.Delta) / float64(s.Duration)
 }
+
 func (s statRate) int() int64 {
 	if s.Duration == 0 {
 		return 0
@@ -133,8 +133,10 @@ func CollectBasicGoStats() message.Composer {
 	})
 }
 
-var _ message.Composer = &GoRuntimeInfo{}
-var _ birch.DocumentMarshaler = &GoRuntimeInfo{}
+var (
+	_ message.Composer        = &GoRuntimeInfo{}
+	_ birch.DocumentMarshaler = &GoRuntimeInfo{}
+)
 
 // GoRuntimeInfo provides a structured format for data about the
 // current go runtime. Also implements the message composer interface.
@@ -289,7 +291,6 @@ func (s *GoRuntimeInfo) build() {
 		s.Payload.GC = goStatsCache.gcRate.current
 		s.Payload.CgoCalls = goStatsCache.cgoCalls.current
 	default:
-		erc.Whenf(true, "invalid counter type: %v", s.ct)
 	}
 
 	s.loggable = true
