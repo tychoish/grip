@@ -13,7 +13,7 @@ import (
 
 // BuilderKV is a chainable interface for building a KV/dt.Pair
 // message. These are very similar to Fields messages, however their
-// keys are ordered, duplicate keys can be defined, and
+// keys are ordered. Satisfies the message.Composer interface.
 type BuilderKV struct {
 	kvs          dt.OrderedMap[string, any]
 	cachedSize   int
@@ -22,9 +22,9 @@ type BuilderKV struct {
 	Base
 }
 
-// BuildPair creates a wrapper around a composer that allows for a
+// BuildKV creates a wrapper around a composer that allows for a
 // chainable pair message building interface.
-func BuildPair() *BuilderKV { return &BuilderKV{} }
+func BuildKV() *BuilderKV { return &BuilderKV{} }
 
 // Composer returns the builder as a composer-type
 func (p *BuilderKV) Composer() Composer                          { return p }
@@ -34,7 +34,7 @@ func (p *BuilderKV) Level(l level.Priority) *BuilderKV           { p.SetPriority
 func (p *BuilderKV) Fields(f Fields) *BuilderKV                  { p.kvs.Extend(maps.All(f)); return p }
 func (p *BuilderKV) Extend(in iter.Seq2[string, any]) *BuilderKV { p.kvs.Extend(in); return p }
 
-func (p *BuilderKV) PairWhen(cond bool, k string, v any) *BuilderKV {
+func (p *BuilderKV) WhenKV(cond bool, k string, v any) *BuilderKV {
 	if cond {
 		p.Pair(k, v)
 	}
@@ -46,8 +46,7 @@ func vtoany[V any](seq iter.Seq2[string, V]) iter.Seq2[string, any] {
 }
 
 // MakeKV constructs a new Composer from a dt.OrderedMap).
-func MakeKV[V any](seq iter.Seq2[string, V]) Composer { return BuildPair().Extend(vtoany(seq)) }
-func MakePairs(kvs iter.Seq2[string, any]) Composer   { return BuildPair().Extend(kvs) }
+func MakeKV[V any](seq iter.Seq2[string, V]) Composer { return BuildKV().Extend(vtoany(seq)) }
 func KV(k string, v any) iter.Seq2[string, any]       { return irt.Two(k, v) }
 func (p *BuilderKV) Annotate(key string, value any)   { p.kvs.Set(key, value) }
 func (p *BuilderKV) Loggable() bool                   { return p.kvs.Len() > 0 }

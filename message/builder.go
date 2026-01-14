@@ -132,17 +132,23 @@ func (b *Builder) Bytes(in []byte) *Builder               { return b.set(MakeByt
 func (b *Builder) AnyMap(f map[string]any) *Builder       { return b.Fields(f) }
 func (b *Builder) StringMap(f map[string]string) *Builder { return b.Fields(FieldsFromMap(f)) }
 func (b *Builder) Annotate(key string, val any) *Builder  { return b.KV(key, val) }
-func (b *Builder) KV(k string, v any) *Builder            { return b.Pairs(stw.Map[string, any]{k: v}) }
+func (b *Builder) KV(k string, v any) *Builder            { return b.KVs(stw.Map[string, any]{k: v}) }
 func (b *Builder) Group() *Builder                        { return b.SetGroup(true) }
 func (b *Builder) Ungroup() *Builder                      { return b.SetGroup(false) }
-func (b *Builder) P() *BuilderP                           { return b.PairBuilder() }
+func (b *Builder) P() *BuilderP                           { return b.KVbuilder() }
 func (b *Builder) Future() *BuilderFuture                 { return &BuilderFuture{uilder: b} }
 
-// PairBuilder creates a new PairBuilder, in a special builder
+func (b *Builder) Extend(seq iter.Seq2[string, any]) *Builder {
+	b = b.withComposerKV()
+	irt.Apply2(seq, b.composer.Annotate)
+	return b
+}
+
+// KVbuilder creates a new KVbuilder, in a special builder
 // wrapper, that makes it possible to access the original builder and
 // send the message, as needed.
-func (b *Builder) PairBuilder() *BuilderP {
-	return setMsgOn(b, &BuilderP{outer: b, BuilderKV: BuildPair()})
+func (b *Builder) KVbuilder() *BuilderP {
+	return setMsgOn(b, &BuilderP{outer: b, BuilderKV: BuildKV()})
 }
 
 type BuilderP struct {
@@ -157,7 +163,7 @@ func (b *BuilderP) Builder() *Builder { return b.outer }
 type BuilderFuture struct{ uilder *Builder }
 
 func addFuture[T any](b *BuilderFuture, f fn.Future[T]) *BuilderFuture {
-	WithFuture(b.uilder, f)
+	b.uilder = WithFuture(b.uilder, f)
 	return b
 }
 
@@ -170,7 +176,7 @@ func (b *BuilderFuture) Map(f fn.Future[map[string]any]) *BuilderFuture { return
 func (b *BuilderFuture) Composer(f fn.Future[Composer]) *BuilderFuture  { return addFuture(b, f) }
 func (b *BuilderFuture) Error(f fn.Future[error]) *BuilderFuture        { return addFuture(b, f) }
 func (b *BuilderFuture) String(f fn.Future[string]) *BuilderFuture      { return addFuture(b, f) }
-func (b *BuilderFuture) Pairs(f fn.Future[iter.Seq2[string, any]]) *BuilderFuture {
+func (b *BuilderFuture) KVs(f fn.Future[iter.Seq2[string, any]]) *BuilderFuture {
 	return addFuture(b, f)
 }
 
@@ -195,11 +201,11 @@ func (b *Builder) Fields(f Fields) *Builder {
 	return b
 }
 
-// Pairs, creates a new key-value message if no message has been
+// KVs, creates a new key-value message if no message has been
 // defined, and otherwise annotates the existing message with the
 // content of the input set. This is the same semantics as the Fields
 // method.
-func (b *Builder) Pairs(mps interface{ Iterator() iter.Seq2[string, any] }) *Builder {
+func (b *Builder) KVs(mps interface{ Iterator() iter.Seq2[string, any] }) *Builder {
 	if b.composer == nil {
 		b.composer = MakeKV(mps.Iterator())
 		return b
@@ -207,6 +213,13 @@ func (b *Builder) Pairs(mps interface{ Iterator() iter.Seq2[string, any] }) *Bui
 
 	irt.Apply2(mps.Iterator(), b.composer.Annotate)
 
+	return b
+}
+
+func (b *Builder) withComposerKV() *Builder {
+	if b.composer == nil {
+		b.composer = BuildKV()
+	}
 	return b
 }
 
