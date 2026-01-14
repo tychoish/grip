@@ -50,7 +50,7 @@ type Metric struct {
 }
 
 func (m *Metric) labels() *adt.OrderedSet[irt.KV[string, string]] {
-	return m.labelSet.Call(m.initLabels)
+	return m.labelSet.Do(m.initLabels)
 }
 
 func (m *Metric) initLabels() *adt.OrderedSet[irt.KV[string, string]] {

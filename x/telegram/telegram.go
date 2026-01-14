@@ -46,7 +46,6 @@ func (opts *Options) Validate() error {
 	if opts.Client == nil {
 		opts.Client = &http.Client{}
 	}
-
 	ec := &erc.Collector{}
 	ec.If(opts.Token == "", ers.New("must specify a token"))
 	ec.If(opts.Target == "", ers.New("must specify a target or chatID"))
