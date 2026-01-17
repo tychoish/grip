@@ -6,6 +6,7 @@ import (
 
 	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/irt"
 	"github.com/tychoish/grip/level"
 )
 
@@ -35,7 +36,7 @@ func MakeGroupComposer(msgs []Composer) *GroupComposer {
 		cache:    adt.NewAtomic(""),
 	}
 
-	gc.messages.With(func(list *dt.List[Composer]) { list.Append(msgs...) })
+	gc.messages.With(func(list *dt.List[Composer]) { list.Extend(irt.Slice(msgs)) })
 
 	return gc
 }
@@ -195,10 +196,7 @@ func (g *GroupComposer) Unwind() Composer {
 // Extend makes it possible to add a group of messages to an existing
 // group composer.
 func (g *GroupComposer) Extend(msg []Composer) {
-	g.messages.With(func(list *dt.List[Composer]) {
-		g.cache.Set("")
-		list.Append(msg...)
-	})
+	g.messages.With(func(list *dt.List[Composer]) { g.cache.Set(""); list.Extend(irt.Slice(msg)) })
 }
 
 // Add supports adding messages to an existing group composer.
