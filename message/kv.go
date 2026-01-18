@@ -28,7 +28,7 @@ func BuildKV() *BuilderKV { return &BuilderKV{} }
 
 // Composer returns the builder as a composer-type
 func (p *BuilderKV) Composer() Composer                          { return p }
-func (p *BuilderKV) Pair(key string, value any) *BuilderKV       { p.kvs.Set(key, value); return p }
+func (p *BuilderKV) KV(key string, value any) *BuilderKV         { p.kvs.Set(key, value); return p }
 func (p *BuilderKV) Option(f Option) *BuilderKV                  { p.SetOption(f); return p }
 func (p *BuilderKV) Level(l level.Priority) *BuilderKV           { p.SetPriority(l); return p }
 func (p *BuilderKV) Fields(f Fields) *BuilderKV                  { p.kvs.Extend(maps.All(f)); return p }
@@ -36,7 +36,7 @@ func (p *BuilderKV) Extend(in iter.Seq2[string, any]) *BuilderKV { p.kvs.Extend(
 
 func (p *BuilderKV) WhenKV(cond bool, k string, v any) *BuilderKV {
 	if cond {
-		p.Pair(k, v)
+		p.KV(k, v)
 	}
 	return p
 }

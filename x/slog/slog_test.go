@@ -118,9 +118,9 @@ func TestPairBuilder(t *testing.T) {
 	s := slogx.MakeSender(ctx, slog.New(h))
 
 	builder := &message.BuilderKV{}
-	builder.Pair("alpha", 1).
-		Pair("beta", true).
-		Pair("gamma", 3.14).
+	builder.KV("alpha", 1).
+		KV("beta", true).
+		KV("gamma", 3.14).
 		Level(level.Notice)
 
 	s.Send(builder)
