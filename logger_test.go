@@ -35,7 +35,6 @@ func TestLogger(t *testing.T) {
 			defer func() {
 				if r := recover(); r != nil {
 					t.Fatal(r)
-
 				}
 			}()
 
@@ -65,7 +64,6 @@ func TestLogger(t *testing.T) {
 
 			EmergencyPanic(message.MakeLines("bar"))
 		}()
-
 	})
 	t.Run("PanicRespectsThreshold", func(t *testing.T) {
 		grip := NewLogger(testSender(t))
@@ -82,7 +80,6 @@ func TestLogger(t *testing.T) {
 		defer func() {
 			if r := recover(); r != nil {
 				t.Fatal("panic doesn't respect level")
-
 			}
 		}()
 
@@ -199,7 +196,7 @@ func TestLogger(t *testing.T) {
 
 		const msg = "hello world!"
 		multiMessage := []message.Composer{
-			message.Convert(nil),
+			message.Convert[error](nil),
 			message.Convert(msg),
 		}
 
@@ -281,7 +278,6 @@ func TestLogger(t *testing.T) {
 				t.Fatalf("[id=%d] %T %s", idx, logger, out.Priority)
 			}
 		}
-
 	})
 	t.Run("DefaultJournalerIsBootstrap", func(t *testing.T) {
 		grip := NewLogger(testSender(t))
@@ -309,7 +305,6 @@ func TestLogger(t *testing.T) {
 				t.Fatal("name was not correctly set")
 			}
 		}
-
 	})
 	t.Run("StandardName", func(t *testing.T) {
 		check.Equal(t, "grip", std.impl.Get().Name())
@@ -320,7 +315,6 @@ func TestLogger(t *testing.T) {
 		setupDefault()
 		check.Equal(t, "merlin", std.impl.Get().Name())
 	})
-
 }
 
 // This testing method uses the technique outlined in:
@@ -368,5 +362,4 @@ func TestSendFatalExits(t *testing.T) {
 		grip.sendFatal(level.Debug, message.Convert("hello world"))
 		grip.sendFatal(0, message.Convert("hello world"))
 	})
-
 }

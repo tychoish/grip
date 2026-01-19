@@ -466,7 +466,7 @@ func TestConverter(t *testing.T) {
 			tt.Expected.SetOption(OptionSkipMetadata)
 			for convMethod, got := range map[string]Composer{
 				"Converter":       Convert(tt.Input),
-				"BuilderProducer": NewBuilder(nil, testConverter(t, true)).Future().Convert(func() any { return tt.Input }).Builder().Message(),
+				"BuilderProducer": NewBuilder(nil, testConverter(t, true)).Future().Convert(func() any { return tt.Input }).Message(),
 				"AddToBuilder":    WithFuture(NewBuilder(nil, testConverter(t, true)), func() Composer { return Convert(tt.Input) }).Message(),
 				"Builder":         NewBuilder(nil, testConverter(t, true)).Any(tt.Input).Message(),
 				"BuilderComposer": NewBuilder(nil, testConverter(t, true)).Composer(Convert(tt.Input)).Message(),

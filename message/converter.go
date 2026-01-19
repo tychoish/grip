@@ -5,6 +5,7 @@ import (
 	"iter"
 
 	"github.com/tychoish/fun/fn"
+	"github.com/tychoish/fun/irt"
 )
 
 // Converter is an interface for converting arbitrary types to
@@ -49,92 +50,153 @@ func (defaultConverter) Convert(m any) Composer { return Convert(m) }
 // interface. The DefaultConverter implementation provides a wrapper
 // around this implementation. The ConverterFunc-based implementations
 // fall back to this implementation
-func Convert(input any) Composer {
-	switch message := input.(type) {
+func Convert[T any](input T) Composer {
+	switch message := any(input).(type) {
 	case nil:
 		return Noop()
 	case Composer:
 		return message
-	case []Composer:
-		return MakeGroupComposer(message)
 	case string:
 		return MakeString(message)
-	case []string:
-		return newLinesFromStrings(message)
-	case []any:
-		return buildFromSlice(message)
 	case error:
 		return MakeError(message)
 	case Fields:
 		return MakeFields(message)
-	case map[string]any:
-		return MakeFields(Fields(message))
+	case Marshaler:
+		return MakeFuture(message.MarshalComposer)
+
 	case []byte:
 		return MakeBytes(message)
+	case map[string]any:
+		return MakeFields(Fields(message))
+	case map[string]string:
+		return MakeKV(irt.Map(message))
+
+	case iter.Seq[error]:
+		return CreateGroupComposer(irt.Convert(message, MakeError))
 	case iter.Seq2[string, any]:
 		return MakeKV(message)
 	case iter.Seq2[string, string]:
 		return MakeKV(message)
+	case iter.Seq[irt.KV[string, any]]:
+		return MakeKV(irt.KVsplit(message))
+	case iter.Seq[irt.KV[string, string]]:
+		return MakeKV(irt.KVsplit(message))
+
 	case fn.Future[Fields]:
-		return MakeFuture(message)
-	case func() Fields:
 		return MakeFuture(message)
 	case fn.Future[Composer]:
 		return MakeFuture(message)
-	case func() Composer:
+	case fn.Future[error]:
 		return MakeFuture(message)
 	case fn.Future[map[string]any]:
 		return MakeFuture(message)
-	case func() map[string]any:
-		return MakeFuture(message)
-	case fn.Future[error]:
-		return MakeFuture(message)
-	case func() error:
+	case fn.Future[map[string]string]:
 		return MakeFuture(message)
 	case fn.Future[iter.Seq2[string, any]]:
 		return MakeFuture(message)
-	case func() iter.Seq2[string, any]:
-		return MakeFuture(message)
 	case fn.Future[iter.Seq2[string, string]]:
+		return MakeFuture(message)
+	case fn.Future[iter.Seq[irt.KV[string, any]]]:
+		return MakeFuture(message)
+	case fn.Future[iter.Seq[irt.KV[string, string]]]:
+		return MakeFuture(message)
+	case fn.Future[iter.Seq[error]]:
+		return MakeFuture(message)
+
+	case func() Fields:
+		return MakeFuture(message)
+	case func() Composer:
+		return MakeFuture(message)
+	case func() map[string]any:
+		return MakeFuture(message)
+	case func() map[string]string:
+		return MakeFuture(message)
+	case func() error:
+		return MakeFuture(message)
+	case func() iter.Seq2[string, any]:
 		return MakeFuture(message)
 	case func() iter.Seq2[string, string]:
 		return MakeFuture(message)
-	case Marshaler:
-		return MakeFuture(message.MarshalComposer)
+	case func() iter.Seq[irt.KV[string, any]]:
+		return MakeFuture(message)
+	case func() iter.Seq[irt.KV[string, string]]:
+		return MakeFuture(message)
+	case func() iter.Seq[error]:
+		return MakeFuture(message)
+
+	case []string:
+		return newLinesFromStrings(message)
+
+	case []Composer:
+		return MakeGroupComposer(message)
+	case []Fields:
+		return convertSlice(message)
+	case []any:
+		return buildFromSlice(message)
+	case []error:
+		return JoinErrors(irt.Slice(message))
+
 	case [][]string:
 		return convertSlice(message)
 	case [][]byte:
 		return convertSlice(message)
 	case []map[string]any:
 		return convertSlice(message)
-	case []Fields:
-		return convertSlice(message)
-	case []fn.Future[Fields]:
-		return convertSlice(message)
-	case []func() Fields:
-		return convertSlice(message)
-	case []fn.Future[map[string]any]:
-		return convertSlice(message)
-	case []func() map[string]any:
-		return convertSlice(message)
-	case []fn.Future[Composer]:
-		return convertSlice(message)
-	case []func() Composer:
-		return convertSlice(message)
-	case []fn.Future[error]:
-		return convertSlice(message)
-	case []func() error:
+	case []map[string]string:
 		return convertSlice(message)
 	case [][]any:
 		return convertSlice(message)
 	case []Marshaler:
 		return convertSlice(message)
-	// case interface{ IsZero() bool }:
-	// 	if message.IsZero() {
-	// 		return Noop
-	// 	}
-	//
-	// 	return MakeFormat("%+v", message)
+
+	case []fn.Future[Fields]:
+		return convertSlice(message)
+	case []fn.Future[Composer]:
+		return convertSlice(message)
+	case []fn.Future[error]:
+		return convertSlice(message)
+	case []fn.Future[map[string]any]:
+		return convertSlice(message)
+	case []fn.Future[map[string]string]:
+		return convertSlice(message)
+	case []fn.Future[iter.Seq[error]]:
+		return convertSlice(message)
+	case []fn.Future[iter.Seq2[string, any]]:
+		return convertSlice(message)
+	case []fn.Future[iter.Seq2[string, string]]:
+		return convertSlice(message)
+	case []fn.Future[iter.Seq[irt.KV[string, any]]]:
+		return convertSlice(message)
+	case []fn.Future[iter.Seq[irt.KV[string, string]]]:
+		return convertSlice(message)
+
+	case []func() Fields:
+		return convertSlice(message)
+	case []func() Composer:
+		return convertSlice(message)
+	case []func() error:
+		return convertSlice(message)
+	case []func() iter.Seq[error]:
+		return convertSlice(message)
+	case []func() map[string]any:
+		return convertSlice(message)
+	case []func() map[string]string:
+		return convertSlice(message)
+	case []func() iter.Seq2[string, any]:
+		return convertSlice(message)
+	case []func() iter.Seq2[string, string]:
+		return convertSlice(message)
+	case []func() iter.Seq[irt.KV[string, any]]:
+		return convertSlice(message)
+	case []func() iter.Seq[irt.KV[string, string]]:
+		return convertSlice(message)
+
+	case interface{ IsZero() bool }:
+		if message.IsZero() {
+			return Noop()
+		}
+		return MakeFormat("%+v", message)
 	default:
 		return MakeFormat("%+v", message)
 	}
@@ -147,11 +209,15 @@ func convertSlice[T any](in []T) Composer {
 	case 1:
 		return Convert(in[0])
 	default:
-		out := make([]Composer, len(in))
-		for idx := range in {
-			out[idx] = Convert(in[idx])
-		}
-		return MakeGroupComposer(out)
+		return CreateGroupComposer(
+			irt.Convert(
+				irt.Convert(
+					irt.Slice(in),
+					func(in T) Composer { return Convert(any(in)) },
+				),
+				Convert,
+			),
+		)
 	}
 }
 

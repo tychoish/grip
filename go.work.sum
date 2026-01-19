@@ -5,6 +5,7 @@ github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/tychoish/fun v0.13.0/go.mod h1:ghjR/9EyWh8h8oBg2+WJhsEcF/W4JXMWpo6btMRNusE=
 github.com/tychoish/fun v0.14.0/go.mod h1:ghjR/9EyWh8h8oBg2+WJhsEcF/W4JXMWpo6btMRNusE=
+github.com/tychoish/fun v0.14.1/go.mod h1:ghjR/9EyWh8h8oBg2+WJhsEcF/W4JXMWpo6btMRNusE=
 go.uber.org/atomic v1.7.0 h1:ADUqmZGgLDDfbSL9ZmPxKTybcoEYHgpYfELNoN+7hsw=
 go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
 go.uber.org/multierr v1.6.0/go.mod h1:cdWPpRnG4AhwMwsgIHip0KRBQjJy5kYEpYjJxpXp9iU=

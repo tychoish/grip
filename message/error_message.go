@@ -2,13 +2,20 @@ package message
 
 import (
 	"errors"
+	"iter"
 	"sync"
+
+	"github.com/tychoish/fun/irt"
 )
 
 type errorComposerWrap struct {
 	err error
 	Composer
 	populate sync.Once
+}
+
+func JoinErrors(seq iter.Seq[error]) Composer {
+	return MakeFuture(func() error { return irt.JoinErrors(seq) })
 }
 
 // WrapError wraps an error and creates a composer converting the

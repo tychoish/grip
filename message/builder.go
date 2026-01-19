@@ -6,7 +6,6 @@ import (
 	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/fun/fn"
 	"github.com/tychoish/fun/irt"
-	"github.com/tychoish/fun/stw"
 	"github.com/tychoish/grip/level"
 )
 
@@ -105,7 +104,7 @@ func (b *Builder) Message() Composer {
 // Option sets options on the builder which are applied to the
 // message(s) as they are sent with Send(), or exported with
 // Message().
-func (b *Builder) SetOption(opts ...Option) *Builder { b.opts = append(b.opts, opts...); return b }
+func (b *Builder) WithOptions(opts ...Option) *Builder { b.opts = append(b.opts, opts...); return b }
 
 // Level sets the priority of the message. Call this after creating a
 // message via another method, otherwise an error is generated and
@@ -113,6 +112,20 @@ func (b *Builder) SetOption(opts ...Option) *Builder { b.opts = append(b.opts, o
 // if the level is not valid.
 func (b *Builder) Level(l level.Priority) *Builder               { b.level = fn.AsFuture(l); return b }
 func (b *Builder) Leveler(fp fn.Future[level.Priority]) *Builder { b.level = fp.Once(); return b }
+func (b *Builder) Loggable() bool                                { return b.composer != nil && b.composer.Loggable() }
+func (b *Builder) Extend(seq iter.Seq2[string, any]) *Builder    { return b.init().iter(seq) }
+func (b *Builder) Annotate(k string, v any)                      { b.init().push(k, v) }
+func (b *Builder) SetPriority(l level.Priority)                  { b.Level(l) }
+func (b *Builder) String() string                                { return b.init().composer.String() }
+func (b *Builder) Structured() bool                              { return b.init().composer.Structured() }
+func (b *Builder) Priority() level.Priority                      { return b.init().composer.Priority() }
+func (b *Builder) SetOption(opts ...Option)                      { b.WithOptions(opts...) }
+func (b *Builder) Raw() any                                      { return b.init().Raw() }
+func (b *Builder) with(k string, v any) *Builder                 { b.push(k, v); return b }
+func (b *Builder) push(k string, v any)                          { b.composer.Annotate(k, v) }
+func (b *Builder) iter(s iter.Seq2[string, any]) *Builder        { irt.Apply2(s, b.push); return b }
+func (b *Builder) set(msg Composer) *Builder                     { b.wrap(msg); return b }
+func (b *Builder) wrap(msg Composer)                             { b.composer = Wrap(b.composer, msg) }
 
 // When makes the message conditional. Pass a statement to this
 // function, that when false will cause the rest of the message to be
@@ -121,64 +134,34 @@ func (b *Builder) Leveler(fp fn.Future[level.Priority]) *Builder { b.level = fp.
 // methods.
 func (b *Builder) When(cond bool) *Builder                { b.composer = When(cond, b.composer); return b }
 func (b *Builder) SetGroup(sendAsGroup bool) *Builder     { b.sendAsGroup = sendAsGroup; return b }
+func (b *Builder) Group() *Builder                        { return b.SetGroup(true) }
+func (b *Builder) Ungroup() *Builder                      { return b.SetGroup(false) }
 func (b *Builder) Composer(c Composer) *Builder           { return b.set(c) }
 func (b *Builder) Any(msg any) *Builder                   { return b.set(b.converter.Convert(msg)) }
 func (b *Builder) F(tmpl string, a ...any) *Builder       { return b.set(MakeFormat(tmpl, a...)) }
-func (b *Builder) Ln(args ...any) *Builder                { return b.set(MakeLines(args...)) }
-func (b *Builder) Error(err error) *Builder               { return b.set(MakeError(err)) }
-func (b *Builder) String(str string) *Builder             { return b.set(MakeString(str)) }
+func (b *Builder) Ln(str string) *Builder                 { return b.set(MakeString(str)) }
+func (b *Builder) Lns(args ...any) *Builder               { return b.set(MakeLines(args...)) }
 func (b *Builder) Strings(ss []string) *Builder           { return b.set(newLinesFromStrings(ss)) }
+func (b *Builder) Error(err error) *Builder               { return b.set(MakeError(err)) }
 func (b *Builder) Bytes(in []byte) *Builder               { return b.set(MakeBytes(in)) }
 func (b *Builder) AnyMap(f map[string]any) *Builder       { return b.Fields(f) }
 func (b *Builder) StringMap(f map[string]string) *Builder { return b.Fields(FieldsFromMap(f)) }
-func (b *Builder) Annotate(key string, val any) *Builder  { return b.KV(key, val) }
-func (b *Builder) KV(k string, v any) *Builder            { return b.KVs(stw.Map[string, any]{k: v}) }
-func (b *Builder) Group() *Builder                        { return b.SetGroup(true) }
-func (b *Builder) Ungroup() *Builder                      { return b.SetGroup(false) }
-func (b *Builder) P() *BuilderP                           { return b.KVbuilder() }
+func (b *Builder) KV(k string, v any) *Builder            { return b.init().with(k, v) }
 func (b *Builder) Future() *BuilderFuture                 { return &BuilderFuture{uilder: b} }
 
-func (b *Builder) Extend(seq iter.Seq2[string, any]) *Builder {
-	b = b.withComposerKV()
-	irt.Apply2(seq, b.composer.Annotate)
-	return b
-}
+func (b *BuilderFuture) Send()                                    { b.uilder.Send() }
+func (b *BuilderFuture) Convert(f fn.Future[any]) *Builder        { return WithFuture(b.uilder, f) }
+func (b *BuilderFuture) Fields(f fn.Future[Fields]) *Builder      { return WithFuture(b.uilder, f) }
+func (b *BuilderFuture) Map(f fn.Future[map[string]any]) *Builder { return WithFuture(b.uilder, f) }
+func (b *BuilderFuture) Composer(f fn.Future[Composer]) *Builder  { return WithFuture(b.uilder, f) }
+func (b *BuilderFuture) Error(f fn.Future[error]) *Builder        { return WithFuture(b.uilder, f) }
+func (b *BuilderFuture) String(f fn.Future[string]) *Builder      { return WithFuture(b.uilder, f) }
 
-// KVbuilder creates a new KVbuilder, in a special builder
-// wrapper, that makes it possible to access the original builder and
-// send the message, as needed.
-func (b *Builder) KVbuilder() *BuilderP {
-	return setMsgOn(b, &BuilderP{outer: b, BuilderKV: BuildKV()})
+func (b *BuilderFuture) KV(f fn.Future[iter.Seq2[string, any]]) *Builder {
+	return WithFuture(b.uilder, f)
 }
-
-type BuilderP struct {
-	*BuilderKV
-	outer *Builder
-}
-
-func (b *BuilderP) Send()             { b.outer.Send() }
-func (b *BuilderP) Message() Composer { return b.BuilderKV }
-func (b *BuilderP) Builder() *Builder { return b.outer }
 
 type BuilderFuture struct{ uilder *Builder }
-
-func addFuture[T any](b *BuilderFuture, f fn.Future[T]) *BuilderFuture {
-	b.uilder = WithFuture(b.uilder, f)
-	return b
-}
-
-func (b *BuilderFuture) Send()             { b.uilder.Send() }
-func (b *BuilderFuture) Builder() *Builder { return b.uilder }
-
-func (b *BuilderFuture) Convert(f fn.Future[any]) *BuilderFuture        { return addFuture(b, f) }
-func (b *BuilderFuture) Fields(f fn.Future[Fields]) *BuilderFuture      { return addFuture(b, f) }
-func (b *BuilderFuture) Map(f fn.Future[map[string]any]) *BuilderFuture { return addFuture(b, f) }
-func (b *BuilderFuture) Composer(f fn.Future[Composer]) *BuilderFuture  { return addFuture(b, f) }
-func (b *BuilderFuture) Error(f fn.Future[error]) *BuilderFuture        { return addFuture(b, f) }
-func (b *BuilderFuture) String(f fn.Future[string]) *BuilderFuture      { return addFuture(b, f) }
-func (b *BuilderFuture) KVs(f fn.Future[iter.Seq2[string, any]]) *BuilderFuture {
-	return addFuture(b, f)
-}
 
 func WithFuture[T any](b *Builder, fp fn.Future[T]) *Builder {
 	return b.Composer(converterFuture(b.converter, fp))
@@ -201,36 +184,9 @@ func (b *Builder) Fields(f Fields) *Builder {
 	return b
 }
 
-// KVs, creates a new key-value message if no message has been
-// defined, and otherwise annotates the existing message with the
-// content of the input set. This is the same semantics as the Fields
-// method.
-func (b *Builder) KVs(mps interface{ Iterator() iter.Seq2[string, any] }) *Builder {
-	if b.composer == nil {
-		b.composer = MakeKV(mps.Iterator())
-		return b
-	}
-
-	irt.Apply2(mps.Iterator(), b.composer.Annotate)
-
-	return b
-}
-
-func (b *Builder) withComposerKV() *Builder {
+func (b *Builder) init() *Builder {
 	if b.composer == nil {
 		b.composer = BuildKV()
 	}
 	return b
-}
-
-func setMsgOn[T Composer](b *Builder, msg T) T { b.setMsg(msg); return msg }
-func (b *Builder) set(msg Composer) *Builder   { b.setMsg(msg); return b }
-
-func (b *Builder) setMsg(msg Composer) {
-	if b.composer == nil {
-		b.composer = msg
-		return
-	}
-
-	b.composer = Wrap(b.composer, msg)
 }

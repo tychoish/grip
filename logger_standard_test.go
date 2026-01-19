@@ -157,7 +157,6 @@ func TestBasicMethod(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestFormatMethods(t *testing.T) {
@@ -222,7 +221,6 @@ func TestLineMethods(t *testing.T) {
 
 	for kind, loggers := range cases {
 		t.Run(kind, func(t *testing.T) {
-
 			if l := len(loggers); l != 2 {
 				t.Errorf("length is %d not %d", l, 2)
 			}
@@ -322,8 +320,8 @@ func TestProgrgramaticLevelMethods(t *testing.T) {
 func TestBuilder(t *testing.T) {
 	s := setupFixtures(t)
 
-	Build().Level(level.Info).String("hello").Send()
-	s.logger.Build().Level(level.Info).String("hello").Send()
+	Build().Level(level.Info).Ln("hello").Send()
+	s.logger.Build().Level(level.Info).Ln("hello").Send()
 
 	assert.Equal(t,
 		s.loggingSender.GetMessage().Rendered,

@@ -2,6 +2,7 @@ package message
 
 import (
 	"math"
+	"iter"
 	"strings"
 
 	"github.com/tychoish/fun/adt"
@@ -24,20 +25,19 @@ type GroupComposer struct {
 
 // BuildGroupComposer provides a variadic interface for creating a
 // GroupComposer.
-func BuildGroupComposer(msgs ...Composer) *GroupComposer {
-	return MakeGroupComposer(msgs)
-}
+func BuildGroupComposer(msgs ...Composer) *GroupComposer {	return MakeGroupComposer(msgs)}
 
 // MakeGroupComposer returns a GroupComposer object from a slice of
 // Composers.
-func MakeGroupComposer(msgs []Composer) *GroupComposer {
+func MakeGroupComposer(msgs []Composer) *GroupComposer {return CreateGroupComposer(irt.Slice(msgs))}
+
+func CreateGroupComposer(seq iter.Seq[Composer]) *GroupComposer {
 	gc := &GroupComposer{
 		messages: adt.NewSynchronized(&dt.List[Composer]{}),
 		cache:    adt.NewAtomic(""),
 	}
 
-	gc.messages.With(func(list *dt.List[Composer]) { list.Extend(irt.Slice(msgs)) })
-
+	gc.messages.With(func(list *dt.List[Composer]) { list.Extend(seq) })
 	return gc
 }
 
