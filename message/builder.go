@@ -105,6 +105,7 @@ func (b *Builder) Message() Composer {
 // message(s) as they are sent with Send(), or exported with
 // Message().
 func (b *Builder) WithOptions(opts ...Option) *Builder { b.opts = append(b.opts, opts...); return b }
+func (b *Builder) init() *Builder                      { b.setDefault(makeComposer); return b }
 
 // Level sets the priority of the message. Call this after creating a
 // message via another method, otherwise an error is generated and
@@ -156,7 +157,6 @@ func (b *BuilderFuture) Map(f fn.Future[map[string]any]) *Builder { return WithF
 func (b *BuilderFuture) Composer(f fn.Future[Composer]) *Builder  { return WithFuture(b.uilder, f) }
 func (b *BuilderFuture) Error(f fn.Future[error]) *Builder        { return WithFuture(b.uilder, f) }
 func (b *BuilderFuture) String(f fn.Future[string]) *Builder      { return WithFuture(b.uilder, f) }
-
 func (b *BuilderFuture) KV(f fn.Future[iter.Seq2[string, any]]) *Builder {
 	return WithFuture(b.uilder, f)
 }
@@ -177,16 +177,13 @@ func (b *Builder) Fields(f Fields) *Builder {
 		return b
 	}
 
-	for k, v := range f {
-		b.composer.Annotate(k, v)
-	}
+	irt.Apply2(irt.Map(f), b.composer.Annotate)
 
 	return b
 }
 
-func (b *Builder) init() *Builder {
+func (b *Builder) setDefault(f fn.Future[Composer]) {
 	if b.composer == nil {
-		b.composer = BuildKV()
+		b.composer = f()
 	}
-	return b
 }

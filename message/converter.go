@@ -127,7 +127,6 @@ func Convert[T any](input T) Composer {
 
 	case []string:
 		return newLinesFromStrings(message)
-
 	case []Composer:
 		return MakeGroupComposer(message)
 	case []Fields:

@@ -24,7 +24,8 @@ type BuilderKV struct {
 
 // BuildKV creates a wrapper around a composer that allows for a
 // chainable pair message building interface.
-func BuildKV() *BuilderKV { return &BuilderKV{} }
+func BuildKV() *BuilderKV    { return &BuilderKV{} }
+func makeComposer() Composer { return &BuilderKV{} }
 
 // Composer returns the builder as a composer-type
 func (p *BuilderKV) Composer() Composer                          { return p }
@@ -36,7 +37,7 @@ func (p *BuilderKV) Extend(in iter.Seq2[string, any]) *BuilderKV { p.kvs.Extend(
 
 func (p *BuilderKV) WhenKV(cond bool, k string, v any) *BuilderKV {
 	if cond {
-		p.KV(k, v)
+		p.kvs.Set(k, v)
 	}
 	return p
 }
