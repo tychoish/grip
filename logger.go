@@ -93,7 +93,6 @@ func MakeLogger(s send.Sender, c message.Converter) Logger {
 		impl: adt.NewAtomic(sender{s}),
 		conv: adt.NewAtomic(converter{c}),
 	}
-
 }
 
 func composerf(tmpl string, args []any) message.Composer { return message.MakeFormat(tmpl, args...) }
@@ -217,17 +216,10 @@ func (g Logger) ms(l level.Priority, i any) (message.Composer, send.Sender) {
 	return g.make(l, i), g.Sender()
 }
 
-// Convert runs the custom converter if set, falling back to
-// message.Convert if indicated by the custom converter or if the
-// custom converter is not set.
-
 func (g Logger) makeWhen(cond bool, m any) message.Composer {
 	return message.When(cond, message.MakeFuture(func() message.Composer { return g.Convert(m) }))
 }
 
-// For sending logging messages, in most cases, use the
-// Journaler.sender.Send() method, but we have a couple of methods to
-// use for the Panic/Fatal helpers.
 func (g Logger) sendPanic(l level.Priority, in any) {
 	if m, s := g.ms(l, in); send.ShouldLog(s, m) {
 		s.Send(m)

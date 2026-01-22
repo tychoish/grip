@@ -230,12 +230,12 @@ func buildFromSlice(vals []any) Composer {
 	// of something.
 	for i := 0; i < len(vals); i += 2 {
 		switch vals[i].(type) {
-		case string, fmt.Stringer:
-			continue
 		case Composer, fn.Future[Composer], fn.Future[error], fn.Future[Fields], Fields, iter.Seq2[string, any]:
 			return convertSlice(vals)
 		case []Composer, []fn.Future[Composer], []fn.Future[error], []fn.Future[Fields], []error, []Fields, []iter.Seq2[string, any]:
 			return convertSlice(vals)
+		case string, fmt.Stringer:
+			continue
 		default:
 			return MakeLines(vals...)
 		}

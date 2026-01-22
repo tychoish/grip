@@ -259,14 +259,14 @@ Connects an SMTP server (usually localhost:25 in prod) and uses that to
 
 	send an email with the body encoded in base64.
 */
-func (o *SMTPOptions) sendMail(m message.Composer) error {
+func (o *SMTPOptions) sendMail(m message.Composer) (err error) {
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
 
 	if err := o.client.Create(o); err != nil {
 		return err
 	}
-	defer o.client.Close()
+	defer func() { err = errors.Join(err, o.client.Close()) }()
 
 	var subject, body string
 	toAddrs := o.toAddrs
@@ -308,21 +308,20 @@ func (o *SMTPOptions) sendMail(m message.Composer) error {
 		return fmt.Errorf("error establishing mail sender (%s): %+v", fromAddr, err)
 	}
 
-	var err error
-	var errs []string
+	var errs []error
 	var recipients []string
 
 	// Set the recipients
 	for _, target := range toAddrs {
 		if err = o.client.Rcpt(target.Address); err != nil {
 			errs = append(errs,
-				fmt.Sprintf("Error establishing mail recipient (%s): %+v", target.String(), err))
+				fmt.Errorf("establishing mail recipient (%s): %w", target.String(), err))
 			continue
 		}
 		recipients = append(recipients, target.String())
 	}
 	if len(errs) > 0 {
-		return errors.New(strings.Join(errs, "; "))
+		return errors.Join(errs...)
 	}
 
 	// Send the email body.
@@ -330,7 +329,7 @@ func (o *SMTPOptions) sendMail(m message.Composer) error {
 	if err != nil {
 		return err
 	}
-	defer wc.Close()
+	defer func() { err = errors.Join(err, wc.Close()) }()
 
 	if len(subject) == 0 && len(body) == 0 {
 		subject, body = o.GetContents(o, m)
@@ -400,7 +399,7 @@ func (c *smtpClientImpl) Create(opts *SMTPOptions) error {
 
 	if opts.UseSSL {
 		config := &tls.Config{ServerName: opts.Server}
-		err = c.Client.StartTLS(config)
+		err = c.StartTLS(config)
 
 	} else {
 		var hostname string
@@ -416,7 +415,7 @@ func (c *smtpClientImpl) Create(opts *SMTPOptions) error {
 	}
 
 	if opts.Username != "" {
-		if err = c.Client.Auth(smtp.PlainAuth("", opts.Username, opts.Password, opts.Server)); err != nil {
+		if err = c.Auth(smtp.PlainAuth("", opts.Username, opts.Password, opts.Server)); err != nil {
 			return err
 		}
 	}

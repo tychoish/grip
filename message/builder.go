@@ -120,8 +120,8 @@ func (b *Builder) SetPriority(l level.Priority)                  { b.Level(l) }
 func (b *Builder) String() string                                { return b.init().composer.String() }
 func (b *Builder) Structured() bool                              { return b.init().composer.Structured() }
 func (b *Builder) Priority() level.Priority                      { return b.init().composer.Priority() }
+func (b *Builder) Raw() any                                      { return b.init().composer.Raw() }
 func (b *Builder) SetOption(opts ...Option)                      { b.WithOptions(opts...) }
-func (b *Builder) Raw() any                                      { return b.init().Raw() }
 func (b *Builder) with(k string, v any) *Builder                 { b.push(k, v); return b }
 func (b *Builder) push(k string, v any)                          { b.composer.Annotate(k, v) }
 func (b *Builder) iter(s iter.Seq2[string, any]) *Builder        { irt.Apply2(s, b.push); return b }

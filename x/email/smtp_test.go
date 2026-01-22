@@ -364,7 +364,7 @@ func TestSendMethod(t *testing.T) {
 	if !ok {
 		t.Fatal("'ok' should be true")
 	}
-	if 0 != mock.numMsgs {
+	if mock.numMsgs != 0 {
 		t.Fatal("values should be equal")
 	}
 
@@ -372,21 +372,21 @@ func TestSendMethod(t *testing.T) {
 	m = message.MakeString("hello")
 	m.SetPriority(level.Debug)
 	sender.Send(m)
-	if 0 != mock.numMsgs {
+	if mock.numMsgs != 0 {
 		t.Fatal("values should be equal", mock.numMsgs)
 	}
 
 	m = message.MakeString("")
 	m.SetPriority(level.Alert)
 	sender.Send(m)
-	if 0 != mock.numMsgs {
+	if mock.numMsgs != 0 {
 		t.Fatal("values should be equal")
 	}
 
 	m = message.MakeString("world")
 	m.SetPriority(level.Alert)
 	sender.Send(m)
-	if 1 != mock.numMsgs {
+	if mock.numMsgs != 1 {
 		t.Fatal("values should be equal")
 	}
 }
@@ -405,7 +405,7 @@ func TestSendMethodWithError(t *testing.T) {
 	if !ok {
 		t.Fatal("'ok' should be true")
 	}
-	if 0 != mock.numMsgs {
+	if mock.numMsgs != 0 {
 		t.Fatal("values should be equal")
 	}
 	if mock.failData {
@@ -415,13 +415,13 @@ func TestSendMethodWithError(t *testing.T) {
 	m := message.MakeString("world")
 	m.SetPriority(level.Alert)
 	sender.Send(m)
-	if 1 != mock.numMsgs {
+	if mock.numMsgs != 1 {
 		t.Fatal("values should be equal")
 	}
 
 	mock.failData = true
 	sender.Send(m)
-	if 1 != mock.numMsgs {
+	if mock.numMsgs != 1 {
 		t.Fatal("values should be equal")
 	}
 }

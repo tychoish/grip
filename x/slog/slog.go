@@ -101,8 +101,6 @@ func (s *sender) Send(m message.Composer) {
 	if err = s.logger.Handler().Handle(s.ctx, rec); err != nil {
 		s.HandleError(send.WrapError(err, m))
 	}
-
-	return
 }
 
 // ----------------------------------------------------------------------
@@ -147,5 +145,3 @@ func addAttrsFromPayload(ctx context.Context, rec *slog.Record, in any) {
 
 func makeAddAttr(rec *slog.Record) func(slog.Attr) { return func(a slog.Attr) { addAttr(rec, a) } }
 func addAttr(rec *slog.Record, attr slog.Attr)     { rec.Add(attr) }
-
-func toAttr[V any](k string, v V) slog.Attr { return slog.Any(k, v) }

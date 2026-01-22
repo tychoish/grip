@@ -11,12 +11,6 @@ import (
 	slogx "github.com/tychoish/grip/x/slog"
 )
 
-type record struct {
-	Level   slog.Level
-	Message string
-	Attrs   []slog.Attr
-}
-
 // ----------------------------------------------------------------------
 // Existing tests (updated to std slog)
 // ----------------------------------------------------------------------

@@ -156,10 +156,6 @@ func (c *Collector) Publish(events []*Event) {
 }
 func (c *Collector) PushEvent(e *Event) { _ = c.pushHandler(c.ctx, e) }
 
-func (c *Collector) publishHandler(ctx context.Context, events []*Event) error {
-	return pubsub.SliceStream(events).ReadAll(c.pushHandler).Run(ctx)
-}
-
 func (c *Collector) pushHandler(ctx context.Context, e *Event) error {
 	if e.m == nil {
 		return nil
