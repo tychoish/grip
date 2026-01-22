@@ -42,7 +42,7 @@ type Metric struct {
 	labelCache fn.Future[iter.Seq2[string, string]]
 	labelstr   fn.Future[string]
 
-	bufferPool maybeBufferPool
+	bufferPool adt.Pool[*bytes.Buffer]
 
 	// internal configuration
 	hconf *HistogramConf
@@ -56,32 +56,6 @@ func (m *Metric) labels() *adt.OrderedSet[irt.KV[string, string]] {
 func (m *Metric) initLabels() *adt.OrderedSet[irt.KV[string, string]] {
 	o := &adt.OrderedSet[irt.KV[string, string]]{}
 	return o
-}
-
-type maybeBufferPool struct {
-	pool *adt.Pool[*bytes.Buffer]
-}
-
-func (mbp *maybeBufferPool) Get() *bytes.Buffer {
-	if mbp == nil || mbp.pool == nil {
-		return &bytes.Buffer{}
-	}
-
-	return mbp.pool.Get()
-}
-
-func (mbp *maybeBufferPool) Put(buf *bytes.Buffer) {
-	if mbp == nil || mbp.pool == nil {
-		return
-	}
-	mbp.pool.Put(buf)
-}
-
-func (mbp *maybeBufferPool) Make() *bytes.Buffer {
-	if mbp == nil || mbp.pool == nil {
-		return &bytes.Buffer{}
-	}
-	return mbp.pool.Make()
 }
 
 func Collect(id string) *Metric { return &Metric{ID: id} }
@@ -215,6 +189,9 @@ func (m *Metric) factory() localMetricValue {
 }
 
 func (m *Metric) resolve() {
+	m.bufferPool.SetConstructor(func() *bytes.Buffer { return &bytes.Buffer{} })
+	m.bufferPool.SetCleanupHook(func(in *bytes.Buffer) *bytes.Buffer { in.Reset(); return in })
+	m.bufferPool.FinalizeSetup()
 	if m.labelCache == nil {
 		m.labelCache = fn.MakeFuture(func() iter.Seq2[string, string] {
 			var ps []irt.KV[string, string]
