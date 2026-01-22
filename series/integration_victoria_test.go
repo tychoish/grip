@@ -23,6 +23,12 @@ type victoriaInstance struct {
 	external    bool // true if we connected to an already-running instance
 }
 
+type gostatsdInstance struct {
+	containerID string
+	configFile  string
+	external    bool // true if using pre-existing gostatsd instance
+}
+
 func (v *victoriaInstance) stop(t *testing.T) {
 	t.Helper()
 
@@ -35,6 +41,26 @@ func (v *victoriaInstance) stop(t *testing.T) {
 			t.Errorf("failed to kill victoria-metrics container %s: %v", v.containerID, err)
 		}
 		v.containerID = ""
+	}
+}
+
+func (g *gostatsdInstance) stop(t *testing.T) {
+	t.Helper()
+
+	if g == nil {
+		return
+	}
+
+	if g.containerID != "" && !g.external {
+		if err := exec.Command("docker", "kill", g.containerID).Run(); err != nil {
+			t.Errorf("failed to kill gostatsd container %s: %v", g.containerID, err)
+		}
+		g.containerID = ""
+	}
+
+	if g.configFile != "" && !g.external {
+		_ = os.Remove(g.configFile)
+		g.configFile = ""
 	}
 }
 
@@ -146,4 +172,90 @@ func victoriaHasMetric(ctx context.Context, t *testing.T, metric string) (_ bool
 	}
 
 	return len(payload.Data.Result) > 0, nil
+}
+
+// startGostatsd launches a gostatsd Docker container that accepts StatsD metrics on port 8125/UDP
+// and forwards them to victoria-metrics via the Graphite protocol on port 2003.
+// This enables testing of the StatsdBackend without requiring victoria-metrics to have native
+// StatsD support (which it doesn't).
+func startGostatsd(t *testing.T) *gostatsdInstance {
+	t.Helper()
+
+	// Check if something is already listening on port 8125 UDP
+	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 8125})
+	if err == nil {
+		// Port is available, close and continue to start container
+		_ = conn.Close()
+	} else {
+		// Port is in use, assume gostatsd or similar is already running
+		t.Log("port 8125 already in use, assuming gostatsd is running")
+		return &gostatsdInstance{external: true}
+	}
+
+	if os.Getenv("GITHUB_ACTIONS") != "" {
+		t.Skip("gostatsd fixture inoperable in CI")
+	}
+
+	// Docker must be available
+	if _, err := exec.LookPath("docker"); err != nil {
+		t.Fatalf("docker unavailable for gostatsd: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
+	defer cancel()
+
+	// Create temporary config file for gostatsd
+	// Configuration for gostatsd to forward metrics to victoria-metrics Graphite endpoint
+	configContent := `[graphite]
+	address = "host.docker.internal:2003"
+	global-prefix = ""
+	counter-namespace = ""
+	gauges-namespace = ""
+	sets-namespace = ""
+	timer-namespace = ""
+`
+
+	tmpFile, err := os.CreateTemp("", "gostatsd-*.toml")
+	if err != nil {
+		t.Fatalf("failed to create gostatsd config file: %v", err)
+	}
+	configFile := tmpFile.Name()
+
+	if _, err := tmpFile.WriteString(configContent); err != nil {
+		_ = tmpFile.Close()
+		_ = os.Remove(configFile)
+		t.Fatalf("failed to write gostatsd config: %v", err)
+	}
+	_ = tmpFile.Close()
+
+	containerName := fmt.Sprintf("gostatsd-test-%d", time.Now().UnixNano())
+	runArgs := []string{
+		"run", "-d", "--name", containerName,
+		"--add-host", "host.docker.internal:host-gateway",
+		"-p", "8125:8125/udp",
+		"-v", fmt.Sprintf("%s:/etc/gostatsd.toml:ro", configFile),
+		"atlassianlabs/gostatsd:latest",
+		"--backends=graphite",
+		"--config-path=/etc/gostatsd.toml",
+		"--flush-interval=100ms",
+		"--namespace=",
+	}
+
+	out, err := exec.CommandContext(ctx, "docker", runArgs...).CombinedOutput()
+	if err != nil {
+		_ = os.Remove(configFile)
+		t.Fatalf("failed launching gostatsd docker container: %v – output: %s", err, string(out))
+	}
+
+	inst := &gostatsdInstance{
+		containerID: strings.TrimSpace(string(out)),
+		configFile:  configFile,
+	}
+	t.Cleanup(func() { inst.stop(t) })
+	testt.Log(t, "started container at", inst.containerID)
+
+	// Wait for gostatsd to be ready
+	time.Sleep(2 * time.Second)
+	testt.Log(t, "statsd container should be running")
+	return inst
 }

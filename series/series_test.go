@@ -1,5 +1,24 @@
 package series
 
+// Integration Tests
+//
+// The TestIntegration/Backends/Socket tests require either:
+// 1. A pre-existing victoria-metrics instance running on localhost:8428
+//    (Graphite test will run, Statsd test will skip)
+// 2. Docker available to start containers
+//    (Both tests will run using Docker fixtures)
+//
+// To run the StatsdBackend test with Docker:
+//   - Ensure Docker is installed and running
+//   - Stop any pre-existing victoria-metrics instances
+//   - Run: go test -v -run 'TestIntegration/Backends/Socket/Statsd'
+//
+// The test will:
+//   - Start a victoria-metrics container with Graphite on port 2003
+//   - Start a gostatsd container that forwards StatsD (port 8125) to Graphite
+//   - Send metrics via StatsD protocol
+//   - Verify metrics appear in victoria-metrics
+
 import (
 	"bytes"
 	"context"
@@ -275,12 +294,13 @@ func TestIntegration(t *testing.T) {
 				if inst == nil {
 					t.Fatal("startVictoria returned nil instance")
 				}
-				// StatsD requires port 8125 UDP to be available with proper victoria-metrics configuration.
-				// Pre-existing victoria-metrics instances typically dont have StatsD support.
-				if inst.external {
-					t.Skip("StatsD test requires Docker container; pre-existing victoria-metrics instance doesnt support StatsD protocol")
-				}
 
+				// Start gostatsd to forward StatsD metrics to victoria-metrics
+				// If gostatsd is already running on port 8125, it will be reused.
+				gostatsd := startGostatsd(t)
+				if gostatsd == nil {
+					t.Fatal("startGostatsd returned nil instance")
+				}
 
 				capCh := make(chan string, 128)
 				handler := fnx.MakeHandler(func(s string) error {
@@ -313,15 +333,18 @@ func TestIntegration(t *testing.T) {
 					coll.Push(gauge.Add(rand.Int64N(max(1, i*i))))
 					time.Sleep(time.Millisecond)
 				}
-				time.Sleep(10 * time.Millisecond)
+				time.Sleep(250 * time.Millisecond)
 
 				assert.NotError(t, coll.Close())
 
 				queryCtx, qCancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer qCancel()
 
+				// Gostatsd adds "stats.gauges" prefix to gauge metrics by default
+				victoriaMetricName := "stats.gauges." + metricName
+
 				for {
-					has, err := victoriaHasMetric(queryCtx, t, metricName)
+					has, err := victoriaHasMetric(queryCtx, t, victoriaMetricName)
 					testt.Log(t, err)
 					assert.NotError(t, err)
 					if has {
@@ -330,7 +353,7 @@ func TestIntegration(t *testing.T) {
 
 					select {
 					case <-queryCtx.Done():
-						t.Fatalf("timed out waiting for statsd metric %q to be ingested", metricName)
+						t.Fatalf("timed out waiting for statsd metric %q (querying as %q) to be ingested", metricName, victoriaMetricName)
 					case <-time.After(250 * time.Millisecond):
 					}
 				}
