@@ -481,9 +481,6 @@ func SocketBackend(opts ...CollectorBakendSocketOptionProvider) (CollectorBacken
 						return ctx.Err()
 					case conn = <-connCache:
 						connCacheSize.Add(-1)
-						if err != nil {
-							return err
-						}
 					}
 				}
 				err = pub(conn, conf.Renderer)

@@ -275,6 +275,12 @@ func TestIntegration(t *testing.T) {
 				if inst == nil {
 					t.Fatal("startVictoria returned nil instance")
 				}
+				// StatsD requires port 8125 UDP to be available with proper victoria-metrics configuration.
+				// Pre-existing victoria-metrics instances typically dont have StatsD support.
+				if inst.external {
+					t.Skip("StatsD test requires Docker container; pre-existing victoria-metrics instance doesnt support StatsD protocol")
+				}
+
 
 				capCh := make(chan string, 128)
 				handler := fnx.MakeHandler(func(s string) error {
@@ -286,7 +292,7 @@ func TestIntegration(t *testing.T) {
 				})
 
 				sb, err := StatsdBackend(
-					"127.0.0.1:2003",
+					"127.0.0.1:8125",
 					CollectorBackendSocketConfMinMessageRetryDelay(10*time.Millisecond),
 				)
 				assert.NotError(t, err)
