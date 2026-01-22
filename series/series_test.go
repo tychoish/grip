@@ -107,8 +107,8 @@ func TestIntegration(t *testing.T) {
 	})
 	t.Run("Backends", func(t *testing.T) {
 		t.Run("File", func(t *testing.T) {
-			t.Skip("problems after the conversion to iter.Seq from fun/pubsub.Streams")
-
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
 			dir := t.TempDir()
 
 			fbConf := &CollectorBackendFileConf{
@@ -137,10 +137,8 @@ func TestIntegration(t *testing.T) {
 
 			passBackend := PassthroughBackend(MakeJSONRenderer(), captureFn)
 
-			ctx := t.Context()
-
 			coll, err := NewCollector(ctx,
-				CollectorConfBuffer(256),
+				CollectorConfBuffer(1),
 				CollectorConfAppendBackends(passBackend, fileBackend),
 			)
 			assert.NotError(t, err)
@@ -149,9 +147,9 @@ func TestIntegration(t *testing.T) {
 			assert.NotError(t, err)
 			wrappedSender := Sender(memSender, coll)
 
-			const iterations = 64
+			const iterations = 128
 			for i := 0; i < iterations; i++ {
-				coll.Push(Gauge("integration_file_gauge").Set(int64(i)))
+				coll.Push(Gauge("integration_file_gauge").Set(int64(rand.Int63n(int64(max(1, i))))))
 				wrappedSender.Send(message.MakeString(fmt.Sprintf("hello-log-%d", i)))
 				time.Sleep(time.Millisecond)
 			}
@@ -162,15 +160,17 @@ func TestIntegration(t *testing.T) {
 
 			// Poll until at least one metrics file appears or the test context is done.
 			var files []string
-			for {
+
+			for idx := 0; idx > -1; idx++ {
 				files, err = filepath.Glob(filepath.Join(dir, fmt.Sprint(fbConf.FilePrefix, "*")))
+
 				assert.NotError(t, err)
 				if len(files) > 0 {
 					break
 				}
 
 				select {
-				case <-t.Context().Done():
+				case <-ctx.Done():
 					t.Fatalf("timed out waiting for metrics files to be written")
 				case <-time.After(100 * time.Millisecond):
 				}

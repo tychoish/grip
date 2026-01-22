@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"iter"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -33,7 +34,11 @@ type Collector struct {
 	CollectorConf
 
 	// synchronized map tracking metrics and periodic collection operations.
-	local adt.Map[string, *dt.List[*tracked]]
+	local struct {
+		mx sync.Mutex // guards only local
+		mp map[string]dt.List[*tracked]
+	}
+
 	loops adt.Map[time.Duration, func(*tracked) error]
 	pool  adt.Pool[*bytes.Buffer]
 
@@ -91,7 +96,7 @@ func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collec
 
 	c.ctx, c.cancel = context.WithCancel(ctx)
 	c.publish = pubsub.NewUnlimitedQueue[MetricPublisher]()
-	c.local.Default.SetConstructor(func() *dt.List[*tracked] { return &dt.List[*tracked]{} })
+	c.local.mp = make(map[string]dt.List[*tracked])
 	c.pool.SetConstructor(func() *bytes.Buffer { return &bytes.Buffer{} })
 	c.pool.SetCleanupHook(func(buf *bytes.Buffer) *bytes.Buffer { buf.Reset(); return buf })
 
@@ -109,16 +114,18 @@ func NewCollector(ctx context.Context, opts ...CollectorOptionProvider) (*Collec
 		ParallelDispatch: true,
 	}
 
-	c.broker = pubsub.NewQueueBroker(ctx, c.publish, pbopts)
+	c.broker = pubsub.NewQueueBroker(c.ctx, c.publish, pbopts)
 
 	for idx := range conf.Backends {
 		ch := c.broker.Subscribe(c.ctx)
 
-		c.wg.Launch(c.ctx,
+		c.wg.Launch(
+			c.ctx,
 			conf.Backends[idx].
-				Worker(irt.Channel(ctx, ch)).
+				Worker(irt.Channel(c.ctx, ch)).
 				Operation(c.errs.Push).
-				PostHook(func() { c.broker.Unsubscribe(c.ctx, ch) }))
+				PostHook(func() { c.broker.Unsubscribe(c.ctx, ch) }),
+		)
 	}
 
 	return c, nil
@@ -150,7 +157,7 @@ func (c *Collector) Publish(events []*Event) {
 func (c *Collector) PushEvent(e *Event) { _ = c.pushHandler(c.ctx, e) }
 
 func (c *Collector) publishHandler(ctx context.Context, events []*Event) error {
-	return pubsub.SliceStream(events).ReadAll(fnx.FromHandler(c.PushEvent)).Run(ctx)
+	return pubsub.SliceStream(events).ReadAll(c.pushHandler).Run(ctx)
 }
 
 func (c *Collector) pushHandler(ctx context.Context, e *Event) error {
@@ -197,36 +204,38 @@ func (c *Collector) Register(prod fnx.Future[[]*Event], dur time.Duration) {
 	)
 }
 
-// Stream returns a *pubsub.Stream that emits a MetricSnapshot for every
-// metric series currently known to the Collector.
-//
-// The stream is created on demand. When Stream is invoked it walks the
-// Collector's internal map of tracked metrics exactly once, converts each
-// tracked series to a MetricSnapshot (capturing the most recent value and
-// timestamp), sends it downstream, and then closes.  Because the Collector's
-// data structures are concurrency-safe, it is safe to call Stream at any
-// time—even while metrics are actively being collected or published from other
-// goroutines.
-//
-// The returned stream inherits the Collector's context, so canceling the
-// Collector or exhausting the stream will release all underlying resources.
-func (c *Collector) Stream() iter.Seq[MetricSnapshot] {
-	return func(yield func(MetricSnapshot) bool) {
-		for list := range c.local.Values() {
-			for tr := range list.IteratorFront() {
-				last := tr.lastMod.Load()
-				if !yield(MetricSnapshot{
-					Name:      tr.meta.ID,
-					Labels:    tr.meta.labelstr(),
-					Value:     last.Key,
-					Timestamp: last.Value,
-				}) {
-					return
-				}
-			}
-		}
-	}
-}
+// // Stream returns a *pubsub.Stream that emits a MetricSnapshot for every
+// // metric series currently known to the Collector.
+// //
+// // The stream is created on demand. When Stream is invoked it walks the
+// // Collector's internal map of tracked metrics exactly once, converts each
+// // tracked series to a MetricSnapshot (capturing the most recent value and
+// // timestamp), sends it downstream, and then closes.  Because the Collector's
+// // data structures are concurrency-safe, it is safe to call Stream at any
+// // time—even while metrics are actively being collected or published from other
+// // goroutines.
+// //
+// // The returned stream inherits the Collector's context, so canceling the
+// // Collector or exhausting the stream will release all underlying resources.
+// func (c *Collector) Stream() iter.Seq[MetricSnapshot] {
+// 	return func(yield func(MetricSnapshot) bool) {
+// 		c.local.
+
+// 		for list := range c.local.Values() {
+// 			for tr := range list.IteratorFront() {
+// 				last := tr.lastMod.Load()
+// 				if !yield(MetricSnapshot{
+// 					Name:      tr.meta.ID,
+// 					Labels:    tr.meta.labelstr(),
+// 					Value:     last.Key,
+// 					Timestamp: last.Value,
+// 				}) {
+// 					return
+// 				}
+// 			}
+// 		}
+// 	}
+// }
 
 func (c *Collector) distribute(ctx context.Context, fn MetricPublisher) error {
 	switch {
@@ -251,24 +260,28 @@ type tracked struct {
 }
 
 func newTracked(m *Metric) *tracked {
+	defer m.resolve()
 	return &tracked{meta: m, local: m.factory()}
 }
 
 func (c *Collector) getRegisteredTracked(e *Event) *tracked {
-	trl := c.local.Get(e.m.ID)
+	c.local.mx.Lock()
+	defer c.local.mx.Unlock()
+	list := c.local.mp[e.m.ID]
 
-	if trl.Len() > 0 {
-		for el := trl.Front(); el.Ok(); el = el.Next() {
-			if el.Value().meta.Equal(e.m) {
-				return el.Value()
-			}
+	for elem := range list.IteratorFront() {
+		if elem.meta.Equal(e.m) {
+			return elem
 		}
 	}
 
-	e.m.resolve()
 	tr := newTracked(e.m)
-	trl.PushBack(tr)
-	c.addBackground(tr)
+	list.PushBack(tr)
+	c.local.mp[e.m.ID] = list
+
+	// Start background collection if needed (non-blocking)
+	go c.addBackground(tr)
+
 	return tr
 }
 
