@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
+	"math/rand/v2"
 	"net"
 	"os"
 	"path/filepath"
@@ -29,8 +29,6 @@ import (
 func TestIntegration(t *testing.T) {
 	t.Run("EndToEnd", func(t *testing.T) {
 		t.Run("TwoOutputs", func(t *testing.T) {
-			t.Skip("problems after the conversion to iter.Seq from fun/pubsub.Streams")
-
 			t.Parallel()
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
@@ -68,7 +66,7 @@ func TestIntegration(t *testing.T) {
 
 			for i := range int64(128) {
 				coll.Push(counter.Add(i))
-				coll.Push(gauge.Set(rand.Int63n(128)))
+				coll.Push(gauge.Set(rand.Int64N(128)))
 				time.Sleep(time.Millisecond)
 			}
 
@@ -96,7 +94,7 @@ func TestIntegration(t *testing.T) {
 
 			for i := range int64(128) {
 				coll.Push(counter.Add(i))
-				coll.Push(gauge.Set(rand.Int63n(128)))
+				coll.Push(gauge.Set(rand.Int64N(128)))
 				time.Sleep(time.Millisecond)
 			}
 
@@ -149,7 +147,7 @@ func TestIntegration(t *testing.T) {
 
 			const iterations = 128
 			for i := 0; i < iterations; i++ {
-				coll.Push(Gauge("integration_file_gauge").Set(int64(rand.Int63n(int64(max(1, i))))))
+				coll.Push(Gauge("integration_file_gauge").Set(int64(rand.Int64N(int64(max(1, i))))))
 				wrappedSender.Send(message.MakeString(fmt.Sprintf("hello-log-%d", i)))
 				time.Sleep(time.Millisecond)
 			}
@@ -209,7 +207,6 @@ func TestIntegration(t *testing.T) {
 		})
 		t.Run("Socket", func(t *testing.T) {
 			t.Run("Graphite", func(t *testing.T) {
-				t.Skip("problems after the conversion to iter.Seq from fun/pubsub.Streams")
 				inst := startVictoriaMetrics(t)
 				if inst == nil {
 					t.Fatal("startVictoria returned nil instance")
@@ -239,7 +236,7 @@ func TestIntegration(t *testing.T) {
 
 				metricName := "integration_graphite_metric"
 				gauge := Gauge(metricName).Label("test", t.Name())
-				source := fn.MakeFuture(func() int64 { return rand.Int63n(128) }).Lock()
+				source := fn.MakeFuture(func() int64 { return rand.Int64N(128) }).Lock()
 
 				for i := int64(0); i < 128; i++ {
 					coll.Push(gauge.Add(source()))
@@ -274,8 +271,6 @@ func TestIntegration(t *testing.T) {
 				testt.Log(t, "capture chan", len(captureCh))
 			})
 			t.Run("Statsd", func(t *testing.T) {
-				t.Skip("until statsd implementation makes sense to retain")
-
 				inst := startVictoriaMetrics(t)
 				if inst == nil {
 					t.Fatal("startVictoria returned nil instance")
@@ -290,7 +285,10 @@ func TestIntegration(t *testing.T) {
 					return nil
 				})
 
-				sb, err := StatsdBackend("127.0.0.1:2003")
+				sb, err := StatsdBackend(
+					"127.0.0.1:2003",
+					CollectorBackendSocketConfMinMessageRetryDelay(10*time.Millisecond),
+				)
 				assert.NotError(t, err)
 
 				passBackend := PassthroughBackend(MakeStatsdRenderer(), handler)
@@ -306,9 +304,10 @@ func TestIntegration(t *testing.T) {
 				metricName := "integration_statsd_metric"
 				gauge := Gauge(metricName).Label("test", t.Name())
 				for i := int64(0); i < 128; i++ {
-					coll.Push(gauge.Add(rand.Int63n(i * i)))
+					coll.Push(gauge.Add(rand.Int64N(max(1, i*i))))
 					time.Sleep(time.Millisecond)
 				}
+				time.Sleep(10 * time.Millisecond)
 
 				assert.NotError(t, coll.Close())
 
