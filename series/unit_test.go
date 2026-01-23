@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tychoish/fun/assert/check"
 	"github.com/tychoish/fun/irt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -529,7 +530,7 @@ func TestHistogramConfOptions(t *testing.T) {
 		{
 			name: "OutOfRangeOption",
 			apply: func(conf *HistogramConf) {
-				conf.Apply(HistogramConfOutOfRange(HistogramOutOfRangePanic))
+				check.NotError(t, conf.Apply(HistogramConfOutOfRange(HistogramOutOfRangePanic)))
 			},
 			validate: func(t *testing.T, conf *HistogramConf) {
 				if conf.OutOfRange != HistogramOutOfRangePanic {
@@ -546,7 +547,7 @@ func TestHistogramConfOptions(t *testing.T) {
 					Quantiles:  []float64{0.5, 0.99},
 					OutOfRange: HistogramOutOfRangeIgnore,
 				}
-				conf.Apply(HistogramConfSet(newConf))
+				check.NotError(t, conf.Apply(HistogramConfSet(newConf)))
 			},
 			validate: func(t *testing.T, conf *HistogramConf) {
 				if conf.Min != 10 || conf.Max != 100 {
@@ -558,7 +559,7 @@ func TestHistogramConfOptions(t *testing.T) {
 			name: "ResetOption",
 			apply: func(conf *HistogramConf) {
 				conf.Min = 999
-				conf.Apply(HistogramConfReset())
+				check.NotError(t, conf.Apply(HistogramConfReset()))
 			},
 			validate: func(t *testing.T, conf *HistogramConf) {
 				if conf.Min != 0 {
@@ -955,10 +956,10 @@ func TestCollectorConfEdgeCases(t *testing.T) {
 			name: "MultipleBackends",
 			setup: func() *CollectorConf {
 				conf := &CollectorConf{Buffer: 10}
-				CollectorConfAppendBackends(
+				check.NotError(t, CollectorConfAppendBackends(
 					LoggerBackend(send.MakeInternal(), MakeJSONRenderer()),
 					LoggerBackend(send.MakeInternal(), MakeJSONRenderer()),
-				)(conf)
+				)(conf))
 				return conf
 			},
 			validate: func(t *testing.T, conf *CollectorConf) {
@@ -977,7 +978,7 @@ func TestCollectorConfEdgeCases(t *testing.T) {
 					},
 				}
 				conf := &CollectorConf{}
-				CollectorConfSet(newConf)(conf)
+				check.NotError(t, CollectorConfSet(newConf)(conf))
 				return conf
 			},
 			validate: func(t *testing.T, conf *CollectorConf) {

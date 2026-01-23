@@ -1,7 +1,6 @@
 package series
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -11,21 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tychoish/fun/assert/check"
 	"github.com/tychoish/fun/fnx"
 	"github.com/tychoish/grip/send"
 )
-
-// Helper to create a test backend that writes to a buffer
-func makeTestBackend(buf *bytes.Buffer, renderer Renderer) CollectorBackend {
-	return func(ctx context.Context, metrics iter.Seq[MetricPublisher]) error {
-		for publisher := range metrics {
-			if err := publisher(buf, renderer); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-}
 
 // Helper to create a counting backend
 func makeCountingBackend(counter *atomic.Int64) CollectorBackend {
@@ -123,7 +111,7 @@ func TestNewCollector(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			defer c.Close()
+			defer func() { check.NotError(t, c.Close()) }()
 
 			if tt.validate != nil {
 				tt.validate(t, c)
@@ -190,7 +178,7 @@ func TestCollectorClose(t *testing.T) {
 				if err != nil {
 					t.Fatalf("failed to create collector: %v", err)
 				}
-				c.Close() // First close
+				check.NotError(t, c.Close()) // First close
 				return c
 			},
 			validate: func(t *testing.T, err error) {
@@ -279,8 +267,7 @@ func TestCollectorPush(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create collector: %v", err)
 			}
-			defer c.Close()
-
+			defer func() { check.NotError(t, c.Close()) }()
 			c.Push(tt.events...)
 			tt.validate(t, c)
 		})
@@ -297,7 +284,7 @@ func TestCollectorPublish(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	events := []*Event{
 		Counter("test1").Inc(),
@@ -324,7 +311,7 @@ func TestCollectorPushEvent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	c.PushEvent(Counter("single").Inc())
 	time.Sleep(50 * time.Millisecond)
@@ -386,7 +373,7 @@ func TestCollectorRegister(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create collector: %v", err)
 			}
-			defer c.Close()
+			defer func() { check.NotError(t, c.Close()) }()
 
 			c.Register(tt.producer, tt.interval)
 			tt.validate(t, c)
@@ -404,10 +391,10 @@ func TestCollectorConcurrentPush(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	const (
-		numGoroutines = 5
+		numGoroutines      = 5
 		eventsPerGoroutine = 20
 	)
 
@@ -443,7 +430,7 @@ func TestCollectorConcurrentMixedOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	const numGoroutines = 5
 
@@ -505,7 +492,7 @@ func TestCollectorMultipleBackends(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	// Push some events
 	for i := 0; i < 5; i++ {
@@ -536,7 +523,7 @@ func TestCollectorMetricAccumulation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	// Push multiple increments to the same counter
 	for i := 0; i < 10; i++ {
@@ -580,7 +567,7 @@ func TestCollectorMetricsWithLabels(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	// Push same metric ID with different labels
 	c.PushEvent(Counter("requests").Label("method", "GET").Inc())
@@ -618,7 +605,7 @@ func TestCollectorPushEventNilMetric(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	// Create event with nil metric
 	e := &Event{m: nil}
@@ -653,7 +640,7 @@ func TestCollectorContextCancellation(t *testing.T) {
 	// Push should not panic
 	c.PushEvent(Counter("test").Inc())
 
-	c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 }
 
 // Test ReadAll method
@@ -666,7 +653,7 @@ func TestCollectorReadAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	events := []*Event{
 		Counter("test1").Inc(),
@@ -736,7 +723,7 @@ func TestCollectorPeriodicCollection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	// Push a periodic metric
 	m := Counter("periodic")
@@ -763,7 +750,7 @@ func TestCollectorConcurrentRegisterAndPush(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -809,7 +796,7 @@ func TestCollectorGetRegisteredTrackedConcurrent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	const numGoroutines = 20
 	var wg sync.WaitGroup
@@ -855,7 +842,7 @@ func TestCollectorBufferPoolReuse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	// Push many events to trigger buffer pool usage
 	for i := 0; i < 100; i++ {
@@ -950,7 +937,7 @@ func TestCollectorCounterPeriodic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create collector: %v", err)
 	}
-	defer c.Close()
+	defer func() { check.NotError(t, c.Close()) }()
 
 	// Create counter with periodic updates
 	m := Counter("counter_periodic")
@@ -984,7 +971,7 @@ func TestCollectorStressConcurrent(t *testing.T) {
 	}
 
 	const (
-		numGoroutines = 10
+		numGoroutines      = 10
 		eventsPerGoroutine = 50
 	)
 
@@ -1054,7 +1041,7 @@ func TestCollectorRaceConditions(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			time.Sleep(50 * time.Millisecond)
-			c.Close()
+			check.NotError(t, c.Close())
 		}()
 
 		wg.Wait()

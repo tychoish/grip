@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tychoish/fun/assert/check"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -752,8 +753,8 @@ func TestMultiSenderSetFormatter(t *testing.T) {
 			multi := MakeMulti()
 			child1 := MakeInternal()
 			child2 := MakeInternal()
-			AddToMulti(multi, child1)
-			AddToMulti(multi, child2)
+			check.NotError(t, AddToMulti(multi, child1))
+			check.NotError(t, AddToMulti(multi, child2))
 			tt.validate(t, multi)
 		})
 	}
@@ -780,8 +781,8 @@ func TestMultiSenderSetErrorHandler(t *testing.T) {
 			multi := MakeMulti()
 			child1 := MakeInternal()
 			child2 := MakeInternal()
-			AddToMulti(multi, child1)
-			AddToMulti(multi, child2)
+			check.NotError(t, AddToMulti(multi, child1))
+			check.NotError(t, AddToMulti(multi, child2))
 			tt.validate(t, multi)
 		})
 	}
@@ -808,7 +809,7 @@ func TestAsyncGroupSetErrorHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sender := MakeAsyncGroup(context.Background(), 10, MakeInternal())
-			defer sender.Close()
+			defer func() { check.NotError(t, sender.Close()) }()
 			tt.validate(t, sender)
 		})
 	}
@@ -832,7 +833,7 @@ func TestAsyncGroupSetFormatter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sender := MakeAsyncGroup(context.Background(), 10, MakeInternal())
-			defer sender.Close()
+			defer func() { check.NotError(t, sender.Close()) }()
 			tt.validate(t, sender)
 		})
 	}
