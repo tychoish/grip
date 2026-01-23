@@ -7,6 +7,8 @@ package message
 
 import (
 	"errors"
+
+	"github.com/tychoish/fun/dt"
 )
 
 type errorMessage struct {
@@ -49,11 +51,11 @@ func (e *errorMessage) Raw() any {
 	}
 
 	return struct {
-		Error  string `bson:"error" json:"error" yaml:"error"`
-		Fields `bson:",omitempty" json:",omitempty" yaml:",omitempty"`
+		Error                       string `bson:"error" json:"error" yaml:"error"`
+		*dt.OrderedMap[string, any] `bson:",omitempty" json:",omitempty" yaml:",omitempty"`
 	}{
-		Error:  e.String(),
-		Fields: e.Context,
+		Error:      e.String(),
+		OrderedMap: &e.Context,
 	}
 }
 

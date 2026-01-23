@@ -2,9 +2,11 @@ package message
 
 import (
 	"fmt"
+	"iter"
 	"sort"
 	"strings"
 
+	"github.com/tychoish/fun/irt"
 	"github.com/tychoish/fun/stw"
 )
 
@@ -93,7 +95,7 @@ func (m *fieldMessage) String() string {
 	if m.cachedOutput == "" {
 		m.addMetadatIfNeeded()
 
-		out := makeSimpleFieldsString(m.fields, true)
+		out := makeSimpleFieldsString(irt.Map(m.fields), true, len(m.fields))
 
 		if _, ok := m.fields[FieldsMsgName]; ok {
 			if m.message == "" {
@@ -121,8 +123,8 @@ func (m *fieldMessage) String() string {
 	return m.cachedOutput
 }
 
-func makeSimpleFieldsString(f Fields, doSkips bool) []string {
-	out := make([]string, 0, len(f))
+func makeSimpleFieldsString(f iter.Seq2[string, any], doSkips bool, hint int) []string {
+	out := make([]string, 0, hint)
 	for k, v := range f {
 		if doSkips {
 			if _, ok := skippedFields[k]; ok {

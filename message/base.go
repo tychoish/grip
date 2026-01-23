@@ -62,7 +62,7 @@ func (b *Base) SetOption(opts ...Option) {
 // IsZero returns true when Base is nil or it is non-nil and none of
 // its fields are set.
 func (b *Base) IsZero() bool {
-	return b == nil || b.Level == level.Invalid && b.Host == "" && b.Time.IsZero() && b.Process == "" && b.Pid == 0 && b.Context == nil
+	return b == nil || b.Level == level.Invalid && b.Host == "" && b.Time.IsZero() && b.Process == "" && b.Pid == 0
 }
 
 // Collect records the time, process name, and hostname. Useful in the
@@ -84,7 +84,7 @@ func (b *Base) Priority() level.Priority { return b.Level }
 // Structured returns true if there are any annotations. Otherwise
 
 // false. Most Composer implementations should override.
-func (b *Base) Structured() bool { return len(b.Context) >= 1 }
+func (b *Base) Structured() bool { return b.Context.Len() >= 1 }
 
 // SetPriority allows you to configure the priority of the
 // message. Returns an error if the priority is not valid.

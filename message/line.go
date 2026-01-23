@@ -9,8 +9,6 @@ type lineMessenger struct {
 	lines   []any
 	Base    `bson:"meta" json:"meta" yaml:"meta"`
 	Message string `bson:"msg" json:"msg" yaml:"msg"`
-
-	fm *fieldMessage
 }
 
 // MakeLines returns a message Composer roughly equivalent to
@@ -41,9 +39,7 @@ func newLinesFromStrings(args []string) Composer {
 
 func (l *lineMessenger) Loggable() bool {
 	switch {
-	case (l.fm != nil && l.fm.Loggable()):
-		return true
-	case len(l.Context) > 0:
+	case l.Context.Len() > 0:
 		return true
 	case len(l.lines) > 0:
 		return true
@@ -53,36 +49,22 @@ func (l *lineMessenger) Loggable() bool {
 }
 
 func (l *lineMessenger) String() string {
-	switch {
-	case l.fm != nil:
-		return l.fm.String()
-	case len(l.Context) > 0:
-		l.setupField()
-		return l.fm.String()
-	case l.Message == "":
+	if l.Message == "" {
 		l.resolve()
+		if size := l.Context.Len(); size > 0 {
+			l.Message = fmt.Sprintf("%s=%s %s", FieldsMsgName, l.Message, makeSimpleFieldsString(l.Context.Iterator(), true, size))
+		}
 	}
-
 	return l.Message
 }
 
 func (l *lineMessenger) Raw() any {
-	switch {
-	case l.fm != nil:
-		return l.fm.Raw()
-	case len(l.Context) > 0:
-		l.setupField()
-		return l.fm.Raw()
-	case l.IncludeMetadata:
-		l.resolve()
-		return l
-	default:
-		l.resolve()
-		return struct {
-			Msg string `bson:"msg" json:"msg" yaml:"msg"`
-		}{
-			Msg: l.Message,
-		}
+	l.resolve()
+	return struct {
+		Msg string `bson:"msg" json:"msg" yaml:"msg"`
+	}{
+		// TODO export annotated fields
+		Msg: l.Message,
 	}
 }
 
@@ -91,29 +73,4 @@ func (l *lineMessenger) resolve() {
 		l.Message = strings.TrimSpace(fmt.Sprintln(l.lines...))
 		l.Collect()
 	}
-}
-
-func (l *lineMessenger) setupField() {
-	l.resolve()
-	l.fm = &fieldMessage{
-		fields:  l.Context,
-		Base:    l.Base,
-		message: l.Message,
-	}
-}
-
-func (l *lineMessenger) Annotate(k string, v any) {
-	if l.fm == nil {
-		l.Base.Annotate(k, v)
-		return
-	}
-	l.fm.Annotate(k, v)
-}
-
-func (l *lineMessenger) SetOption(opts ...Option) {
-	if l.fm == nil {
-		l.Base.SetOption(opts...)
-		return
-	}
-	l.fm.SetOption(opts...)
 }

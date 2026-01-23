@@ -5,100 +5,6 @@ import (
 	"testing"
 )
 
-func TestLineMessengerSetupField(t *testing.T) {
-	tests := []struct {
-		name     string
-		setup    func() *lineMessenger
-		validate func(*testing.T, *lineMessenger)
-	}{
-		{
-			name: "EmptyContext",
-			setup: func() *lineMessenger {
-				return &lineMessenger{
-					lines: []any{"test"},
-				}
-			},
-			validate: func(t *testing.T, lm *lineMessenger) {
-				lm.setupField()
-				if lm.fm == nil {
-					t.Error("setupField should create fieldMessage")
-				}
-				if lm.Message == "" {
-					t.Error("setupField should resolve message")
-				}
-			},
-		},
-		{
-			name: "WithContext",
-			setup: func() *lineMessenger {
-				lm := &lineMessenger{
-					lines: []any{"test message"},
-				}
-				lm.Context = map[string]any{"key": "value"}
-				return lm
-			},
-			validate: func(t *testing.T, lm *lineMessenger) {
-				lm.setupField()
-				if lm.fm == nil {
-					t.Fatal("setupField should create fieldMessage")
-				}
-				if len(lm.fm.fields) == 0 {
-					t.Error("fieldMessage should have context fields")
-				}
-				if lm.fm.message == "" {
-					t.Error("fieldMessage should have message")
-				}
-			},
-		},
-		{
-			name: "WithExistingMessage",
-			setup: func() *lineMessenger {
-				lm := &lineMessenger{
-					lines:   []any{"line1", "line2"},
-					Message: "already set",
-				}
-				lm.Context = map[string]any{"field": "data"}
-				return lm
-			},
-			validate: func(t *testing.T, lm *lineMessenger) {
-				lm.setupField()
-				if lm.fm == nil {
-					t.Error("should create fieldMessage")
-				}
-				if lm.fm.message == "" {
-					t.Error("fieldMessage should preserve message")
-				}
-			},
-		},
-		{
-			name: "MultipleLines",
-			setup: func() *lineMessenger {
-				lm := &lineMessenger{
-					lines: []any{"line1", "line2", "line3"},
-				}
-				lm.Context = map[string]any{"k1": "v1", "k2": "v2"}
-				return lm
-			},
-			validate: func(t *testing.T, lm *lineMessenger) {
-				lm.setupField()
-				if lm.fm == nil {
-					t.Error("should create fieldMessage")
-				}
-				if len(lm.fm.fields) != 2 {
-					t.Error("should preserve all context fields")
-				}
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			lm := tt.setup()
-			tt.validate(t, lm)
-		})
-	}
-}
-
 func TestLineMessengerAnnotate(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -117,35 +23,11 @@ func TestLineMessengerAnnotate(t *testing.T) {
 			key:   "key1",
 			value: "value1",
 			validate: func(t *testing.T, lm *lineMessenger) {
-				if lm.Context == nil {
+				if lm.Context.Len() == 0 {
 					t.Error("Context should be initialized")
 				}
-				if lm.Context["key1"] != "value1" {
+				if lm.Context.Get("key1") != "value1" {
 					t.Error("should add to Base.Context")
-				}
-				if lm.fm != nil {
-					t.Error("should not create fieldMessage yet")
-				}
-			},
-		},
-		{
-			name: "AnnotateWithFieldMessage",
-			setup: func() *lineMessenger {
-				lm := &lineMessenger{
-					lines: []any{"test"},
-				}
-				lm.Context = map[string]any{"existing": "field"}
-				lm.setupField()
-				return lm
-			},
-			key:   "newkey",
-			value: "newvalue",
-			validate: func(t *testing.T, lm *lineMessenger) {
-				if lm.fm == nil {
-					t.Error("fieldMessage should exist")
-				}
-				if lm.fm.fields["newkey"] != "newvalue" {
-					t.Error("should add to fieldMessage fields")
 				}
 			},
 		},
@@ -162,8 +44,8 @@ func TestLineMessengerAnnotate(t *testing.T) {
 				lm.Annotate("key2", 2)
 				lm.Annotate("key3", 3)
 
-				if len(lm.Context) != 3 {
-					t.Errorf("should have 3 annotations, got %d", len(lm.Context))
+				if lm.Context.Len() != 3 {
+					t.Errorf("should have 3 annotations, got %d", lm.Context.Len())
 				}
 			},
 		},
@@ -177,29 +59,8 @@ func TestLineMessengerAnnotate(t *testing.T) {
 			key:   "nilkey",
 			value: nil,
 			validate: func(t *testing.T, lm *lineMessenger) {
-				if _, exists := lm.Context["nilkey"]; !exists {
+				if _, exists := lm.Context.Load("nilkey"); !exists {
 					t.Error("should allow nil values")
-				}
-			},
-		},
-		{
-			name: "AnnotateAfterSetupField",
-			setup: func() *lineMessenger {
-				lm := &lineMessenger{
-					lines: []any{"msg"},
-				}
-				lm.Annotate("first", "value")
-				lm.setupField()
-				return lm
-			},
-			key:   "second",
-			value: "value2",
-			validate: func(t *testing.T, lm *lineMessenger) {
-				if lm.fm == nil {
-					t.Error("should have fieldMessage")
-				}
-				if lm.fm.fields["second"] != "value2" {
-					t.Error("should annotate fieldMessage after setup")
 				}
 			},
 		},
@@ -339,7 +200,7 @@ func TestLineMessengerLoggable(t *testing.T) {
 				lm := &lineMessenger{
 					lines: []any{},
 				}
-				lm.Context = map[string]any{"key": "value"}
+				lm.Context.Store("key", "value")
 				return lm
 			},
 			expected: true,
@@ -350,8 +211,7 @@ func TestLineMessengerLoggable(t *testing.T) {
 				lm := &lineMessenger{
 					lines: []any{"msg"},
 				}
-				lm.Context = map[string]any{"k": "v"}
-				lm.setupField()
+				lm.Context.Store("k", "v")
 				return lm
 			},
 			expected: true,
@@ -399,8 +259,7 @@ func TestLineMessengerString(t *testing.T) {
 				lm := &lineMessenger{
 					lines: []any{"test"},
 				}
-				lm.Context = map[string]any{"key": "value"}
-				lm.setupField()
+				lm.Context.Store("key", "value")
 				return lm
 			},
 			wantSubstr: []string{"test"},
@@ -411,7 +270,7 @@ func TestLineMessengerString(t *testing.T) {
 				lm := &lineMessenger{
 					lines: []any{"message"},
 				}
-				lm.Context = map[string]any{"field": "data"}
+				lm.Context.Store("field", "data")
 				return lm
 			},
 			wantSubstr: []string{"message"},
@@ -454,8 +313,7 @@ func TestLineMessengerRaw(t *testing.T) {
 				lm := &lineMessenger{
 					lines: []any{"test"},
 				}
-				lm.Context = map[string]any{"key": "value"}
-				lm.setupField()
+				lm.Context.Store("key", "value")
 				return lm
 			},
 			validate: func(t *testing.T, raw any) {
@@ -470,31 +328,12 @@ func TestLineMessengerRaw(t *testing.T) {
 				lm := &lineMessenger{
 					lines: []any{"msg"},
 				}
-				lm.Context = map[string]any{"field": "data"}
+				lm.Context.Store("field", "data")
 				return lm
 			},
 			validate: func(t *testing.T, raw any) {
 				if raw == nil {
 					t.Error("should create fieldMessage and return raw")
-				}
-			},
-		},
-		{
-			name: "WithIncludeMetadata",
-			setup: func() *lineMessenger {
-				lm := &lineMessenger{
-					lines: []any{"test"},
-				}
-				lm.IncludeMetadata = true
-				return lm
-			},
-			validate: func(t *testing.T, raw any) {
-				if lm, ok := raw.(*lineMessenger); ok {
-					if lm.Message == "" {
-						t.Error("should resolve message")
-					}
-				} else {
-					t.Error("with IncludeMetadata should return lineMessenger")
 				}
 			},
 		},
@@ -541,26 +380,6 @@ func TestLineMessengerSetOption(t *testing.T) {
 			validate: func(t *testing.T, lm *lineMessenger) {
 				if !lm.IncludeMetadata {
 					t.Error("should set IncludeMetadata on Base")
-				}
-			},
-		},
-		{
-			name: "WithFieldMessage",
-			setup: func() *lineMessenger {
-				lm := &lineMessenger{
-					lines: []any{"test"},
-				}
-				lm.Context = map[string]any{"k": "v"}
-				lm.setupField()
-				return lm
-			},
-			opts: []Option{OptionCollectInfo},
-			validate: func(t *testing.T, lm *lineMessenger) {
-				if lm.fm == nil {
-					t.Error("should have fieldMessage")
-				}
-				if !lm.fm.CollectInfo {
-					t.Error("should set CollectInfo on fieldMessage")
 				}
 			},
 		},
