@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/tychoish/fun/adt"
+	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/grip/level"
 )
 
@@ -30,15 +31,15 @@ func init() {
 // collects some simple metadata, that may be useful for some more
 // structured logging applications.
 type Base struct {
-	Level            level.Priority `bson:"level,omitempty" json:"level,omitempty" yaml:"level,omitempty"`
-	Pid              int            `bson:"pid,omitempty" json:"pid,omitempty" yaml:"pid,omitempty"`
-	Process          string         `bson:"proc,omitempty" json:"proc,omitempty" yaml:"proc,omitempty"`
-	Host             string         `bson:"host,omitempty" json:"host,omitempty" yaml:"host,omitempty"`
-	Time             time.Time      `bson:"ts,omitempty" json:"ts,omitempty" yaml:"ts,omitempty"`
-	Context          Fields         `bson:"data,omitempty" json:"data,omitempty" yaml:"data,omitempty"`
-	CollectInfo      bool           `bson:"-" json:"-" yaml:"-"`
-	IncludeMetadata  bool           `bson:"-" json:"-" yaml:"-"`
-	MessageIsSpecial bool           `bson:"-" json:"-" yaml:"-"`
+	Level            level.Priority             `bson:"level,omitempty" json:"level,omitempty" yaml:"level,omitempty"`
+	Pid              int                        `bson:"pid,omitempty" json:"pid,omitempty" yaml:"pid,omitempty"`
+	Process          string                     `bson:"proc,omitempty" json:"proc,omitempty" yaml:"proc,omitempty"`
+	Host             string                     `bson:"host,omitempty" json:"host,omitempty" yaml:"host,omitempty"`
+	Time             time.Time                  `bson:"ts,omitempty" json:"ts,omitempty" yaml:"ts,omitempty"`
+	Context          dt.OrderedMap[string, any] `bson:"data,omitempty" json:"data,omitempty" yaml:"data,omitempty"`
+	CollectInfo      bool                       `bson:"-" json:"-" yaml:"-"`
+	IncludeMetadata  bool                       `bson:"-" json:"-" yaml:"-"`
+	MessageIsSpecial bool                       `bson:"-" json:"-" yaml:"-"`
 }
 
 func (b *Base) SetOption(opts ...Option) {
@@ -93,9 +94,5 @@ func (b *Base) SetPriority(l level.Priority) { b.Level = l }
 // structured data to a message. This may be overridden for some
 // implementations.
 func (b *Base) Annotate(key string, value any) {
-	if b.Context == nil {
-		b.Context = Fields{}
-	}
-
-	b.Context[key] = value
+	b.Context.Set(key, value)
 }
