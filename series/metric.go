@@ -53,8 +53,9 @@ func (m *Metric) labels() *adt.OrderedSet[irt.KV[string, string]] {
 	return m.labelSet.Do(m.initLabels)
 }
 
-func (*Metric) initLabels() *adt.OrderedSet[irt.KV[string, string]] {
-	return &adt.OrderedSet[irt.KV[string, string]]{}
+func (m *Metric) initLabels() *adt.OrderedSet[irt.KV[string, string]] {
+	o := &adt.OrderedSet[irt.KV[string, string]]{}
+	return o
 }
 
 func Collect(id string) *Metric { return &Metric{ID: id} }
@@ -183,7 +184,7 @@ func (m *Metric) factory() localMetricValue {
 		conf := m.hconf.factory()()
 		return conf
 	default:
-		panic(erc.NewInvariantError(fmt.Sprintf("%q is not a valid metric type", m.Type)))
+		panic(fmt.Errorf("%q is not a valid metric type", m.Type))
 	}
 }
 

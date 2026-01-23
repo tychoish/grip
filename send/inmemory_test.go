@@ -324,7 +324,6 @@ func TestGetCountWithCatchupTruncated(t *testing.T) {
 	for i := 0; i < maxCap; i++ {
 		if readHeadTruncated == s.sender.readHead {
 			t.Fatal("should not be equal")
-
 		}
 		s.sender.Send(s.msgs[i])
 		if s.sender.readHeadCaughtUp {
@@ -655,7 +654,7 @@ func TestGetRawWithOverflow(t *testing.T) {
 			t.Error("values should be equal")
 		}
 		for j := 0; j < len(found); j++ {
-			if expected[j] != found[j] {
+			if fmt.Sprint(expected[j]) != fmt.Sprint(found[j]) {
 				t.Error("values should be equal")
 			}
 		}

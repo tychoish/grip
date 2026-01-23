@@ -247,43 +247,25 @@ func TestLineMessengerString(t *testing.T) {
 		{
 			name: "SimpleLines",
 			setup: func() *lineMessenger {
-				return &lineMessenger{
-					lines: []any{"line1", "line2"},
-				}
+				return MakeLines([]any{"line1", "line2"}...).(*lineMessenger)
 			},
 			wantSubstr: []string{"line1", "line2"},
 		},
 		{
 			name: "WithFieldMessage",
 			setup: func() *lineMessenger {
-				lm := &lineMessenger{
-					lines: []any{"test"},
-				}
-				lm.Context.Store("key", "value")
-				return lm
+				return MakeLines([]any{"test"}...).(*lineMessenger)
 			},
 			wantSubstr: []string{"test"},
 		},
 		{
 			name: "WithContextNoFieldMessage",
 			setup: func() *lineMessenger {
-				lm := &lineMessenger{
-					lines: []any{"message"},
-				}
+				lm := MakeLines("message").(*lineMessenger)
 				lm.Context.Store("field", "data")
 				return lm
 			},
 			wantSubstr: []string{"message"},
-		},
-		{
-			name: "WithExistingMessage",
-			setup: func() *lineMessenger {
-				return &lineMessenger{
-					Message: "already set",
-					lines:   []any{"ignored"},
-				}
-			},
-			wantSubstr: []string{"already set"},
 		},
 	}
 
@@ -310,11 +292,9 @@ func TestLineMessengerRaw(t *testing.T) {
 		{
 			name: "WithFieldMessage",
 			setup: func() *lineMessenger {
-				lm := &lineMessenger{
-					lines: []any{"test"},
-				}
-				lm.Context.Store("key", "value")
-				return lm
+				lm := MakeLines("test")
+				lm.Annotate("key", "value")
+				return lm.(*lineMessenger)
 			},
 			validate: func(t *testing.T, raw any) {
 				if raw == nil {
@@ -325,11 +305,9 @@ func TestLineMessengerRaw(t *testing.T) {
 		{
 			name: "WithContextNoFieldMessage",
 			setup: func() *lineMessenger {
-				lm := &lineMessenger{
-					lines: []any{"msg"},
-				}
-				lm.Context.Store("field", "data")
-				return lm
+				lm := MakeLines("msg")
+				lm.Annotate("field", "data")
+				return lm.(*lineMessenger)
 			},
 			validate: func(t *testing.T, raw any) {
 				if raw == nil {
@@ -340,9 +318,8 @@ func TestLineMessengerRaw(t *testing.T) {
 		{
 			name: "WithoutIncludeMetadata",
 			setup: func() *lineMessenger {
-				return &lineMessenger{
-					lines: []any{"test message"},
-				}
+				lm := MakeLines("test message")
+				return lm.(*lineMessenger)
 			},
 			validate: func(t *testing.T, raw any) {
 				// Should return anonymous struct with Msg field

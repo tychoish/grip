@@ -245,7 +245,8 @@ func TestIntegration(t *testing.T) {
 
 				passBackend := PassthroughBackend(MakeGraphiteRenderer(), captureFn)
 
-				ctx := t.Context()
+				ctx, cancel := context.WithTimeout(t.Context(), 45*time.Second)
+				defer cancel()
 
 				coll, err := NewCollector(ctx,
 					CollectorConfBuffer(512),

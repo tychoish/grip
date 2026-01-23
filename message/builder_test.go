@@ -60,7 +60,7 @@ func TestBuilder(t *testing.T) {
 		b.Send()
 	})
 	t.Run("ErrorsAreAnnotated", func(t *testing.T) {
-		b := NewBuilder(mockSenderMessage(t, "bad cat error='kip'"), testConverter(t, true)).Ln("bad cat").SetGroup(true)
+		b := NewBuilder(mockSenderMessage(t, "bad cat [error='kip']"), testConverter(t, true)).Ln("bad cat").SetGroup(true)
 		b.catcher.Push(errors.New("kip"))
 		b.Send()
 	})

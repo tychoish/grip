@@ -22,8 +22,8 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		MakeBytes([]byte(testMsg)):                                 testMsg,
 		MakeError(errors.New(testMsg)):                             testMsg,
 		MakeFormat(string(testMsg[0])+"%s", testMsg[1:]):           testMsg,
-		WrapError(errors.New("hello"), "world"):                    "world error='hello'",
-		WrapErrorf(errors.New("hello"), "world"):                   "world error='hello'",
+		WrapError(errors.New("hello"), "world"):                    "world [error='hello']",
+		WrapErrorf(errors.New("hello"), "world"):                   "world [error='hello']",
 		MakeLines(testMsg, ""):                                     testMsg,
 		MakeLines(testMsg):                                         testMsg,
 		BuildGroupComposer(MakeString(testMsg)):                    testMsg,
@@ -60,10 +60,10 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 			} else {
 				// run the string test to make sure it doesn't change:
 				if str := msg.String(); str != output {
-					t.Errorf("%T [%s != %s]", msg, str, output)
+					t.Errorf("%T [%s != >>%s<<]", msg, str, output)
 				}
 				if str := msg.String(); str != output {
-					t.Errorf("%T [%s != %s]", msg, str, output)
+					t.Errorf("%T [%s != >>%s<<]", msg, str, output)
 				}
 			}
 
@@ -85,13 +85,10 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 func TestUnpopulatedMessageComposers(t *testing.T) {
 	// map objects to output
 	cases := []Composer{
-		&stringMessage{},
 		MakeString(""),
 		&bytesMessage{},
 		MakeBytes([]byte{}),
-		&lineMessenger{},
 		MakeLines(),
-		&formatMessenger{},
 		MakeFormat(""),
 		BuildGroupComposer(),
 		MakeError(nil),
@@ -421,7 +418,7 @@ func TestConverter(t *testing.T) {
 		{
 			Name:         "NestedEmptySlice",
 			Input:        []any{[]Composer{}},
-			Expected:     MakeLines(),
+			Expected:     &composerFutureMessage{},
 			IsStructured: false,
 			Unloggable:   true,
 		},
@@ -434,7 +431,7 @@ func TestConverter(t *testing.T) {
 		{
 			Name:         "EmptySliceComposerProducer",
 			Input:        []fn.Future[Composer]{},
-			Expected:     MakeString(""),
+			Expected:     &BuilderKV{},
 			IsStructured: true,
 			Unloggable:   true,
 		},

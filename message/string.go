@@ -1,81 +1,62 @@
 package message
 
-import "github.com/tychoish/fun/irt"
+import (
+	"fmt"
+
+	"github.com/tychoish/fun/adt"
+	"github.com/tychoish/fun/dt"
+	"github.com/tychoish/fun/irt"
+)
 
 type stringMessage struct {
-	Message string `bson:"msg" json:"msg" yaml:"msg"`
-	Base    `bson:"meta,omitempty" json:"meta,omitempty" yaml:"meta,omitempty"`
-	fm      *fieldMessage
+	rendered adt.Once[*renderedString]
+	Message  string
+	Base
+}
+
+func (m *stringMessage) Loggable() bool {	return m.rendered.Called() || m.Context.Len() > 0 || m.Message != ""}
+func (m *stringMessage) String() string { return m.rendered.Resolve().Message }
+func (m *stringMessage) Raw() any {	return m.rendered.Resolve().Payload.Resolve()}
+
+type renderedString struct {
+	Message string
+	Payload adt.Once[*stringishPayload]
+	Context *dt.OrderedMap[string, any]
+}
+
+type stringishPayload struct {
+	Msg     string         `bson:"msg" json:"msg" yaml:"msg"`
+	Context map[string]any `bson:"context,omitempty" json:"context,omitempty" yaml:"context,omitempty"`
 }
 
 // MakeString provides a basic message consisting of a single line.
 func MakeString(m string) Composer {
-	return &stringMessage{Message: m}
+	msg := &stringMessage{Message: m}
+	msg.rendered.Set(msg.render)
+	return msg
 }
 
-func (s *stringMessage) setupField() {
-	s.Collect()
-	s.fm = &fieldMessage{
-		fields:  irt.Collect2(s.Context.Iterator()),
-		Base:    s.Base,
-		message: s.Message,
+func (m *stringMessage) render() *renderedString {
+	m.Collect()
+	out := &renderedString{
+		Context: &m.Base.Context,
 	}
+	if size := m.Context.Len(); size > 0 {
+		out.Message = fmt.Sprintf("%s %s", m.Message, makeSimpleFieldsString(m.Context.Iterator(), true, size))
+	} else {
+		out.Message = m.Message
+	}
+	out.Payload.Set(m.innerRaw)
+	return out
 }
 
-func (s *stringMessage) Loggable() bool {
-	switch {
-	case (s.fm != nil && s.fm.Loggable()):
-		return true
-	case s.Context.Len() > 0:
-		return true
-	case s.Message != "":
-		return true
-	default:
-		return false
+func (m *stringMessage) innerRaw() *stringishPayload {
+	out := &stringishPayload{
+		Msg: m.Message,
 	}
+	if size := m.Context.Len(); size > 0 {
+		out.Context = irt.Collect2(m.Context.Iterator())
+	}
+	return out
 }
 
-func (s *stringMessage) String() string {
-	switch {
-	case s.fm != nil:
-		return s.fm.String()
-	case s.Context.Len() > 0:
-		s.setupField()
-		return s.fm.String()
-	default:
-		return s.Message
-	}
-}
-
-func (s *stringMessage) Raw() any {
-	switch {
-	case s.fm != nil:
-		return s.fm.Raw()
-	case s.Context.Len() > 0:
-		s.setupField()
-		return s.fm.Raw()
-	default:
-		return struct {
-			Message string `bson:"msg" json:"msg" yaml:"msg"`
-		}{
-			// TODO export annotation fields
-			Message: s.Message,
-		}
-	}
-}
-
-func (s *stringMessage) Annotate(k string, v any) {
-	if s.fm == nil {
-		s.Base.Annotate(k, v)
-		return
-	}
-	s.fm.Annotate(k, v)
-}
-
-func (s *stringMessage) SetOption(opts ...Option) {
-	if s.fm == nil {
-		s.Base.SetOption(opts...)
-		return
-	}
-	s.fm.SetOption(opts...)
-}

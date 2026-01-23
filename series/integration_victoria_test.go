@@ -86,7 +86,7 @@ func startVictoriaMetrics(t *testing.T) *victoriaInstance {
 		t.Fatalf("victoria-metrics not running locally and docker unavailable: %v", err)
 	}
 
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 1*time.Minute)
 	defer cancel()
 
 	containerName := fmt.Sprintf("victoria-metrics-test-%d", time.Now().UnixNano())
@@ -108,7 +108,7 @@ func startVictoriaMetrics(t *testing.T) *victoriaInstance {
 	inst := &victoriaInstance{containerID: strings.TrimSpace(string(out))}
 	t.Cleanup(func() { inst.stop(t) })
 
-	readyCtx, readyCancel := context.WithTimeout(t.Context(), time.Minute)
+	readyCtx, readyCancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer readyCancel()
 
 	ticker := time.NewTicker(time.Second)

@@ -3,91 +3,54 @@ package message
 import (
 	"fmt"
 
+	"github.com/tychoish/fun/adt"
 	"github.com/tychoish/fun/irt"
 )
 
 type formatMessenger struct {
-	Message string `bson:"msg" json:"msg" yaml:"msg"`
-	Base    `bson:"meta" json:"meta" yaml:"meta"`
-
-	base string
-	args []any
-	fm   *fieldMessage
+	Base
+	base     string
+	args     []any
+	rendered adt.Once[*renderedString]
 }
+
+func (m *formatMessenger) Loggable() bool {
+	return m.rendered.Called() || m.Context.Len() > 0 || m.base != "" || len(m.args) > 0
+}
+func (m *formatMessenger) String() string { return m.rendered.Resolve().Message }
+func (m *formatMessenger) Raw() any       { return m.rendered.Resolve().Payload.Resolve() }
 
 // MakeFormat returns a message.Composer roughly equivalent to an
 // fmt.Sprintf().
 func MakeFormat(base string, args ...any) Composer {
-	return &formatMessenger{
+	m := &formatMessenger{
 		base: base,
 		args: args,
 	}
+	m.rendered.Set(m.render)
+	return m
 }
 
-func (f *formatMessenger) setupField() {
-	f.fm = &fieldMessage{
-		fields:  irt.Collect2(f.Context.Iterator()),
-		Base:    f.Base,
-		message: f.Message,
+func (m *formatMessenger) render() *renderedString {
+	m.Collect()
+	out := &renderedString{
+		Context: &m.Base.Context,
 	}
+	if size := m.Context.Len(); size > 0 {
+		out.Message = fmt.Sprintf("%s %s", fmt.Sprintf(m.base, m.args...), makeSimpleFieldsString(m.Context.Iterator(), true, size))
+	} else {
+		out.Message = fmt.Sprintf(m.base, m.args...)
+	}
+	out.Payload.Set(m.innerRaw)
+	return out
 }
 
-func (f *formatMessenger) setupMessage() {
-	if f.Message == "" {
-		f.Message = fmt.Sprintf(f.base, f.args...)
-		f.Collect()
+func (m *formatMessenger) innerRaw() *stringishPayload {
+	out := &stringishPayload{
+		Msg: fmt.Sprintf(m.base, m.args...),
 	}
-}
-
-func (f *formatMessenger) String() string {
-	if f.fm != nil {
-		return f.fm.String()
+	if size := m.Context.Len(); size > 0 {
+		out.Context = irt.Collect2(m.Context.Iterator())
 	}
-
-	f.setupMessage()
-
-	if f.Context.Len() > 0 {
-		f.setupField()
-		return f.fm.String()
-	}
-	return f.Message
-}
-
-func (f *formatMessenger) Annotate(k string, v any) {
-	if f.fm == nil {
-		f.Base.Annotate(k, v)
-		return
-	}
-	f.fm.Annotate(k, v)
-}
-
-func (f *formatMessenger) SetOption(opts ...Option) {
-	if f.fm == nil {
-		f.Base.SetOption(opts...)
-		return
-	}
-	f.fm.SetOption(opts...)
-}
-
-func (f *formatMessenger) Loggable() bool {
-	return f.base != "" || f.Message != "" || f.Context.Len() > 0 || (f.fm != nil && f.fm.Loggable())
-}
-
-func (f *formatMessenger) Raw() any {
-	if f.fm != nil {
-		return f.fm.Raw()
-	}
-
-	f.setupMessage()
-
-	if f.Context.Len() > 0 {
-		f.setupField()
-		return f.fm.Raw()
-	}
-
-	if f.IncludeMetadata {
-		return f
-	}
-
-	return stringMessage{Message: f.Message}
+	return out
 }

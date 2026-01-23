@@ -116,7 +116,7 @@ func TestLogger(t *testing.T) {
 
 		// when the conditional argument is true, it should work
 		grip.Log(msg.Priority(), message.When(true, msg))
-		if msg.Raw() != sink.GetMessage().Message.Raw() {
+		if fmt.Sprint(msg.Raw()) != fmt.Sprint(sink.GetMessage().Message.Raw()) {
 			t.Fatal("messages is not propagated")
 		}
 
@@ -125,11 +125,11 @@ func TestLogger(t *testing.T) {
 		grip.Log(msg.Priority(), message.When(true, msg))
 		result := sink.GetMessage().Message
 		if result.Loggable() {
-			if msg.Raw() != result.Raw() {
+			if fmt.Sprint(msg.Raw()) != fmt.Sprint(result.Raw()) {
 				t.Fatal("message is not propagated")
 			}
 		} else {
-			if msgTwo.Raw() != result.Raw() {
+			if fmt.Sprint(msgTwo.Raw()) != fmt.Sprint(result.Raw()) {
 				t.Fatal("message is not propagated")
 			}
 		}
@@ -140,7 +140,7 @@ func TestLogger(t *testing.T) {
 		result = sink.GetMessage().Message
 
 		if result.Loggable() {
-			if msg.Raw() != result.Raw() {
+			if fmt.Sprint(msg.Raw()) != fmt.Sprint(result.Raw()) {
 				t.Fatal("message is not propagated")
 			}
 		} else {
