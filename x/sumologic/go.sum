@@ -19,8 +19,8 @@ github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKs
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/tychoish/fun v0.14.3 h1:k9w7IZ7Xoqc2eaNKLAwotqGafWNT/hzE34xqa7NnVKk=
 github.com/tychoish/fun v0.14.3/go.mod h1:ghjR/9EyWh8h8oBg2+WJhsEcF/W4JXMWpo6btMRNusE=
-github.com/tychoish/grip v0.4.2 h1:eMjJzTFUnljw43PmQ84SQX8if7dyXh82+ZapfvbGmRk=
-github.com/tychoish/grip v0.4.2/go.mod h1:IRxtoZ4xe0fDH5W2Yg/JwpNW9dYQojg7ev+1gCw4Tv8=
+github.com/tychoish/grip v0.4.6 h1:YX3hV0OzK8rym9ylrugt2QEaPpl6VjvXRgW7GIbth8A=
+github.com/tychoish/grip v0.4.6/go.mod h1:SNSfWI1ta65sQf7TxxXXNI4JjuTCMTuNRwoYqXHjCDs=
 github.com/tychoish/sumologic v1.0.0 h1:Np1J+dQBhhi7e7XbnW6hX/689gquD/3SumMBYT5OyqI=
 github.com/tychoish/sumologic v1.0.0/go.mod h1:7b08fDc4aGgPDTz+RQCLIlYH71W17504sQsgF67996I=
 golang.org/x/sys v0.0.0-20190422165155-953cdadca894/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
