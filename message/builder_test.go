@@ -429,8 +429,9 @@ func TestBuilderEdgeCases(t *testing.T) {
 // TestBuilderComposerInterface tests that Builder implements Composer interface properly
 func TestBuilderComposerInterface(t *testing.T) {
 	tests := []struct {
-		name  string
-		build func(*Builder) *Builder
+		structured bool
+		name       string
+		build      func(*Builder) *Builder
 	}{
 		{
 			name: "StringMethod",
@@ -439,7 +440,8 @@ func TestBuilderComposerInterface(t *testing.T) {
 			},
 		},
 		{
-			name: "StructuredMethod",
+			name:       "StructuredMethod",
+			structured: true,
 			build: func(b *Builder) *Builder {
 				return b.Fields(Fields{"k": "v"})
 			},
@@ -465,10 +467,11 @@ func TestBuilderComposerInterface(t *testing.T) {
 
 			// Test Composer interface methods
 			_ = builder.String()
-			_ = builder.Structured()
+
+			check.Equal(t, builder.Structured(), tt.structured)
 			_ = builder.Priority()
 			_ = builder.Raw()
-			_ = builder.Loggable()
+			check.True(t, builder.Loggable())
 		})
 	}
 }
