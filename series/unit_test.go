@@ -524,12 +524,12 @@ func TestHistogramConfValidation(t *testing.T) {
 func TestHistogramConfOptions(t *testing.T) {
 	tests := []struct {
 		name     string
-		apply    func(*HistogramConf)
+		apply    func(*testing.T, *HistogramConf)
 		validate func(*testing.T, *HistogramConf)
 	}{
 		{
 			name: "OutOfRangeOption",
-			apply: func(conf *HistogramConf) {
+			apply: func(t *testing.T, conf *HistogramConf) {
 				check.NotError(t, conf.Apply(HistogramConfOutOfRange(HistogramOutOfRangePanic)))
 			},
 			validate: func(t *testing.T, conf *HistogramConf) {
@@ -540,7 +540,7 @@ func TestHistogramConfOptions(t *testing.T) {
 		},
 		{
 			name: "SetOption",
-			apply: func(conf *HistogramConf) {
+			apply: func(t *testing.T, conf *HistogramConf) {
 				newConf := &HistogramConf{
 					Min:        10,
 					Max:        100,
@@ -557,9 +557,11 @@ func TestHistogramConfOptions(t *testing.T) {
 		},
 		{
 			name: "ResetOption",
-			apply: func(conf *HistogramConf) {
+			apply: func(t *testing.T, conf *HistogramConf) {
 				conf.Min = 999
-				check.NotError(t, conf.Apply(HistogramConfReset()))
+				// Reset doesn't validate, so call it directly
+				err := HistogramConfReset()(conf)
+				check.NotError(t, err)
 			},
 			validate: func(t *testing.T, conf *HistogramConf) {
 				if conf.Min != 0 {
@@ -572,7 +574,7 @@ func TestHistogramConfOptions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			conf := MakeDefaultHistogramConf()
-			tt.apply(conf)
+			tt.apply(t, conf)
 			tt.validate(t, conf)
 		})
 	}
