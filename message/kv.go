@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"iter"
 	"maps"
+	"slices"
 	"strings"
 
 	"github.com/tychoish/fun/dt"
@@ -11,31 +12,35 @@ import (
 	"github.com/tychoish/grip/level"
 )
 
-// BuilderKV is a chainable interface for building a KV/dt.Pair
+// KV is a chainable interface for building a KV/dt.Pair
 // message. These are very similar to Fields messages, however their
 // keys are ordered. Satisfies the message.Composer interface.
-type BuilderKV struct {
+type KV struct {
 	kvs          dt.OrderedMap[string, any]
 	cachedSize   int
 	cachedOutput string
 	hasMetadata  bool
-	Base
+	core         Base
 }
 
-// BuildKV creates a wrapper around a composer that allows for a
+// NewKV creates a wrapper around a composer that allows for a
 // chainable pair message building interface.
-func BuildKV() *BuilderKV    { return &BuilderKV{} }
-func makeComposer() Composer { return &BuilderKV{} }
+func NewKV() *KV             { return &KV{} }
+func makeComposer() Composer { return &KV{} }
+
+func MakeKV[V any](seq iter.Seq2[string, V]) Composer {
+	return MakeFuture(func() Composer { return NewKV().Extend(vtoany(seq)) })
+}
 
 // Composer returns the builder as a composer-type
-func (p *BuilderKV) Composer() Composer                          { return p }
-func (p *BuilderKV) KV(key string, value any) *BuilderKV         { p.kvs.Set(key, value); return p }
-func (p *BuilderKV) Option(f Option) *BuilderKV                  { p.SetOption(f); return p }
-func (p *BuilderKV) Level(l level.Priority) *BuilderKV           { p.SetPriority(l); return p }
-func (p *BuilderKV) Fields(f Fields) *BuilderKV                  { p.kvs.Extend(maps.All(f)); return p }
-func (p *BuilderKV) Extend(in iter.Seq2[string, any]) *BuilderKV { p.kvs.Extend(in); return p }
-
-func (p *BuilderKV) WhenKV(cond bool, k string, v any) *BuilderKV {
+func (p *KV) Composer() Composer                   { return p }
+func (p *KV) KV(key string, value any) *KV         { p.kvs.Set(key, value); return p }
+func (p *KV) WithOptions(f ...Option) *KV          { p.core.SetOption(f...); return p }
+func (p *KV) Level(l level.Priority) *KV           { p.SetPriority(l); return p }
+func (p *KV) Extend(in iter.Seq2[string, any]) *KV { p.kvs.Extend(in); return p }
+func (p *KV) Fields(f Fields) *KV                  { return p.Extend(maps.All(f)) }
+func (p *KV) KVs(e ...irt.KV[string, any]) *KV     { return p.Extend(irt.KVsplit(irt.Slice(e))) }
+func (p *KV) WhenKV(cond bool, k string, v any) *KV {
 	if cond {
 		p.kvs.Set(k, v)
 	}
@@ -46,57 +51,61 @@ func vtoany[V any](seq iter.Seq2[string, V]) iter.Seq2[string, any] {
 	return irt.Convert2(seq, func(key string, value V) (string, any) { return key, value })
 }
 
-// MakeKV constructs a new Composer from a dt.OrderedMap).
-func MakeKV[V any](seq iter.Seq2[string, V]) Composer { return BuildKV().Extend(vtoany(seq)) }
-func KV(k string, v any) iter.Seq2[string, any]       { return irt.Two(k, v) }
-func (p *BuilderKV) Annotate(key string, value any)   { p.kvs.Set(key, value) }
-func (p *BuilderKV) Loggable() bool                   { return p.kvs.Len() > 0 }
-func (p *BuilderKV) Structured() bool                 { return true }
-func (p *BuilderKV) Raw() any {
-	p.Collect()
+func (p *KV) Annotate(key string, value any) { p.kvs.Set(key, value) }
+func (p *KV) Loggable() bool                 { return p.kvs.Len() > 0 }
+func (p *KV) SetOption(opts ...Option)       { p.core.SetOption(opts...) }
+func (p *KV) Priority() level.Priority       { return p.core.Priority() }
+func (p *KV) SetPriority(l level.Priority)   { p.core.SetPriority(l) }
+func (p *KV) Structured() bool               { return true }
+func (p *KV) Raw() any {
+	p.core.Collect()
 
-	if p.IncludeMetadata && !p.hasMetadata {
-		p.kvs.Set("meta", &p.Base)
+	if p.core.IncludeMetadata && !p.hasMetadata {
+		p.kvs.Set("meta", &p.core)
 		p.hasMetadata = true
 	}
 
 	return &p.kvs
 }
 
-func (p *BuilderKV) String() string {
-	if p.cachedOutput != "" && p.kvs.Len() == p.cachedSize {
+func (p *KV) String() string {
+	if p.kvs.Len() == p.cachedSize && (p.cachedOutput != "" || !p.core.IncludeMetadata) {
 		return p.cachedOutput
 	}
 
-	p.Collect()
+	p.core.Collect()
 
-	if p.IncludeMetadata && !p.hasMetadata {
-		p.kvs.Set("meta", &p.Base)
+	if p.core.IncludeMetadata && !p.hasMetadata {
+		p.kvs.Set("meta", &p.core)
 		p.hasMetadata = true
 	}
 
-	out := make([]string, 0, p.kvs.Len())
-	var seenMetadata bool
+	var out []string
 
-	for key, value := range p.kvs.Iterator() {
-		if key == "meta" && (seenMetadata || !p.IncludeMetadata) {
-			seenMetadata = true
-			continue
-		}
-
-		switch val := value.(type) {
-		case string, fmt.Stringer:
-			out = append(out, fmt.Sprintf("%s='%s'", key, val))
-		default:
-			out = append(out, fmt.Sprintf("%s='%v'", key, value))
-		}
-
-		if key == "meta" {
-			p.hasMetadata = true
-		}
+	out = makeSimpleFieldsString(p.kvs.Iterator(), p.core.IncludeMetadata, p.kvs.Len())
+	if p.core.SortComponents {
+		slices.Sort(out)
 	}
 	p.cachedOutput = strings.Join(out, " ")
 	p.cachedSize = p.kvs.Len()
 
 	return p.cachedOutput
+}
+
+var skippedFields = map[string]struct{}{"meta": {}}
+
+func renderField(k string, v any) string {
+	if _, ok := skippedFields[k]; ok {
+		return ""
+	}
+	switch val := v.(type) {
+	case fmt.Stringer, string:
+		return fmt.Sprintf("%s='%s'", k, val)
+	default:
+		return fmt.Sprintf("%s='%v'", k, v)
+	}
+}
+
+func makeSimpleFieldsString(f iter.Seq2[string, any], doSkips bool, hint int) []string {
+	return irt.Collect(irt.RemoveZeros(irt.Merge(f, renderField)))
 }

@@ -8,21 +8,21 @@ import (
 func TestLineMessengerAnnotate(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func() *lineMessenger
+		setup    func() *strln
 		key      string
 		value    any
-		validate func(*testing.T, *lineMessenger)
+		validate func(*testing.T, *strln)
 	}{
 		{
 			name: "AnnotateWithoutFieldMessage",
-			setup: func() *lineMessenger {
-				return &lineMessenger{
+			setup: func() *strln {
+				return &strln{
 					lines: []any{"test"},
 				}
 			},
 			key:   "key1",
 			value: "value1",
-			validate: func(t *testing.T, lm *lineMessenger) {
+			validate: func(t *testing.T, lm *strln) {
 				if lm.Context.Len() == 0 {
 					t.Error("Context should be initialized")
 				}
@@ -33,14 +33,14 @@ func TestLineMessengerAnnotate(t *testing.T) {
 		},
 		{
 			name: "AnnotateMultipleTimes",
-			setup: func() *lineMessenger {
-				return &lineMessenger{
+			setup: func() *strln {
+				return &strln{
 					lines: []any{"message"},
 				}
 			},
 			key:   "key1",
 			value: 1,
-			validate: func(t *testing.T, lm *lineMessenger) {
+			validate: func(t *testing.T, lm *strln) {
 				lm.Annotate("key2", 2)
 				lm.Annotate("key3", 3)
 
@@ -51,14 +51,14 @@ func TestLineMessengerAnnotate(t *testing.T) {
 		},
 		{
 			name: "AnnotateWithNilValue",
-			setup: func() *lineMessenger {
-				return &lineMessenger{
+			setup: func() *strln {
+				return &strln{
 					lines: []any{"test"},
 				}
 			},
 			key:   "nilkey",
 			value: nil,
-			validate: func(t *testing.T, lm *lineMessenger) {
+			validate: func(t *testing.T, lm *strln) {
 				if _, exists := lm.Context.Load("nilkey"); !exists {
 					t.Error("should allow nil values")
 				}
@@ -182,13 +182,13 @@ func TestMakeLines(t *testing.T) {
 func TestLineMessengerLoggable(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func() *lineMessenger
+		setup    func() *strln
 		expected bool
 	}{
 		{
 			name: "WithLines",
-			setup: func() *lineMessenger {
-				return &lineMessenger{
+			setup: func() *strln {
+				return &strln{
 					lines: []any{"test"},
 				}
 			},
@@ -196,8 +196,8 @@ func TestLineMessengerLoggable(t *testing.T) {
 		},
 		{
 			name: "WithContext",
-			setup: func() *lineMessenger {
-				lm := &lineMessenger{
+			setup: func() *strln {
+				lm := &strln{
 					lines: []any{},
 				}
 				lm.Context.Store("key", "value")
@@ -207,8 +207,8 @@ func TestLineMessengerLoggable(t *testing.T) {
 		},
 		{
 			name: "WithFieldMessage",
-			setup: func() *lineMessenger {
-				lm := &lineMessenger{
+			setup: func() *strln {
+				lm := &strln{
 					lines: []any{"msg"},
 				}
 				lm.Context.Store("k", "v")
@@ -218,8 +218,8 @@ func TestLineMessengerLoggable(t *testing.T) {
 		},
 		{
 			name: "Empty",
-			setup: func() *lineMessenger {
-				return &lineMessenger{
+			setup: func() *strln {
+				return &strln{
 					lines: []any{},
 				}
 			},
@@ -241,27 +241,27 @@ func TestLineMessengerLoggable(t *testing.T) {
 func TestLineMessengerString(t *testing.T) {
 	tests := []struct {
 		name       string
-		setup      func() *lineMessenger
+		setup      func() *strln
 		wantSubstr []string
 	}{
 		{
 			name: "SimpleLines",
-			setup: func() *lineMessenger {
-				return MakeLines([]any{"line1", "line2"}...).(*lineMessenger)
+			setup: func() *strln {
+				return MakeLines([]any{"line1", "line2"}...).(*strln)
 			},
 			wantSubstr: []string{"line1", "line2"},
 		},
 		{
 			name: "WithFieldMessage",
-			setup: func() *lineMessenger {
-				return MakeLines([]any{"test"}...).(*lineMessenger)
+			setup: func() *strln {
+				return MakeLines([]any{"test"}...).(*strln)
 			},
 			wantSubstr: []string{"test"},
 		},
 		{
 			name: "WithContextNoFieldMessage",
-			setup: func() *lineMessenger {
-				lm := MakeLines("message").(*lineMessenger)
+			setup: func() *strln {
+				lm := MakeLines("message").(*strln)
 				lm.Context.Store("field", "data")
 				return lm
 			},
@@ -286,15 +286,15 @@ func TestLineMessengerString(t *testing.T) {
 func TestLineMessengerRaw(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func() *lineMessenger
+		setup    func() *strln
 		validate func(*testing.T, any)
 	}{
 		{
 			name: "WithFieldMessage",
-			setup: func() *lineMessenger {
+			setup: func() *strln {
 				lm := MakeLines("test")
 				lm.Annotate("key", "value")
-				return lm.(*lineMessenger)
+				return lm.(*strln)
 			},
 			validate: func(t *testing.T, raw any) {
 				if raw == nil {
@@ -304,10 +304,10 @@ func TestLineMessengerRaw(t *testing.T) {
 		},
 		{
 			name: "WithContextNoFieldMessage",
-			setup: func() *lineMessenger {
+			setup: func() *strln {
 				lm := MakeLines("msg")
 				lm.Annotate("field", "data")
-				return lm.(*lineMessenger)
+				return lm.(*strln)
 			},
 			validate: func(t *testing.T, raw any) {
 				if raw == nil {
@@ -317,9 +317,9 @@ func TestLineMessengerRaw(t *testing.T) {
 		},
 		{
 			name: "WithoutIncludeMetadata",
-			setup: func() *lineMessenger {
+			setup: func() *strln {
 				lm := MakeLines("test message")
-				return lm.(*lineMessenger)
+				return lm.(*strln)
 			},
 			validate: func(t *testing.T, raw any) {
 				// Should return anonymous struct with Msg field
@@ -342,19 +342,19 @@ func TestLineMessengerRaw(t *testing.T) {
 func TestLineMessengerSetOption(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func() *lineMessenger
+		setup    func() *strln
 		opts     []Option
-		validate func(*testing.T, *lineMessenger)
+		validate func(*testing.T, *strln)
 	}{
 		{
 			name: "WithoutFieldMessage",
-			setup: func() *lineMessenger {
-				return &lineMessenger{
+			setup: func() *strln {
+				return &strln{
 					lines: []any{"test"},
 				}
 			},
 			opts: []Option{OptionIncludeMetadata},
-			validate: func(t *testing.T, lm *lineMessenger) {
+			validate: func(t *testing.T, lm *strln) {
 				if !lm.IncludeMetadata {
 					t.Error("should set IncludeMetadata on Base")
 				}
@@ -431,7 +431,7 @@ func TestNewLinesFromStrings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := newLinesFromStrings(tt.args)
+			c := NewLines(tt.args)
 			if c == nil {
 				t.Fatal("newLinesFromStrings should not return nil")
 			}

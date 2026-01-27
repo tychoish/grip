@@ -89,4 +89,8 @@ const (
 	// messages (defined by the message.FieldsMsgName constant)
 	// should *not* be handdled specially.
 	OptionMessageIsNotStructuredField Option = "message-is-not-structured"
+	// OptionSortMessageComponents declares a desire to render message components in a
+	// deterministic order. This is useful for message implementation
+	// that use maps internally if you want a consistent ordering.
+	OptionSortMessageComponents Option = "sort-message-components"
 )

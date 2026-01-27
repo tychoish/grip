@@ -111,7 +111,7 @@ func TestPairBuilder(t *testing.T) {
 	h := &captureHandler{}
 	s := slogx.MakeSender(ctx, slog.New(h))
 
-	builder := &message.BuilderKV{}
+	builder := &message.KV{}
 	builder.KV("alpha", 1).
 		KV("beta", true).
 		KV("gamma", 3.14).

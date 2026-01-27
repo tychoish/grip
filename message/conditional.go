@@ -32,17 +32,16 @@ func Whenln(cond bool, args ...any) Composer {
 	return &conditional{cond: cond, constructor: func() Composer { return MakeLines(args...) }}
 }
 
-// WhenMsg returns a conditional message that is only logged if the
+// WhenStr returns a conditional message that is only logged if the
 // condition is bool, and creates a string message that will only log
 // when the message content is not the empty string. Use this for a
 // more strongly-typed conditional logging message.
-func WhenMsg(cond bool, m string) Composer {
+func WhenStr(cond bool, m string) Composer {
 	return &conditional{cond: cond, constructor: func() Composer { return MakeString(m) }}
 }
 
 func (c *conditional) resolve() Composer {
 	switch {
-
 	case c.constructor != nil:
 		c.resolved = c.constructor()
 		c.constructor = nil

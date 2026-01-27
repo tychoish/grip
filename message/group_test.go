@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/tychoish/fun/assert/check"
+	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/grip/level"
 )
 
@@ -55,12 +56,11 @@ func TestGroupComposer(t *testing.T) {
 		)
 		cmp.Annotate("mars", "venus")
 		for idx, m := range cmp.Messages() {
-			mp := m.Raw().(Fields)
-			val, ok := mp["mars"]
+			mp := m.Raw().(*dt.OrderedMap[string, any])
+			val, ok := mp.Load("mars")
 			t.Log(idx)
 			check.True(t, ok)
 			check.Equal(t, "venus", val.(string))
 		}
 	})
-
 }

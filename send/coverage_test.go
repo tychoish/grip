@@ -210,7 +210,7 @@ func TestWrapError(t *testing.T) {
 		{
 			name:     "WithComplexComposer",
 			err:      errors.New("send failed"),
-			composer: message.BuildKV().KV("key", "value"),
+			composer: message.NewKV().KV("key", "value"),
 			validate: func(t *testing.T, err error) {
 				if err == nil {
 					t.Fatal("expected non-nil error")
@@ -446,7 +446,7 @@ func TestMakeJSONFormatter(t *testing.T) {
 		},
 		{
 			name:     "StructuredMessage",
-			composer: message.BuildKV().KV("key", "value"),
+			composer: message.NewKV().KV("key", "value"),
 			validate: func(t *testing.T, output string, err error) {
 				if err != nil {
 					t.Fatalf("expected no error, got: %v", err)
@@ -616,7 +616,7 @@ func TestNopSender(t *testing.T) {
 			validate: func(t *testing.T, sender Sender) {
 				// Should not panic
 				sender.Send(message.MakeString("test"))
-				sender.Send(message.BuildKV().KV("key", "value"))
+				sender.Send(message.NewKV().KV("key", "value"))
 			},
 		},
 		{

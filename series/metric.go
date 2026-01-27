@@ -192,6 +192,7 @@ func (m *Metric) resolve() {
 	m.bufferPool.SetConstructor(func() *bytes.Buffer { return &bytes.Buffer{} })
 	m.bufferPool.SetCleanupHook(func(in *bytes.Buffer) *bytes.Buffer { in.Reset(); return in })
 	m.bufferPool.FinalizeSetup()
+
 	if m.labelCache == nil {
 		m.labelCache = fn.MakeFuture(func() iter.Seq2[string, string] {
 			var ps []irt.KV[string, string]

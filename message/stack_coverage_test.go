@@ -274,7 +274,7 @@ func TestStackMessageStructured(t *testing.T) {
 			name: "WithStructuredComposer",
 			setup: func() *stackMessage {
 				return &stackMessage{
-					Composer: BuildKV().KV("key", "value"),
+					Composer: NewKV().KV("key", "value"),
 					trace:    captureStack(1),
 				}
 			},
@@ -314,7 +314,7 @@ func TestStackMessageRaw(t *testing.T) {
 			setup: func() *stackMessage {
 				gopath := "/go/src/github.com/user/repo"
 				return &stackMessage{
-					Composer: BuildKV().KV("key", "value"),
+					Composer: NewKV().KV("key", "value"),
 					trace: StackFrames{
 						{Function: "test", File: gopath + "/test.go", Line: 1},
 					},
@@ -356,7 +356,7 @@ func TestStackMessageRaw(t *testing.T) {
 			setup: func() *stackMessage {
 				gopath := "/go/src/github.com/user/repo"
 				return &stackMessage{
-					Composer: BuildKV().KV("k", "v"),
+					Composer: NewKV().KV("k", "v"),
 					trace:    StackFrames{{Function: "test", File: gopath + "/test.go", Line: 1}},
 				}
 			},

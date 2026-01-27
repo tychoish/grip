@@ -10,16 +10,16 @@ import (
 func TestBuilderKVMethods(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func() *BuilderKV
-		testFunc func(*testing.T, *BuilderKV)
+		setup    func() *KV
+		testFunc func(*testing.T, *KV)
 	}{
 		{
 			name: "OptionMethod",
-			setup: func() *BuilderKV {
-				return BuildKV()
+			setup: func() *KV {
+				return NewKV()
 			},
-			testFunc: func(t *testing.T, kv *BuilderKV) {
-				result := kv.Option(OptionIncludeMetadata)
+			testFunc: func(t *testing.T, kv *KV) {
+				result := kv.WithOptions(OptionIncludeMetadata)
 				if result != kv {
 					t.Error("Option should return self")
 				}
@@ -27,10 +27,10 @@ func TestBuilderKVMethods(t *testing.T) {
 		},
 		{
 			name: "LevelMethod",
-			setup: func() *BuilderKV {
-				return BuildKV()
+			setup: func() *KV {
+				return NewKV()
 			},
-			testFunc: func(t *testing.T, kv *BuilderKV) {
+			testFunc: func(t *testing.T, kv *KV) {
 				result := kv.Level(level.Warning)
 				if result != kv {
 					t.Error("Level should return self")
@@ -42,10 +42,10 @@ func TestBuilderKVMethods(t *testing.T) {
 		},
 		{
 			name: "KVMethod",
-			setup: func() *BuilderKV {
-				return BuildKV()
+			setup: func() *KV {
+				return NewKV()
 			},
-			testFunc: func(t *testing.T, kv *BuilderKV) {
+			testFunc: func(t *testing.T, kv *KV) {
 				result := kv.KV("key", "value")
 				if result != kv {
 					t.Error("KV should return self")
@@ -57,10 +57,10 @@ func TestBuilderKVMethods(t *testing.T) {
 		},
 		{
 			name: "WhenKVTrue",
-			setup: func() *BuilderKV {
-				return BuildKV()
+			setup: func() *KV {
+				return NewKV()
 			},
-			testFunc: func(t *testing.T, kv *BuilderKV) {
+			testFunc: func(t *testing.T, kv *KV) {
 				result := kv.WhenKV(true, "key", "value")
 				if result != kv {
 					t.Error("WhenKV should return self")
@@ -72,10 +72,10 @@ func TestBuilderKVMethods(t *testing.T) {
 		},
 		{
 			name: "WhenKVFalse",
-			setup: func() *BuilderKV {
-				return BuildKV()
+			setup: func() *KV {
+				return NewKV()
 			},
-			testFunc: func(t *testing.T, kv *BuilderKV) {
+			testFunc: func(t *testing.T, kv *KV) {
 				result := kv.WhenKV(false, "key", "value")
 				if result != kv {
 					t.Error("WhenKV should return self")
@@ -87,10 +87,10 @@ func TestBuilderKVMethods(t *testing.T) {
 		},
 		{
 			name: "AnnotateMethod",
-			setup: func() *BuilderKV {
-				return BuildKV()
+			setup: func() *KV {
+				return NewKV()
 			},
-			testFunc: func(t *testing.T, kv *BuilderKV) {
+			testFunc: func(t *testing.T, kv *KV) {
 				kv.Annotate("newkey", "newvalue")
 				if !kv.Loggable() {
 					t.Error("Annotate should make loggable")
@@ -103,10 +103,10 @@ func TestBuilderKVMethods(t *testing.T) {
 		},
 		{
 			name: "FieldsMethod",
-			setup: func() *BuilderKV {
-				return BuildKV()
+			setup: func() *KV {
+				return NewKV()
 			},
-			testFunc: func(t *testing.T, kv *BuilderKV) {
+			testFunc: func(t *testing.T, kv *KV) {
 				fields := Fields{
 					"key1": "value1",
 					"key2": 42,
@@ -123,10 +123,10 @@ func TestBuilderKVMethods(t *testing.T) {
 		},
 		{
 			name: "ExtendMethod",
-			setup: func() *BuilderKV {
-				return BuildKV()
+			setup: func() *KV {
+				return NewKV()
 			},
-			testFunc: func(t *testing.T, kv *BuilderKV) {
+			testFunc: func(t *testing.T, kv *KV) {
 				seq := func(yield func(string, any) bool) {
 					yield("k1", "v1")
 					yield("k2", "v2")
@@ -153,27 +153,27 @@ func TestBuilderKVMethods(t *testing.T) {
 func TestBuilderKVLoggable(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func() *BuilderKV
+		setup    func() *KV
 		expected bool
 	}{
 		{
 			name: "EmptyKV",
-			setup: func() *BuilderKV {
-				return BuildKV()
+			setup: func() *KV {
+				return NewKV()
 			},
 			expected: false,
 		},
 		{
 			name: "WithOneKV",
-			setup: func() *BuilderKV {
-				return BuildKV().KV("key", "value")
+			setup: func() *KV {
+				return NewKV().KV("key", "value")
 			},
 			expected: true,
 		},
 		{
 			name: "WithMultipleKVs",
-			setup: func() *BuilderKV {
-				return BuildKV().KV("k1", "v1").KV("k2", "v2")
+			setup: func() *KV {
+				return NewKV().KV("k1", "v1").KV("k2", "v2")
 			},
 			expected: true,
 		},
@@ -193,34 +193,34 @@ func TestBuilderKVLoggable(t *testing.T) {
 func TestBuilderKVString(t *testing.T) {
 	tests := []struct {
 		name       string
-		setup      func() *BuilderKV
+		setup      func() *KV
 		wantSubstr []string
 	}{
 		{
 			name: "EmptyKV",
-			setup: func() *BuilderKV {
-				return BuildKV()
+			setup: func() *KV {
+				return NewKV()
 			},
 			wantSubstr: []string{},
 		},
 		{
 			name: "SingleKV",
-			setup: func() *BuilderKV {
-				return BuildKV().KV("key", "value")
+			setup: func() *KV {
+				return NewKV().KV("key", "value")
 			},
 			wantSubstr: []string{"key", "value"},
 		},
 		{
 			name: "MultipleKVs",
-			setup: func() *BuilderKV {
-				return BuildKV().KV("name", "test").KV("count", 42).KV("flag", true)
+			setup: func() *KV {
+				return NewKV().KV("name", "test").KV("count", 42).KV("flag", true)
 			},
 			wantSubstr: []string{"name", "test", "count", "42", "flag", "true"},
 		},
 		{
 			name: "CachedString",
-			setup: func() *BuilderKV {
-				kv := BuildKV().KV("key", "val")
+			setup: func() *KV {
+				kv := NewKV().KV("key", "val")
 				_ = kv.String() // Call once to cache
 				return kv
 			},
@@ -251,20 +251,20 @@ func TestBuilderKVString(t *testing.T) {
 func TestBuilderKVStructured(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func() *BuilderKV
+		setup    func() *KV
 		expected bool
 	}{
 		{
 			name: "AlwaysStructured",
-			setup: func() *BuilderKV {
-				return BuildKV()
+			setup: func() *KV {
+				return NewKV()
 			},
 			expected: true,
 		},
 		{
 			name: "WithKVsAlwaysStructured",
-			setup: func() *BuilderKV {
-				return BuildKV().KV("k", "v")
+			setup: func() *KV {
+				return NewKV().KV("k", "v")
 			},
 			expected: true,
 		},
@@ -284,13 +284,13 @@ func TestBuilderKVStructured(t *testing.T) {
 func TestBuilderKVRaw(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func() *BuilderKV
+		setup    func() *KV
 		validate func(*testing.T, any)
 	}{
 		{
 			name: "EmptyKV",
-			setup: func() *BuilderKV {
-				return BuildKV()
+			setup: func() *KV {
+				return NewKV()
 			},
 			validate: func(t *testing.T, raw any) {
 				if raw == nil {
@@ -300,8 +300,8 @@ func TestBuilderKVRaw(t *testing.T) {
 		},
 		{
 			name: "WithKVPairs",
-			setup: func() *BuilderKV {
-				return BuildKV().KV("field1", "value1").KV("field2", 123)
+			setup: func() *KV {
+				return NewKV().KV("field1", "value1").KV("field2", 123)
 			},
 			validate: func(t *testing.T, raw any) {
 				if raw == nil {
@@ -311,8 +311,8 @@ func TestBuilderKVRaw(t *testing.T) {
 		},
 		{
 			name: "WithMetadata",
-			setup: func() *BuilderKV {
-				kv := BuildKV().KV("key", "val")
+			setup: func() *KV {
+				kv := NewKV().KV("key", "val")
 				kv.SetOption(OptionIncludeMetadata)
 				return kv
 			},
@@ -417,7 +417,7 @@ func TestKVFunction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := KV(tt.key, tt.value)
+			result := NewKV().KV(tt.key, tt.value)
 			tt.validate(t, result)
 		})
 	}

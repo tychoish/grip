@@ -309,11 +309,9 @@ func fixTimestamps(t *testing.T, msgs ...Composer) {
 	ts := time.Now().Round(time.Millisecond)
 	for _, msg := range msgs {
 		switch m := msg.(type) {
-		case *fieldMessage:
-			m.Time = ts
-		case *lineMessenger:
-			m.Time = ts
-		case *BuilderKV:
+		case *KV:
+			m.core.Time = ts
+		case *strln:
 			m.Time = ts
 		case *GroupComposer:
 			fixTimestamps(t, m.Messages()...)
@@ -431,7 +429,7 @@ func TestConverter(t *testing.T) {
 		{
 			Name:         "EmptySliceComposerProducer",
 			Input:        []fn.Future[Composer]{},
-			Expected:     &BuilderKV{},
+			Expected:     &KV{},
 			IsStructured: true,
 			Unloggable:   true,
 		},
@@ -453,7 +451,7 @@ func TestConverter(t *testing.T) {
 		{
 			Name:         "BuilderFields",
 			Input:        Fields{"hello": 2001, "world": 42},
-			Expected:     NewBuilder(func(Composer) {}, testConverter(t, true)).Fields(Fields{"hello": 2001, "world": 42}).Message(),
+			Expected:     NewBuilder(func(Composer) {}, testConverter(t, true)).Fields(Fields{"hello": 2001, "world": 42}).WithOptions(OptionSortMessageComponents).Message(),
 			IsStructured: true,
 		},
 	}
@@ -471,6 +469,7 @@ func TestConverter(t *testing.T) {
 				t.Run(convMethod, func(t *testing.T) {
 					got.SetOption(OptionSkipCollectInfo)
 					got.SetOption(OptionSkipMetadata)
+					got.SetOption(OptionSortMessageComponents)
 					check.Equal(t, got.Loggable(), tt.Expected.Loggable())
 					check.Equal(t, got.String(), tt.Expected.String())
 					check.True(t, got.Structured() == tt.IsStructured)

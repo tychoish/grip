@@ -41,7 +41,7 @@ func TestConditionalMessage(t *testing.T) {
 	}
 	comp = Whenln(true, "", "")
 	if comp.Loggable() {
-		t.Errorf("%T: %s", comp, comp)
+		t.Errorf("%T: %s, %q", comp, comp, comp.String())
 	}
 
 	comp = Whenf(true, "f%soo", "bar")
@@ -57,11 +57,11 @@ func TestConditionalMessage(t *testing.T) {
 		t.Errorf("%T: %s", comp, comp)
 	}
 
-	comp = WhenMsg(true, "foo")
+	comp = WhenStr(true, "foo")
 	if !comp.Loggable() {
 		t.Error("value should be true")
 	}
-	comp = WhenMsg(false, "bar")
+	comp = WhenStr(false, "bar")
 	if comp.Loggable() {
 		t.Error("value should be false")
 	}

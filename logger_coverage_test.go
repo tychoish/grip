@@ -116,7 +116,7 @@ func TestPackageLevelSetSender(t *testing.T) {
 			},
 		},
 		{
-			name:   "SetSenderWithPriority",
+			name: "SetSenderWithPriority",
 			sender: func() send.Sender {
 				s := send.MakePlain()
 				s.SetPriority(level.Debug)
@@ -204,7 +204,7 @@ func TestPackageLevelSend(t *testing.T) {
 		},
 		{
 			name:     "SendStructuredMessage",
-			composer: message.BuildKV().KV("key", "value"),
+			composer: message.NewKV().KV("key", "value"),
 			validate: func(t *testing.T) {
 				// Should handle structured messages
 			},

@@ -18,7 +18,7 @@ type errorMessage struct {
 }
 
 func Noop() Composer {
-	m := BuildKV().Composer()
+	m := NewKV().Composer()
 	m.SetOption(OptionSkipCollectInfo, OptionSkipMetadata)
 	return m
 }

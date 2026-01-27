@@ -246,6 +246,6 @@ func TestCommentJiraIssueAnnotationOnlySupportsStrings(t *testing.T) {
 		t.Fatal("message context should be non-nil")
 	}
 	if len(m.issue.Fields) != 1 {
-		t.Error(len(m.Base.Context))
+		t.Error(m.Base.Context.Len())
 	}
 }

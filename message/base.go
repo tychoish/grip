@@ -40,6 +40,7 @@ type Base struct {
 	CollectInfo      bool                       `bson:"-" json:"-" yaml:"-"`
 	IncludeMetadata  bool                       `bson:"-" json:"-" yaml:"-"`
 	MessageIsSpecial bool                       `bson:"-" json:"-" yaml:"-"`
+	SortComponents   bool                       `bson:"-" json:"-" yaml:"-"`
 }
 
 func (b *Base) SetOption(opts ...Option) {
@@ -55,6 +56,8 @@ func (b *Base) SetOption(opts ...Option) {
 			b.CollectInfo = false
 		case OptionMessageIsNotStructuredField:
 			b.MessageIsSpecial = true
+		case OptionSortMessageComponents:
+			b.SortComponents = true
 		}
 	}
 }

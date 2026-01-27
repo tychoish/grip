@@ -166,7 +166,7 @@ func TestMessageConstructor(t *testing.T) {
 		},
 		{
 			name:     "StructuredComposer",
-			composer: message.BuildKV().KV("key", "value"),
+			composer: message.NewKV().KV("key", "value"),
 			events:   []*Event{Counter("test").Inc()},
 			validate: func(t *testing.T, m *MetricMessage) {
 				if !m.Structured() {

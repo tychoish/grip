@@ -1180,7 +1180,7 @@ func TestMessageComposerIntegration(t *testing.T) {
 		{
 			name: "WithMetricsStructuredMessage",
 			setup: func() message.Composer {
-				return WithMetrics(message.BuildKV().KV("key", "value"))
+				return WithMetrics(message.NewKV().KV("key", "value"))
 			},
 			validate: func(t *testing.T, c message.Composer) {
 				if c == nil {

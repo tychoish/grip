@@ -66,18 +66,17 @@ func (b *Builder) Send() {
 }
 
 func (b *Builder) getMessage() Composer {
-	if b.composer != nil {
-		if !b.catcher.Ok() {
-			return WrapError(b.catcher.Resolve(), b.composer)
-		}
-		if b.level != nil {
-			b.composer.SetPriority(b.level())
-		}
-
+	switch {
+	case b.composer == nil:
+		return MakeError(b.catcher.Resolve())
+	case !b.catcher.Ok():
+		return WrapError(b.catcher.Resolve(), b.composer)
+	case b.level != nil:
+		b.composer.SetPriority(b.level())
+		fallthrough
+	default:
 		return b.composer
-	} else {
-		out := MakeError(b.catcher.Resolve())
-		return out
+
 	}
 }
 
@@ -142,11 +141,11 @@ func (b *Builder) Any(msg any) *Builder                   { return b.set(b.conve
 func (b *Builder) F(tmpl string, a ...any) *Builder       { return b.set(MakeFormat(tmpl, a...)) }
 func (b *Builder) Ln(str string) *Builder                 { return b.set(MakeString(str)) }
 func (b *Builder) Lns(args ...any) *Builder               { return b.set(MakeLines(args...)) }
-func (b *Builder) Strings(ss []string) *Builder           { return b.set(newLinesFromStrings(ss)) }
+func (b *Builder) Strings(ss []string) *Builder           { return b.set(NewLines(ss)) }
 func (b *Builder) Error(err error) *Builder               { return b.set(MakeError(err)) }
 func (b *Builder) Bytes(in []byte) *Builder               { return b.set(MakeBytes(in)) }
 func (b *Builder) AnyMap(f map[string]any) *Builder       { return b.Fields(f) }
-func (b *Builder) StringMap(f map[string]string) *Builder { return b.Fields(FieldsFromMap(f)) }
+func (b *Builder) StringMap(f map[string]string) *Builder { return b.set(MakeKV(irt.Map(f))) }
 func (b *Builder) KV(k string, v any) *Builder            { return b.init().with(k, v) }
 func (b *Builder) Future() *BuilderFuture                 { return &BuilderFuture{uilder: b} }
 
