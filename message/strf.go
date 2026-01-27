@@ -33,7 +33,7 @@ func MakeFormat(base string, args ...any) Composer {
 
 func (m *strf) render() *strCache {
 	m.Collect()
-	out := &strCache{Context: &m.Base.Context}
+	out := &strCache{Context: &m.Context}
 	if size := m.Context.Len(); size > 0 {
 		out.Message = fmt.Sprintf("%s %s", fmt.Sprintf(m.template, m.args...), makeSimpleFieldsString(m.Context.Iterator(), true, size))
 	} else {

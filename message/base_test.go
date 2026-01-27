@@ -49,7 +49,7 @@ func TestAnnotateAddsFields(t *testing.T) {
 		t.Fatal("context should be populated")
 	}
 	if _, ok := base.Context.Load("k"); !ok {
-		t.Error("annotate should have value", base.Context)
+		t.Error("annotate should have value", &base.Context)
 	}
 }
 

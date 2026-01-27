@@ -319,7 +319,7 @@ func (c *Collector) submitBackground(dur time.Duration, tr *tracked) {
 }
 
 func (c *Collector) spawnBackground(dur time.Duration, tr *tracked) {
-	pipe := pubsub.NewUnlimitedDeque[*tracked]()
+	pipe := &pubsub.Deque[*tracked]{}
 
 	erc.Invariant(pipe.PushBack(tr))
 
