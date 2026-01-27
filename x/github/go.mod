@@ -10,7 +10,7 @@ require (
 
 require (
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/tychoish/fun v0.14.3 // indirect
+	github.com/tychoish/fun v0.14.4 // indirect
 )
 
 // replace github.com/tychoish/grip => ../../
