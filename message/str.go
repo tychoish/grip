@@ -40,9 +40,9 @@ func MakeString(m string) Composer {
 
 func (m *str) render() *strCache {
 	m.Collect()
-	out := &strCache{Context: &m.Context}
-	if size := m.Context.Len(); size > 0 {
-		out.Message = fmt.Sprintf("%s %s", m.content, makeSimpleFieldsString(m.Context.Iterator(), true, size))
+	out := &strCache{Context: &m.Base.Context}
+	if m.RenderExtendedStrings && m.Context.Len() > 0 {
+		out.Message = fmt.Sprintf("%s %s", m.content, makeSimpleFieldsString(m.Context.Iterator(), true, m.Context.Len()))
 	} else {
 		out.Message = m.content
 	}

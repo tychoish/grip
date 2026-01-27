@@ -38,6 +38,7 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 	}
 
 	for msg, output := range cases {
+		msg.SetOption(OptionRenderExtendedStringOutuput)
 		t.Run(fmt.Sprintf("$%T", msg), func(t *testing.T) {
 			if msg == nil {
 				t.Error("value should not be nill")

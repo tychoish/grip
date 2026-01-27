@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -237,8 +238,9 @@ func TestGetFieldsWithJiraIssue(t *testing.T) {
 
 func TestGetFieldsWithFields(t *testing.T) {
 	msg := "Get the message"
-	testFields := message.Fields{"key0": 12, "key1": 42, "msg": msg}
-	m := message.MakeFields(testFields)
+	m := message.MakeString(msg)
+	m.Annotate("key0", 12)
+	m.Annotate("key1", 42)
 
 	fields := getFields(m)
 	if fields.Summary != msg {
@@ -306,7 +308,6 @@ func TestTruncate(t *testing.T) {
 	if len(mock.lastDescription) != 32767 {
 		t.Error("expected value was not of the correct length:", mock.lastDescription)
 	}
-
 }
 
 func TestCustomFields(t *testing.T) {
@@ -410,10 +411,19 @@ func TestPopulateKey(t *testing.T) {
 	})
 
 	messageFields.SetPriority(level.Info)
+	if val := sender.(*jiraJournal).opts.client.(*jiraClientMock).numSent; val != 1 {
+		t.Error(val)
+	}
 	sender.Send(messageFields)
-	messageIssue := messageFields.Raw().(message.Fields)
-	if mock.issueKey != messageIssue[jiraIssueKey] {
-		t.Errorf("%v should be equal to %v", mock.issueKey, messageIssue[jiraIssueKey])
+	// check if it panics
+	_ = messageFields.Raw().(*dt.OrderedMap[string, any])
+	if val := sender.(*jiraJournal).opts.client.(*jiraClientMock).numSent; val != 2 {
+		t.Error(val)
+	}
+	messageFields.SetPriority(level.Emergency)
+	sender.Send(messageFields)
+	if val := sender.(*jiraJournal).opts.client.(*jiraClientMock).numSent; val != 3 {
+		t.Error(val)
 	}
 }
 

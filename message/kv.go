@@ -80,7 +80,7 @@ func (p *KV) String() string {
 		p.hasMetadata = true
 	}
 
-	var out = makeSimpleFieldsString(p.kvs.Iterator(), p.core.IncludeMetadata, p.kvs.Len())
+	out := makeSimpleFieldsString(p.kvs.Iterator(), p.core.IncludeMetadata, p.kvs.Len())
 	if p.core.SortComponents {
 		slices.Sort(out)
 	}

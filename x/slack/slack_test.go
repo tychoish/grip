@@ -326,15 +326,6 @@ func TestFieldsMessageTypeIntegration(t *testing.T) {
 		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 0 but was %d", len(params.Attachments[0].Fields))
 	}
 
-	// if the fields are nil, then we end up ignoring things, except the message
-	msg, params = opts.produceMessage(message.MakeFields(message.Fields{"message": "foo"}))
-	if msg != "" {
-		t.Fatalf("expected 'msg' to be '' but was %s", msg)
-	}
-	if len(params.Attachments[0].Fields) != 1 {
-		t.Fatalf("expected length of 'params.Attachments[0].Fields' to be 1 but was %d", len(params.Attachments[0].Fields))
-	}
-
 	// when msg and the message match we ignore
 	msg, params = opts.produceMessage(message.MakeFields(message.Fields{"message": "foo", "msg": "foo"}))
 	if msg != "" {

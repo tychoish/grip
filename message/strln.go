@@ -33,8 +33,8 @@ func filterEmpty(in any) bool                        { return in == nil || in ==
 func (m *strln) render() *strCache {
 	m.Collect()
 	out := &strCache{Context: &m.Context}
-	if size := m.Context.Len(); size > 0 {
-		out.Message = fmt.Sprintf("%s %s", strings.TrimSpace(fmt.Sprintln(m.lines...)), makeSimpleFieldsString(m.Context.Iterator(), true, size))
+	if m.RenderExtendedStrings && m.Context.Len() > 0 {
+		out.Message = fmt.Sprintf("%s %s", strings.TrimSpace(fmt.Sprintln(m.lines...)), makeSimpleFieldsString(m.Context.Iterator(), true, m.Context.Len()))
 	} else {
 		out.Message = strings.TrimSpace(fmt.Sprintln(m.lines...))
 	}

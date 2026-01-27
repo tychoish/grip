@@ -3,11 +3,14 @@ package slack
 import (
 	"errors"
 	"fmt"
+	"iter"
+	"maps"
 	"os"
 	"strings"
 	"sync"
 
 	"github.com/bluele/slack"
+	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -217,9 +220,16 @@ func (o *SlackOptions) produceMessage(m message.Composer) (string, *slack.ChatPo
 	}
 
 	if o.Fields {
-		fields, ok := m.Raw().(message.Fields)
-		if ok {
-			for k, v := range fields {
+		var fieldsIter iter.Seq2[string, any]
+
+		if fields, ok := m.Raw().(message.Fields); ok {
+			fieldsIter = maps.All(fields)
+		} else if kv, ok := m.Raw().(*dt.OrderedMap[string, any]); ok {
+			fieldsIter = kv.Iterator()
+		}
+
+		if fieldsIter != nil {
+			for k, v := range fieldsIter {
 				if !o.fieldSetShouldInclude(k) {
 					continue
 				}
