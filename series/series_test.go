@@ -46,7 +46,6 @@ import (
 )
 
 func TestIntegration(t *testing.T) {
-	t.Skip("WIP")
 	t.Run("EndToEnd", func(t *testing.T) {
 		t.Run("TwoOutputs", func(t *testing.T) {
 			t.Parallel()
