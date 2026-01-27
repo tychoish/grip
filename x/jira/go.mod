@@ -5,6 +5,7 @@ go 1.24
 require (
 	github.com/andygrunwald/go-jira v1.15.1
 	github.com/dghubble/oauth1 v0.7.1
+	github.com/tychoish/fun v0.14.4
 	github.com/tychoish/grip v0.4.6
 )
 
@@ -16,7 +17,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/trivago/tgo v1.0.7 // indirect
-	github.com/tychoish/fun v0.14.4 // indirect
 )
 
 // replace github.com/tychoish/grip => ../../
