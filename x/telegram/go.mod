@@ -6,5 +6,3 @@ require (
 	github.com/tychoish/fun v0.14.5
 	github.com/tychoish/grip v0.4.6
 )
-
-// replace github.com/tychoish/grip => ../../

@@ -15,5 +15,3 @@ require (
 	github.com/tychoish/fun v0.14.5 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 )
-
-// replace github.com/tychoish/grip => ../../

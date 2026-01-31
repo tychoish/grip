@@ -18,5 +18,3 @@ require (
 	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/trivago/tgo v1.0.7 // indirect
 )
-
-// replace github.com/tychoish/grip => ../../

@@ -12,5 +12,3 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/tychoish/fun v0.14.5 // indirect
 )
-
-// replace github.com/tychoish/grip => ../../
