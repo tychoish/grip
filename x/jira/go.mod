@@ -6,7 +6,7 @@ require (
 	github.com/andygrunwald/go-jira v1.15.1
 	github.com/dghubble/oauth1 v0.7.1
 	github.com/tychoish/fun v0.14.5
-	github.com/tychoish/grip v0.4.6
+	github.com/tychoish/grip v0.4.7
 )
 
 require (

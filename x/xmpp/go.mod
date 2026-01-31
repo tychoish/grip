@@ -3,7 +3,7 @@ module github.com/tychoish/grip/x/xmpp
 go 1.24
 
 require (
-	github.com/tychoish/grip v0.4.6
+	github.com/tychoish/grip v0.4.7
 	github.com/xmppo/go-xmpp v0.2.15
 )
 
