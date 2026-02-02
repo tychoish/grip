@@ -20,6 +20,7 @@ type KV struct {
 	cachedSize   int
 	cachedOutput string
 	hasMetadata  bool
+	suppress     bool
 	core         Base
 }
 
@@ -40,6 +41,8 @@ func (p *KV) Level(l level.Priority) *KV           { p.SetPriority(l); return p 
 func (p *KV) Extend(in iter.Seq2[string, any]) *KV { p.kvs.Extend(in); return p }
 func (p *KV) Fields(f Fields) *KV                  { return p.Extend(maps.All(f)) }
 func (p *KV) KVs(e ...irt.KV[string, any]) *KV     { return p.Extend(irt.KVsplit(irt.Slice(e))) }
+func (p *KV) WithError(err error) *KV              { return p.WhenKV(err != nil, "error", err) }
+func (p *KV) When(cond bool) *KV                   { p.suppress = !cond; return p }
 func (p *KV) WhenKV(cond bool, k string, v any) *KV {
 	if cond {
 		p.kvs.Set(k, v)
@@ -52,7 +55,7 @@ func vtoany[V any](seq iter.Seq2[string, V]) iter.Seq2[string, any] {
 }
 
 func (p *KV) Annotate(key string, value any) { p.kvs.Set(key, value) }
-func (p *KV) Loggable() bool                 { return p.kvs.Len() > 0 }
+func (p *KV) Loggable() bool                 { return !p.suppress && p.kvs.Len() > 0 }
 func (p *KV) SetOption(opts ...Option)       { p.core.SetOption(opts...) }
 func (p *KV) Priority() level.Priority       { return p.core.Priority() }
 func (p *KV) SetPriority(l level.Priority)   { p.core.SetPriority(l) }

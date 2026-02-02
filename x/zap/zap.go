@@ -1,7 +1,6 @@
 package zap
 
 import (
-	"fmt"
 	"iter"
 
 	"github.com/tychoish/fun/irt"
@@ -51,41 +50,39 @@ func (s *shim) Send(m message.Composer) {
 			ce.Write()
 			return
 		}
-		var fields []zap.Field
 
-		payload := m.Raw()
-		switch data := payload.(type) {
+		switch data := m.Raw().(type) {
 		case zap.Field:
-			fields = append(fields, data)
+			ce.Write(data)
 		case []zap.Field:
-			fields = data
+			ce.Write(data...)
 		case zapcore.ObjectMarshaler:
-			fields = append(fields, zap.Inline(data))
-		case error:
-			fields = append(fields, zap.Error(data))
-		case []error:
-			fields = append(fields, zap.Errors("errors", data))
+			ce.Write(zap.Inline(data))
 		case iter.Seq2[string, any]:
-			fields = convertMapTypes(data, 8)
+			ce.Write(toFields(data, 8)...)
+		case interface{ Iterator() iter.Seq2[string, any] }:
+			ce.Write(toFields(data.Iterator(), 8)...)
 		case []irt.KV[string, any]:
-			fields = convertMapTypes(irt.KVsplit(irt.Slice(data)), len(data))
+			ce.Write(toFields(irt.KVsplit(irt.Slice(data)), len(data))...)
 		case iter.Seq[irt.KV[string, any]]:
-			fields = convertMapTypes(irt.KVsplit(data), 8)
+			ce.Write(toFields(irt.KVsplit(data), 8)...)
 		case message.Fields:
-			fields = convertMapTypes(irt.Map(data), len(data))
+			ce.Write(toFields(irt.Map(data), len(data))...)
 		case map[string]any:
-			fields = convertMapTypes(irt.Map(data), len(data))
+			ce.Write(toFields(irt.Map(data), len(data))...)
+		case error:
+			ce.Write(zap.Error(data))
+		case []error:
+			ce.Write(zap.Errors("errors", data))
 		default:
-			fields = append(fields, zap.Any("payload", payload))
+			ce.Write(zap.Any("payload", data))
 		}
-		ce.Write(fields...)
 	}
 }
 
-func toField[K comparable, V any](k K, v V) zap.Field { return zap.Any(fmt.Sprint(k), v) }
-
-func convertMapTypes[K comparable, V any](seq iter.Seq2[K, V], hint ...int) []zap.Field {
-	return irt.Collect(irt.Merge(seq, toField))
+func toAny[T any](k string, v T) zap.Field { return zap.Any(k, v) }
+func toFields[V any](seq iter.Seq2[string, V], hint ...int) []zap.Field {
+	return irt.Collect(irt.Merge(seq, toAny), hint...)
 }
 
 func convertLevel(in level.Priority) zapcore.Level {
