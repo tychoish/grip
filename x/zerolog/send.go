@@ -196,7 +196,13 @@ func addToEvent(event *zerolog.Event, key string, value any) {
 	case interface{ Iterator() iter.Seq2[string, any] }:
 		irt.Apply2(data.Iterator(), addFieldOp(event))
 	case json.Marshaler:
-		event.RawJSON(key, data)
+		encoded, err := json.Marshal(data)
+		if err != nil {
+			event.Err(err)
+			event.Interface(key, data)
+		} else {
+			event.RawJSON(key, encoded)
+		}
 	default:
 		event.Interface(key, data)
 	}
