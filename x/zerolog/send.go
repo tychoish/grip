@@ -100,7 +100,13 @@ func (s *shim) Send(m message.Composer) {
 		case []error:
 			event.Errs("errors", data)
 		case json.Marshaler:
-			event.RawJSON("payload", data)
+			payload, err := json.Marshal(data)
+			if err != nil {
+				event.AnErr("json.Marshall", err)
+				event.Interface("payload", data)
+				return
+			}
+			event.RawJSON("payload", payload)
 		default:
 			// in most cases this uses json.Marshler and
 			// reflection, so this will end up being a slower path
@@ -198,11 +204,11 @@ func addToEvent(event *zerolog.Event, key string, value any) {
 	case json.Marshaler:
 		encoded, err := json.Marshal(data)
 		if err != nil {
-			event.Err(err)
+			event.AnErr("json.Marshall", err)
 			event.Interface(key, data)
-		} else {
-			event.RawJSON(key, encoded)
+			return
 		}
+		event.RawJSON(key, encoded)
 	default:
 		event.Interface(key, data)
 	}
