@@ -45,11 +45,10 @@ type Composer interface {
 	// the message is not loggable.
 	SetPriority(level.Priority)
 
-	// AttachMetadata is used by send.Sender implementations and
-	// send.Formater implementations to control the output format
-	// and processing of messages. These options may be defined in
-	// other packages, and implementations are under no obligation
-	// to respect them. In the case where two options that
+	// SetOption allows callers to configure core behaviors within
+	// the `message.Base` implementation (primarily.) Message or
+	// Sender implementations are not strictly obligated to respect
+	// options. In the case where two options that
 	// contradict eachother, the last one should win.
 	SetOption(...Option)
 
