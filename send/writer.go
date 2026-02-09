@@ -8,6 +8,7 @@ import (
 	"unicode"
 
 	"github.com/tychoish/fun/adt"
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -53,7 +54,7 @@ type WriterSender interface {
 // called, this sender flushes the buffer. WriterSender does not own the
 // underlying Sender, so users are responsible for closing the underlying Sender
 // if/when it is appropriate to release its resources.
-func MakeWriter(s Sender) *writerSenderImpl {
+func MakeWriter(s Sender) WriterSender {
 	buffer := new(bytes.Buffer)
 
 	return &writerSenderImpl{
@@ -96,13 +97,13 @@ func (s *writerSenderImpl) doSend() error {
 		copy(lncp, line)
 
 		if err == nil {
-			m := message.MakeBytes(bytes.TrimRightFunc(lncp, unicode.IsSpace))
+			m := message.MakeBytes(bytes.TrimSpace(lncp))
 			m.SetPriority(pri)
 			s.Send(m)
 			continue
 		}
 
-		m := message.MakeBytes(bytes.TrimRightFunc(lncp, unicode.IsSpace))
+		m := message.MakeBytes(bytes.TrimSpace(lncp))
 		m.SetPriority(pri)
 		s.Send(m)
 		return err
@@ -126,3 +127,36 @@ func (s *writerSenderImpl) Close() error {
 	s.writer.Reset(s.buffer)
 	return nil
 }
+
+type iowritersender struct {
+	mtx sync.Mutex
+	iwr *bufio.Writer
+	Base
+}
+
+var bufpool = adt.MakeBytesBufferPool(128)
+
+func NewGripWriter(wr io.Writer) Sender { return &iowritersender{iwr: bufio.NewWriter(wr)} }
+
+func (s *iowritersender) Send(m message.Composer) {
+	if ShouldLog(s, m) {
+		out, err := s.Format(m)
+		if !s.HandleErrorOK(WrapError(err, m)) {
+			return
+		}
+		buf := bufpool.Get()
+		defer bufpool.Put(buf)
+
+		s.mtx.Lock()
+		defer s.mtx.Unlock()
+		s.HandleErrorOK(erc.Join(
+			dropCount(buf.WriteString(out)),
+			s.write(bytes.TrimSpace(buf.Bytes())),
+			s.iwr.WriteByte('\n'),
+			s.iwr.Flush(),
+		))
+	}
+}
+
+func (s *iowritersender) write(in []byte) error { return dropCount(s.iwr.Write(in)) }
+func dropCount(_ int, err error) error          { return err }
