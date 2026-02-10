@@ -67,8 +67,35 @@ func Convert[T any](input T) Composer {
 	case Marshaler:
 		return MakeFuture(message.MarshalComposer)
 
+	case []string:
+		return NewLines(message)
+	case []Composer:
+		return MakeGroupComposer(message)
+	case []Fields:
+		return convertSlice(message)
+	case []any:
+		return buildFromSlice(message)
+	case []error:
+		return JoinErrors(irt.Slice(message))
+	case []irt.KV[string, any]:
+		return MakeKV(irt.KVsplit(irt.Slice(message)))
+	case []irt.KV[string, string]:
+		return MakeKV(irt.KVsplit(irt.Slice(message)))
 	case []byte:
 		return MakeBytes(message)
+	case *dt.List[string]:
+		return CreateGroupComposer(irt.Convert(message.IteratorFront(), Convert))
+	case dt.List[string]:
+		return CreateGroupComposer(irt.Convert(message.IteratorFront(), Convert))
+	case *dt.OrderedSet[string]:
+		return CreateGroupComposer(irt.Convert(message.Iterator(), Convert))
+	case iter.Seq[string]:
+		return CreateGroupComposer(irt.Convert(message, Convert))
+	case iter.Seq[any]:
+		return CreateGroupComposer(irt.Convert(message, Convert))
+	case iter.Seq[*KV]:
+		return CreateGroupComposer(irt.Convert(message, Convert))
+
 	case map[string]any:
 		return MakeFields(Fields(message))
 	case map[string]string:
@@ -89,8 +116,113 @@ func Convert[T any](input T) Composer {
 		return MakeKV(message.Iterator())
 	case *dt.OrderedMap[string, string]:
 		return MakeKV(message.Iterator())
-	case interface{ Iterator() iter.Seq2[string, any] }:
-		return MakeFuture(func() Composer { return NewKV().Extend(message.Iterator()) })
+
+	case []*dt.List[string]:
+		return convertSlice(message)
+	case []dt.List[string]:
+		return convertSlice(message)
+	case []*dt.OrderedSet[string]:
+		return convertSlice(message)
+	case []iter.Seq[string]:
+		return convertSlice(message)
+	case []iter.Seq[any]:
+		return convertSlice(message)
+	case []*KV:
+		return convertSlice(message)
+	case []iter.Seq[*KV]:
+		return convertSlice(message)
+	case func() dt.List[string]:
+		return MakeFuture(message)
+	case func() *dt.List[string]:
+		return MakeFuture(message)
+	case func() *dt.OrderedSet[string]:
+		return MakeFuture(message)
+	case func() iter.Seq[string]:
+		return MakeFuture(message)
+	case func() iter.Seq[*KV]:
+		return MakeFuture(message)
+	case func() []*dt.List[string]:
+		return MakeFuture(message)
+	case func() []dt.List[string]:
+		return MakeFuture(message)
+	case func() []*dt.OrderedSet[string]:
+		return MakeFuture(message)
+	case func() []iter.Seq[string]:
+		return MakeFuture(message)
+	case func() []string:
+		return MakeFuture(message)
+	case func() []error:
+		return MakeFuture(message)
+	case func() []*KV:
+		return MakeFuture(message)
+	case fn.Future[dt.List[string]]:
+		return MakeFuture(message)
+	case fn.Future[*dt.List[string]]:
+		return MakeFuture(message)
+	case fn.Future[*dt.OrderedSet[string]]:
+		return MakeFuture(message)
+	case fn.Future[iter.Seq[string]]:
+		return MakeFuture(message)
+	case fn.Future[iter.Seq[*KV]]:
+		return MakeFuture(message)
+	case fn.Future[[]string]:
+		return MakeFuture(message)
+	case fn.Future[[]error]:
+		return MakeFuture(message)
+	case fn.Future[[]*KV]:
+		return MakeFuture(message)
+	case fn.Future[[]dt.List[string]]:
+		return MakeFuture(message)
+	case fn.Future[[]*dt.List[string]]:
+		return MakeFuture(message)
+	case fn.Future[[]*dt.OrderedSet[string]]:
+		return MakeFuture(message)
+	case []func() dt.List[string]:
+		return convertSlice(message)
+	case []func() *dt.List[string]:
+		return convertSlice(message)
+	case []func() *dt.OrderedSet[string]:
+		return convertSlice(message)
+	case []func() iter.Seq[string]:
+		return convertSlice(message)
+	case []func() iter.Seq[*KV]:
+		return convertSlice(message)
+	case []func() []error:
+		return convertSlice(message)
+	case []func() []string:
+		return convertSlice(message)
+	case []func() []*KV:
+		return convertSlice(message)
+	case []func() []*dt.List[string]:
+		return convertSlice(message)
+	case []func() []dt.List[string]:
+		return convertSlice(message)
+	case []func() []*dt.OrderedSet[string]:
+		return convertSlice(message)
+	case []func() []iter.Seq[string]:
+		return convertSlice(message)
+	case []fn.Future[dt.List[string]]:
+		return convertSlice(message)
+	case []fn.Future[*dt.List[string]]:
+		return convertSlice(message)
+	case []fn.Future[*dt.OrderedSet[string]]:
+		return convertSlice(message)
+	case []fn.Future[iter.Seq[*KV]]:
+		return convertSlice(message)
+	case []fn.Future[iter.Seq[string]]:
+		return convertSlice(message)
+	case []fn.Future[[]*dt.List[string]]:
+		return convertSlice(message)
+	case []fn.Future[[]dt.List[string]]:
+		return convertSlice(message)
+	case []fn.Future[[]*dt.OrderedSet[string]]:
+		return convertSlice(message)
+	case []fn.Future[[]string]:
+		return convertSlice(message)
+	case []fn.Future[[]error]:
+		return convertSlice(message)
+	case []fn.Future[[]*KV]:
+		return convertSlice(message)
 
 	case iter.Seq[error]:
 		return CreateGroupComposer(irt.Convert(message, MakeError))
@@ -176,20 +308,6 @@ func Convert[T any](input T) Composer {
 	case func() []irt.KV[string, string]:
 		return MakeFuture(message)
 
-	case []string:
-		return NewLines(message)
-	case []Composer:
-		return MakeGroupComposer(message)
-	case []Fields:
-		return convertSlice(message)
-	case []any:
-		return buildFromSlice(message)
-	case []error:
-		return JoinErrors(irt.Slice(message))
-	case []irt.KV[string, any]:
-		return MakeKV(irt.KVsplit(irt.Slice(message)))
-	case []irt.KV[string, string]:
-		return MakeKV(irt.KVsplit(irt.Slice(message)))
 	case []adt.OrderedMap[string, any]:
 		return convertSlice(message)
 	case []dt.OrderedMap[string, any]:
@@ -285,6 +403,19 @@ func Convert[T any](input T) Composer {
 		return convertSlice(message)
 	case []func() dt.OrderedMap[string, any]:
 		return convertSlice(message)
+	// interfaces
+	case interface{ Iterator() iter.Seq[string] }:
+		return Convert(message.Iterator)
+	case interface {
+		Iterator() iter.Seq2[string, string]
+	}:
+		return Convert(message.Iterator)
+	case interface{ Iterator() iter.Seq[any] }:
+		return Convert(message.Iterator)
+	case fmt.Stringer:
+		return MakeFuture(message.String)
+	case interface{ Iterator() iter.Seq2[string, any] }:
+		return MakeFuture(func() Composer { return NewKV().Extend(message.Iterator()) })
 	case interface{ IsZero() bool }:
 		if message.IsZero() {
 			return Noop()
@@ -302,16 +433,12 @@ func convertSlice[T any](in []T) Composer {
 	case 1:
 		return Convert(in[0])
 	default:
-		return CreateGroupComposer(
-			irt.Convert(
-				irt.Convert(
-					irt.Slice(in),
-					func(in T) Composer { return Convert(any(in)) },
-				),
-				Convert,
-			),
-		)
+		return convertSequence(irt.Any(irt.Slice(in)))
 	}
+}
+
+func convertSequence[T any](seq iter.Seq[T]) Composer {
+	return CreateGroupComposer(irt.Convert(seq, Convert))
 }
 
 func buildFromSlice(vals []any) Composer {

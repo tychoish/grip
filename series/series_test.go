@@ -230,6 +230,10 @@ func TestIntegration(t *testing.T) {
 				if inst == nil {
 					t.Fatal("startVictoria returned nil instance")
 				}
+				gstd := startGostatsd(t)
+				if gstd == nil {
+					t.Fatal("gostatsd returned nil instance")
+				}
 
 				captureCh := make(chan string, 128)
 				captureFn := fnx.MakeHandler(func(s string) error {
