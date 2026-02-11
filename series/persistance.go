@@ -157,7 +157,7 @@ func FileBackend(opts ...CollectorBakendFileOptionProvider) (CollectorBackend, e
 }
 
 func LoggerBackend(sender send.Sender, r Renderer) CollectorBackend {
-	wr := send.MakeWriter(sender)
+	wr := send.MakeWriterSender(sender)
 	return func(ctx context.Context, seq iter.Seq[MetricPublisher]) error {
 		count := 0
 		for op := range seq {

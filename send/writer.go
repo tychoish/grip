@@ -13,6 +13,19 @@ import (
 	"github.com/tychoish/grip/message"
 )
 
+// Writer wraps another sender and also provides an io.Writer.
+// (and because Sender is an io.Closer) the type also implements
+// io.WriteCloser. Set the Level field to control the level that the
+// data is logged at. If not specified, the sender will use the
+// Sender's configured priority threshold.
+type Writer interface {
+	Sender
+	io.WriteCloser
+	// the Get/Set methods on the WriterSender control the
+	// priority of messages sent to the sender.
+	adt.AtomicValue[level.Priority]
+}
+
 type writerSenderImpl struct {
 	Sender
 	adt.Atomic[level.Priority]
@@ -22,20 +35,7 @@ type writerSenderImpl struct {
 	mu     sync.Mutex
 }
 
-// WriterSender wraps another sender and also provides an io.Writer.
-// (and because Sender is an io.Closer) the type also implements
-// io.WriteCloser. Set the Level field to control the level that the
-// data is logged at. If not specified, the sender will use the
-// Sender's configured priority threshold.
-type WriterSender interface {
-	Sender
-	io.WriteCloser
-	// the Get/Set methods on the WriterSender control the
-	// priority of messages sent to the sender.
-	adt.AtomicValue[level.Priority]
-}
-
-// MakeWriter wraps another sender and also provides an io.Writer.
+// MakeWriterSender wraps another sender and also provides an io.Writer.
 // (and because Sender is an io.Closer) the type also implements
 // io.WriteCloser.
 //
@@ -52,7 +52,7 @@ type WriterSender interface {
 // called, this sender flushes the buffer. WriterSender does not own the
 // underlying Sender, so users are responsible for closing the underlying Sender
 // if/when it is appropriate to release its resources.
-func MakeWriter(s Sender) WriterSender {
+func MakeWriterSender(s Sender) Writer {
 	buffer := new(bytes.Buffer)
 
 	return &writerSenderImpl{
@@ -108,7 +108,7 @@ func (s *writerSenderImpl) doSend() error {
 	}
 }
 
-// Close writbes any buffered messages to the underlying Sender. This does
+// Close writes any buffered messages to the underlying Sender. This does
 // not close the underlying sender.
 func (s *writerSenderImpl) Close() error {
 	s.mu.Lock()
@@ -134,7 +134,14 @@ type iowritersender struct {
 
 var bufpool = adt.MakeBytesBufferPool(128)
 
-func NewGripWriter(wr io.Writer) Sender { return &iowritersender{iwr: bufio.NewWriter(wr)} }
+// MakeWriter constructs a Sender that writes all messages to the
+// underlying writer.
+//
+// Leading and trailing space is trimmed and a single newline
+// separates every message.
+//
+// Writes are fully synchronized with regards to eachother.
+func MakeWriter(wr io.Writer) Sender { return &iowritersender{iwr: bufio.NewWriter(wr)} }
 
 func (s *iowritersender) Send(m message.Composer) {
 	if ShouldLog(s, m) {
@@ -145,10 +152,11 @@ func (s *iowritersender) Send(m message.Composer) {
 		buf := bufpool.Get()
 		defer bufpool.Put(buf)
 
+		err = dropCount(buf.WriteString(out))
+
 		s.mtx.Lock()
 		defer s.mtx.Unlock()
-		s.HandleErrorOK(erc.Join(
-			dropCount(buf.WriteString(out)),
+		s.HandleErrorOK(erc.Join(err,
 			s.write(bytes.TrimSpace(buf.Bytes())),
 			s.iwr.WriteByte('\n'),
 			s.iwr.Flush(),

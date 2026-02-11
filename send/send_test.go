@@ -20,7 +20,7 @@ import (
 func senderFixture(t *testing.T) (senders map[string]Sender) {
 	t.Helper()
 	tempDir := t.TempDir()
-	if err := os.MkdirAll(tempDir, 0766); err != nil {
+	if err := os.MkdirAll(tempDir, 0o766); err != nil {
 		t.Fatal(err)
 	}
 
@@ -32,7 +32,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 	internal.output = make(chan *InternalMessage)
 	senders["internal"] = internal
 
-	senders["writer"] = MakeWriter(MakePlain())
+	senders["writer"] = MakeWriterSender(MakePlain())
 
 	var err error
 	var plain, plainerr, plainfile Sender
@@ -203,7 +203,6 @@ func functionalMockSenders(t *testing.T, in map[string]Sender) map[string]Sender
 			continue
 		} else if strings.HasPrefix(t, "github") {
 			continue
-
 		} else {
 			out[t] = sender
 		}
@@ -257,7 +256,6 @@ func TestBasicNoopSendTest(t *testing.T) {
 				sender.Send(m)
 			}
 		})
-
 	}
 }
 
@@ -287,7 +285,7 @@ func TestWrapping(t *testing.T) {
 		"Annotating":  MakeAnnotating(base, map[string]any{"hello": 52}),
 		"Buffered":    MakeBuffered(base, time.Millisecond, 10),
 		"Interceptor": MakeFilter(base, func(c message.Composer) {}),
-		"Writer":      MakeWriter(base),
+		"Writer":      MakeWriterSender(base),
 	} {
 		t.Run(name, func(t *testing.T) {
 			us := dt.Unwrap(sender)

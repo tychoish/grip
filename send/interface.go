@@ -28,7 +28,7 @@ type Sender interface {
 	// Name returns the name of the logging system. Typically this
 	// corresponds directly with the underlying logging capture system.
 	Name() string
-	//SetName sets the name of the logging system.
+	// SetName sets the name of the logging system.
 	SetName(string)
 
 	// Method that actually sends messages (the string) to the logging
@@ -93,11 +93,11 @@ type MessageConverter func(any) message.Composer
 
 // MakeStandard produces a standard library logging instance that
 // write to the underlying sender.
-func MakeStandard(s Sender) *log.Logger { return log.New(MakeWriter(s), "", 0) }
+func MakeStandard(s Sender) *log.Logger { return log.New(MakeWriterSender(s), "", 0) }
 
 // FromStandard prodeces a sender implementation from the standard
 // library logger.
-func FromStandard(logger *log.Logger) Sender { return WrapWriter(logger.Writer()) }
+func FromStandard(logger *log.Logger) Sender { return MakeWriter(logger.Writer()) }
 
 func ShouldLog(s Sender, m message.Composer) bool {
 	if m == nil || s == nil {

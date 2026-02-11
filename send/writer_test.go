@@ -11,7 +11,7 @@ func TestSenderWriter(t *testing.T) {
 	sink.SetName("sink")
 	sink.SetPriority(level.Debug)
 
-	ws := MakeWriter(sink).(*writerSenderImpl)
+	ws := MakeWriterSender(sink).(*writerSenderImpl)
 	if ws.buffer.Len() != 0 {
 		t.Error("elements should be equal")
 	}

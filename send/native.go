@@ -33,30 +33,13 @@ func MakeFile(filePath string) (Sender, error) {
 
 // MakeStdOutput returns an unconfigured native standard-out logger.
 func MakeStdOutput() Sender {
-	return WrapWriter(os.Stdout)
+	return MakeWriter(os.Stdout)
 }
 
 // MakeStdError returns an unconfigured Sender implementation that
 // writes all logging output to standard error.
 func MakeStdError() Sender {
-	return WrapWriter(os.Stderr)
-}
-
-// WrapWriter constructs a new unconfigured sender that directly
-// wraps any writer implementation. These loggers prepend time and
-// logger name information to the beginning of log lines.
-//
-// As a special case, if the writer is a *WriterSender, then this
-// method will unwrap and return the underlying sender from the writer.
-func WrapWriter(wr io.Writer) Sender {
-	switch s := wr.(type) {
-	case WriterSender:
-		return s
-	case Sender:
-		return s
-	default:
-		return NewGripWriter(wr)
-	}
+	return MakeWriter(os.Stderr)
 }
 
 func makeNativeFromWriter(wr io.Writer, stdFlags int) *nativeLogger {
