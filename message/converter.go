@@ -62,30 +62,36 @@ func Convert[T any](input T) Composer {
 		return MakeString(message)
 	case error:
 		return MakeError(message)
-	case Fields:
-		return MakeFields(message)
 	case Marshaler:
 		return MakeFuture(message.MarshalComposer)
 
-	case []string:
-		return NewLines(message)
+	case Fields:
+		return MakeFields(message)
+	case map[string]any:
+		return MakeFields(Fields(message))
+	case map[string]string:
+		return MakeKV(irt.Map(message))
+	case *adt.OrderedMap[string, any]:
+		return MakeKV(message.Iterator())
+	case *adt.OrderedMap[string, string]:
+		return MakeKV(message.Iterator())
+	case *dt.OrderedMap[string, any]:
+		return MakeKV(message.Iterator())
+	case *dt.OrderedMap[string, string]:
+		return MakeKV(message.Iterator())
 	case []Composer:
 		return MakeGroupComposer(message)
-	case []Fields:
-		return convertSlice(message)
-	case []any:
-		return buildFromSlice(message)
 	case []error:
 		return JoinErrors(irt.Slice(message))
-	case []irt.KV[string, any]:
-		return MakeKV(irt.KVsplit(irt.Slice(message)))
-	case []irt.KV[string, string]:
-		return MakeKV(irt.KVsplit(irt.Slice(message)))
+	case []string:
+		return NewLines(message)
 	case []byte:
 		return MakeBytes(message)
-	case *dt.List[string]:
-		return CreateGroupComposer(irt.Convert(message.IteratorFront(), Convert))
+	case []any:
+		return buildFromSlice(message)
 	case dt.List[string]:
+		return CreateGroupComposer(irt.Convert(message.IteratorFront(), Convert))
+	case *dt.List[string]:
 		return CreateGroupComposer(irt.Convert(message.IteratorFront(), Convert))
 	case *dt.OrderedSet[string]:
 		return CreateGroupComposer(irt.Convert(message.Iterator(), Convert))
@@ -95,28 +101,24 @@ func Convert[T any](input T) Composer {
 		return CreateGroupComposer(irt.Convert(message, Convert))
 	case iter.Seq[*KV]:
 		return CreateGroupComposer(irt.Convert(message, Convert))
+	case iter.Seq[error]:
+		return CreateGroupComposer(irt.Convert(message, MakeError))
 
-	case map[string]any:
-		return MakeFields(Fields(message))
-	case map[string]string:
-		return MakeKV(irt.Map(message))
-	case adt.OrderedMap[string, any]:
-		return MakeKV(message.Iterator())
-	case adt.OrderedMap[string, string]:
-		return MakeKV(message.Iterator())
-	case dt.OrderedMap[string, any]:
-		return MakeKV(message.Iterator())
-	case dt.OrderedMap[string, string]:
-		return MakeKV(message.Iterator())
-	case *adt.OrderedMap[string, any]:
-		return MakeKV(message.Iterator())
-	case *adt.OrderedMap[string, string]:
-		return MakeKV(message.Iterator())
-	case *dt.OrderedMap[string, any]:
-		return MakeKV(message.Iterator())
-	case *dt.OrderedMap[string, string]:
-		return MakeKV(message.Iterator())
+	case iter.Seq2[string, any]:
+		return MakeKV(message)
+	case iter.Seq2[string, string]:
+		return MakeKV(message)
+	case iter.Seq[irt.KV[string, any]]:
+		return MakeKV(irt.KVsplit(message))
+	case iter.Seq[irt.KV[string, string]]:
+		return MakeKV(irt.KVsplit(message))
+	case []irt.KV[string, any]:
+		return MakeKV(irt.KVsplit(irt.Slice(message)))
+	case []irt.KV[string, string]:
+		return MakeKV(irt.KVsplit(irt.Slice(message)))
 
+	case []Fields:
+		return convertSlice(message)
 	case []*dt.List[string]:
 		return convertSlice(message)
 	case []dt.List[string]:
@@ -131,6 +133,7 @@ func Convert[T any](input T) Composer {
 		return convertSlice(message)
 	case []iter.Seq[*KV]:
 		return convertSlice(message)
+
 	case func() dt.List[string]:
 		return MakeFuture(message)
 	case func() *dt.List[string]:
@@ -223,17 +226,6 @@ func Convert[T any](input T) Composer {
 		return convertSlice(message)
 	case []fn.Future[[]*KV]:
 		return convertSlice(message)
-
-	case iter.Seq[error]:
-		return CreateGroupComposer(irt.Convert(message, MakeError))
-	case iter.Seq2[string, any]:
-		return MakeKV(message)
-	case iter.Seq2[string, string]:
-		return MakeKV(message)
-	case iter.Seq[irt.KV[string, any]]:
-		return MakeKV(irt.KVsplit(message))
-	case iter.Seq[irt.KV[string, string]]:
-		return MakeKV(irt.KVsplit(message))
 
 	case fn.Future[[]irt.KV[string, any]]:
 		return MakeFuture(message)
