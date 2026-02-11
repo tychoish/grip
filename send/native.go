@@ -19,7 +19,7 @@ type nativeLogger struct {
 // the specified file. The Sender instance is not configured: Pass to
 // Journaler.SetSender or call SetName before using.
 func MakeFile(filePath string) (Sender, error) {
-	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666)
 	if err != nil {
 		return nil, fmt.Errorf("error opening logging file: %w", err)
 	}
@@ -49,12 +49,14 @@ func MakeStdError() Sender {
 // As a special case, if the writer is a *WriterSender, then this
 // method will unwrap and return the underlying sender from the writer.
 func WrapWriter(wr io.Writer) Sender {
-	if s, ok := wr.(WriterSender); ok {
+	switch s := wr.(type) {
+	case WriterSender:
 		return s
+	case Sender:
+		return s
+	default:
+		return NewGripWriter(wr)
 	}
-	s := makeNativeFromWriter(wr, log.LstdFlags)
-	s.SetFormatter(MakeDefaultFormatter())
-	return s
 }
 
 func makeNativeFromWriter(wr io.Writer, stdFlags int) *nativeLogger {

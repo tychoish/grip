@@ -27,8 +27,6 @@ type writerSenderImpl struct {
 // io.WriteCloser. Set the Level field to control the level that the
 // data is logged at. If not specified, the sender will use the
 // Sender's configured priority threshold.
-//
-// If you do not use the `MakeWriter
 type WriterSender interface {
 	Sender
 	io.WriteCloser
