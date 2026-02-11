@@ -21,6 +21,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/irt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -124,12 +125,16 @@ func addAttrsFromPayload(ctx context.Context, rec *slog.Record, in any) {
 		rec.Add(slog.Any("error", v))
 	case []error:
 		rec.Add(slog.Any("errors", v))
+	case *dt.OrderedMap[string, any]:
+		irt.Apply(irt.Merge(v.Iterator(), slog.Any), addField)
 	case message.Fields: // alias of map[string]any
 		irt.Apply(irt.Merge(irt.Map(v), slog.Any), addField)
 	case map[string]any:
 		irt.Apply(irt.Merge(irt.Map(v), slog.Any), addField)
 	case iter.Seq2[string, any]:
 		irt.Apply(irt.Merge(v, slog.Any), addField)
+	case iter.Seq2[string, string]:
+		irt.Apply(irt.Merge(v, slog.String), addField)
 	case []irt.KV[string, any]:
 		irt.Apply(irt.Merge(irt.KVsplit(irt.Slice(v)), slog.Any), addField)
 	case iter.Seq[irt.KV[string, any]]:

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/irt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -83,6 +84,8 @@ func (s *shim) Send(m message.Composer) {
 			event.Array("payload", data)
 		case string:
 			event.Str("message", data)
+		case *dt.OrderedMap[string, any]:
+			irt.Apply2(data.Iterator(), addFieldOp(event))
 		case iter.Seq2[string, any]:
 			irt.Apply2(data, addFieldOp(event))
 		case iter.Seq[irt.KV[string, any]]:
@@ -127,6 +130,8 @@ func addToEvent(event *zerolog.Event, key string, value any) {
 		event.EmbedObject(data)
 	case zerolog.LogArrayMarshaler:
 		event.Array(key, data)
+	case *dt.OrderedMap[string, any]:
+		irt.Apply2(data.Iterator(), addFieldOp(event))
 	case iter.Seq2[string, any]:
 		irt.Apply2(data, addFieldOp(event))
 	case iter.Seq[irt.KV[string, any]]:

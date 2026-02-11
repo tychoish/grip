@@ -3,6 +3,7 @@ package zap
 import (
 	"iter"
 
+	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/irt"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
@@ -60,6 +61,8 @@ func (s *shim) Send(m message.Composer) {
 			ce.Write(zap.Inline(data))
 		case iter.Seq2[string, any]:
 			ce.Write(toFields(data, 8)...)
+		case *dt.OrderedMap[string, any]:
+			ce.Write(toFields(data.Iterator(), data.Len())...)
 		case interface{ Iterator() iter.Seq2[string, any] }:
 			ce.Write(toFields(data.Iterator(), 8)...)
 		case []irt.KV[string, any]:
