@@ -30,8 +30,8 @@ github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKs
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/trivago/tgo v1.0.7 h1:uaWH/XIy9aWYWpjm2CU3RpcqZXmX2ysQ9/Go+d9gyrM=
 github.com/trivago/tgo v1.0.7/go.mod h1:w4dpD+3tzNIIiIfkWWa85w5/B77tlvdZckQ+6PkFnhc=
-github.com/tychoish/fun v0.14.5 h1:cXfyEBl6i4nShmXAa1vNUjMJDAKzjuXSnQ4QCVYevCA=
-github.com/tychoish/fun v0.14.5/go.mod h1:ghjR/9EyWh8h8oBg2+WJhsEcF/W4JXMWpo6btMRNusE=
+github.com/tychoish/fun v0.14.6 h1:1J8OJ/Iug764QE9q9Ge4Mi2V8ViqmbfMVqtdNG3OrEE=
+github.com/tychoish/fun v0.14.6/go.mod h1:ghjR/9EyWh8h8oBg2+WJhsEcF/W4JXMWpo6btMRNusE=
 github.com/tychoish/grip v0.4.7 h1:7t8fYD00xfw+2DVMUdh9bbuA9UZyqbURW+sExu5NF0M=
 github.com/tychoish/grip v0.4.7/go.mod h1:IWoJE/PVFaez0vQdOj04SDPG+fNB9u1ONw9DL3Y76rk=
 golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
