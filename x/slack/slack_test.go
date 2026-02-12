@@ -46,7 +46,7 @@ func TestMakeSlackConstructorErrorsWithUnsetEnvVar(t *testing.T) {
 }
 
 func TestMakeSlackConstructorErrorsWithInvalidConfigs(t *testing.T) {
-	defer os.Setenv(slackClientToken, os.Getenv(slackClientToken))
+	defer os.Setenv(slackClientToken, os.Getenv(slackClientToken)) //nolint:errcheck
 	if err := os.Setenv(slackClientToken, "foo"); err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestValidateAndConstructoRequiresValidate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer os.Setenv(slackClientToken, os.Getenv(slackClientToken))
+	defer os.Setenv(slackClientToken, os.Getenv(slackClientToken)) //nolint:errcheck
 	if err := os.Setenv(slackClientToken, "foo"); err != nil {
 		t.Fatal(err)
 	}
@@ -311,9 +311,7 @@ func TestFieldsMessageTypeIntegration(t *testing.T) {
 
 	var msg string
 	var params *slack.ChatPostMessageOpt
-	var lm message.Composer
-
-	lm = message.MakeString("foo")
+	lm := message.MakeString("foo")
 	lm.SetPriority(level.Alert)
 	msg, params = opts.produceMessage(lm)
 	if msg != "foo" {
@@ -370,7 +368,7 @@ func TestFieldsMessageTypeIntegration(t *testing.T) {
 
 func TestMockSenderWithMakeConstructor(t *testing.T) {
 	opts := setupFixture()
-	defer os.Setenv(slackClientToken, os.Getenv(slackClientToken))
+	defer os.Setenv(slackClientToken, os.Getenv(slackClientToken)) //nolint:errcheck
 	if err := os.Setenv(slackClientToken, "foo"); err != nil {
 		t.Fatal(err)
 	}
@@ -436,7 +434,7 @@ func TestSendMethod(t *testing.T) {
 	if !ok {
 		t.Fatal("expected to be true")
 	}
-	if 0 != mock.numSent {
+	if mock.numSent != 0 {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 
@@ -444,21 +442,21 @@ func TestSendMethod(t *testing.T) {
 	m = message.MakeString("hello")
 	m.SetPriority(level.Debug)
 	sender.Send(m)
-	if 0 != mock.numSent {
+	if mock.numSent != 0 {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 
 	m = message.MakeString("")
 	m.SetPriority(level.Alert)
 	sender.Send(m)
-	if 0 != mock.numSent {
+	if mock.numSent != 0 {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 
 	m = message.MakeString("world")
 	m.SetPriority(level.Alert)
 	sender.Send(m)
-	if 1 != mock.numSent {
+	if mock.numSent != 1 {
 		t.Fatalf("expected '1' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 	if mock.lastTarget != "#test" {
@@ -467,7 +465,7 @@ func TestSendMethod(t *testing.T) {
 
 	m = NewMessage(level.Alert, "#somewhere", "Hi", nil)
 	sender.Send(m)
-	if 2 != mock.numSent {
+	if mock.numSent != 2 {
 		t.Fatalf("expected '2' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 	if mock.lastTarget != "#somewhere" {
@@ -490,7 +488,7 @@ func TestSendMethodWithError(t *testing.T) {
 	if !ok {
 		t.Fatal("expected to be true")
 	}
-	if 0 != mock.numSent {
+	if mock.numSent != 0 {
 		t.Fatalf("expected 'mock.numSent' to be 0, but was %d", mock.numSent)
 	}
 	if mock.failSendingMessage {
@@ -500,13 +498,13 @@ func TestSendMethodWithError(t *testing.T) {
 	m = message.MakeString("world")
 	m.SetPriority(level.Alert)
 	sender.Send(m)
-	if 1 != mock.numSent {
+	if mock.numSent != 1 {
 		t.Fatalf("expected '1' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 
 	mock.failSendingMessage = true
 	sender.Send(m)
-	if 1 != mock.numSent {
+	if mock.numSent != 1 {
 		t.Fatalf("expected '1' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 
@@ -514,7 +512,7 @@ func TestSendMethodWithError(t *testing.T) {
 	func() {
 		m = NewMessage(level.Alert, "#general", "I am a formatted slack message", nil)
 		sender.Send(m)
-		if 1 != mock.numSent {
+		if mock.numSent != 1 {
 			t.Fatalf("expected '1' to be 'mock.numSent' but was %d", mock.numSent)
 		}
 	}()
@@ -548,31 +546,31 @@ func TestSendMethodDoesIncorrectlyAllowTooLowMessages(t *testing.T) {
 	if !ok {
 		t.Fatal("expected to be true")
 	}
-	if 0 != mock.numSent {
+	if mock.numSent != 0 {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 
 	sender.SetPriority(level.Alert)
-	if 0 != mock.numSent {
+	if mock.numSent != 0 {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 	var m message.Composer
 	m = message.MakeString("hello")
 	m.SetPriority(level.Info)
 	sender.Send(m)
-	if 0 != mock.numSent {
+	if mock.numSent != 0 {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 	m = message.MakeString("hello")
 	m.SetPriority(level.Alert)
 	sender.Send(m)
-	if 1 != mock.numSent {
+	if mock.numSent != 1 {
 		t.Fatalf("expected '1' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 	m = message.MakeString("hello")
 	m.SetPriority(level.Alert)
 	sender.Send(m)
-	if 2 != mock.numSent {
+	if mock.numSent != 2 {
 		t.Fatalf("expected '2' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 }
@@ -592,7 +590,7 @@ func TestSettingBotIdentity(t *testing.T) {
 	if !ok {
 		t.Fatal("expected to be true")
 	}
-	if 0 != mock.numSent {
+	if mock.numSent != 0 {
 		t.Fatalf("expected '0' to be 'mock.numSent' but was %d", mock.numSent)
 	}
 	if mock.failSendingMessage {

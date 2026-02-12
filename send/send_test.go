@@ -32,11 +32,11 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 	internal.output = make(chan *InternalMessage)
 	senders["internal"] = internal
 
-	senders["writer"] = MakeWriterSender(MakePlain())
+	senders["writer"] = MakeWriterSender(MakeStdOut())
 
 	var err error
 	var plain, plainerr, plainfile Sender
-	plain = MakePlain()
+	plain = MakeStdOut()
 	plain.SetPriority(l)
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +45,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 
 	senders["plain"] = plain
 
-	plainerr = MakePlainStdError()
+	plainerr = MakeStdError()
 	plainerr.SetName("plain.err")
 	plainerr.SetPriority(l)
 	if err != nil {
@@ -53,7 +53,7 @@ func senderFixture(t *testing.T) (senders map[string]Sender) {
 	}
 	senders["plain.err"] = plainerr
 
-	plainfile, err = MakePlainFile(filepath.Join(tempDir, "plain.file"))
+	plainfile, err = MakeFile(filepath.Join(tempDir, "plain.file"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func TestSenderConstructorFails(t *testing.T) {
 	check.Error(t, err)
 	check.ErrorIs(t, err, os.ErrPermission)
 
-	_, err = MakePlainFile("/root/log")
+	_, err = MakeFile("/root/log")
 	check.Error(t, err)
 	check.ErrorIs(t, err, os.ErrPermission)
 
@@ -279,7 +279,7 @@ func TestSenderConstructorFails(t *testing.T) {
 }
 
 func TestWrapping(t *testing.T) {
-	base := MakePlain()
+	base := MakeStdOut()
 
 	for name, sender := range map[string]Sender{
 		"Annotating":  MakeAnnotating(base, map[string]any{"hello": 52}),

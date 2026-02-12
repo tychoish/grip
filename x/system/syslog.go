@@ -27,7 +27,7 @@ type syslogger struct {
 // specified address. If no connection can be made, the
 func MakeSyslogSender(network, raddr string) send.Sender {
 	s := &syslogger{
-		fallback: send.MakePlainStdError(),
+		fallback: send.MakeStdError(),
 		raddr:    raddr,
 		network:  network,
 	}

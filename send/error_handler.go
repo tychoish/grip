@@ -33,9 +33,7 @@ func ErrorHandlerWriter(writer io.Writer) ErrorHandler {
 		if ers.IsOk(err) {
 			return
 		}
-
-		_, _ = io.WriteString(writer, fmt.Sprintln("logging error:", err.Error()))
-		_, _ = writer.Write([]byte("\n"))
+		_, _ = fmt.Fprintln(writer, "logging error:", err)
 	}))
 }
 
@@ -47,7 +45,7 @@ func ErrorHandlerFromLogger(l *log.Logger) ErrorHandler {
 			return
 		}
 
-		l.Println("logging error:", err.Error())
+		l.Println("logging error:", err)
 	}))
 }
 

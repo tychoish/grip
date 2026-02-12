@@ -18,17 +18,11 @@ type bufsend struct {
 	buffer *bytes.Buffer
 }
 
-func (b *bufsend) WriteLine(line string) {
-	b.buffer.WriteString(line)
-	b.buffer.WriteByte('\n')
-}
-
 func (b *bufsend) Send(m message.Composer) {
 	if ShouldLog(b, m) {
-		out, err := b.Format(m)
-		if !b.HandleErrorOK(WrapError(err, m)) {
-			return
+		if line, err := b.Format(m); b.HandleErrorOK(WrapError(err, m)) {
+			b.buffer.WriteString(line)
+			b.buffer.WriteByte('\n')
 		}
-		b.WriteLine(out)
 	}
 }

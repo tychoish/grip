@@ -37,7 +37,7 @@ func TestHasLogger(t *testing.T) {
 			name: "ContextWithLogger",
 			setup: func() context.Context {
 				ctx := context.Background()
-				return WithLogger(ctx, NewLogger(send.MakePlain()))
+				return WithLogger(ctx, NewLogger(send.MakeStdOut()))
 			},
 			expected:    true,
 			shouldPanic: false,
@@ -46,7 +46,7 @@ func TestHasLogger(t *testing.T) {
 			name: "ContextWithCanceledLogger",
 			setup: func() context.Context {
 				ctx, cancel := context.WithCancel(context.Background())
-				ctx = WithLogger(ctx, NewLogger(send.MakePlain()))
+				ctx = WithLogger(ctx, NewLogger(send.MakeStdOut()))
 				cancel()
 				return ctx
 			},
@@ -105,7 +105,7 @@ func TestWithContextLogger(t *testing.T) {
 			name: "ExistingLoggerSameKey",
 			setup: func() (context.Context, string) {
 				ctx := context.Background()
-				ctx = WithContextLogger(ctx, "same-key", NewLogger(send.MakePlain()))
+				ctx = WithContextLogger(ctx, "same-key", NewLogger(send.MakeStdOut()))
 				return ctx, "same-key"
 			},
 			shouldPanic: false,
@@ -119,7 +119,7 @@ func TestWithContextLogger(t *testing.T) {
 			name: "ExistingLoggerDifferentKey",
 			setup: func() (context.Context, string) {
 				ctx := context.Background()
-				ctx = WithContextLogger(ctx, "first-key", NewLogger(send.MakePlain()))
+				ctx = WithContextLogger(ctx, "first-key", NewLogger(send.MakeStdOut()))
 				return ctx, "second-key"
 			},
 			shouldPanic: false, // WithContextLogger allows multiple loggers with different keys
@@ -157,7 +157,7 @@ func TestWithContextLogger(t *testing.T) {
 			}
 
 			ctx, key := tt.setup()
-			result := WithContextLogger(ctx, key, NewLogger(send.MakePlain()))
+			result := WithContextLogger(ctx, key, NewLogger(send.MakeStdOut()))
 
 			if !tt.shouldPanic && tt.validate != nil {
 				tt.validate(t, result)
@@ -190,7 +190,7 @@ func TestLoggerClone(t *testing.T) {
 		{
 			name: "CustomLoggerClone",
 			setup: func() Logger {
-				sender := send.MakePlain()
+				sender := send.MakeStdOut()
 				sender.SetPriority(level.Debug)
 				return NewLogger(sender)
 			},
@@ -206,7 +206,7 @@ func TestLoggerClone(t *testing.T) {
 
 				// But they are independent loggers
 				// Changing one shouldn't affect the other
-				cloned.SetSender(send.MakePlain())
+				cloned.SetSender(send.MakeStdOut())
 				if original.Sender() == cloned.Sender() {
 					t.Error("after SetSender, they should have different senders")
 				}
@@ -233,7 +233,7 @@ func TestLoggerSetConverter(t *testing.T) {
 		{
 			name: "SetCustomConverter",
 			setup: func() Logger {
-				return NewLogger(send.MakePlain())
+				return NewLogger(send.MakeStdOut())
 			},
 			converter: message.ConverterFunc(func(any) (message.Composer, bool) {
 				return message.MakeString("custom"), true
@@ -252,7 +252,7 @@ func TestLoggerSetConverter(t *testing.T) {
 		{
 			name: "ReplaceExistingConverter",
 			setup: func() Logger {
-				logger := NewLogger(send.MakePlain())
+				logger := NewLogger(send.MakeStdOut())
 				logger.SetConverter(message.ConverterFunc(func(any) (message.Composer, bool) {
 					return message.MakeString("first"), true
 				}))

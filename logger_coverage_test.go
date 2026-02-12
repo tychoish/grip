@@ -25,7 +25,7 @@ func TestPackageLevelClone(t *testing.T) {
 				}
 
 				// Verify it's independent
-				cloned.SetSender(send.MakePlain())
+				cloned.SetSender(send.MakeStdOut())
 				if std.Sender() == cloned.Sender() {
 					t.Error("cloned logger should be independent from std")
 				}
@@ -108,7 +108,7 @@ func TestPackageLevelSetSender(t *testing.T) {
 	}{
 		{
 			name:   "SetPlainSender",
-			sender: send.MakePlain(),
+			sender: send.MakeStdOut(),
 			validate: func(t *testing.T) {
 				if std.Sender() == originalSender {
 					t.Error("sender should have been changed")
@@ -118,7 +118,7 @@ func TestPackageLevelSetSender(t *testing.T) {
 		{
 			name: "SetSenderWithPriority",
 			sender: func() send.Sender {
-				s := send.MakePlain()
+				s := send.MakeStdOut()
 				s.SetPriority(level.Debug)
 				return s
 			}(),
@@ -258,7 +258,7 @@ func TestLoggerMethodsIndirectly(t *testing.T) {
 		{
 			name: "CloneMethod",
 			setup: func() Logger {
-				sender := send.MakePlain()
+				sender := send.MakeStdOut()
 				sender.SetPriority(level.Info)
 				return NewLogger(sender)
 			},
@@ -272,7 +272,7 @@ func TestLoggerMethodsIndirectly(t *testing.T) {
 				}
 
 				// Verify independence
-				cloned.SetSender(send.MakePlain())
+				cloned.SetSender(send.MakeStdOut())
 				if logger.Sender() == cloned.Sender() {
 					t.Error("clone should be independent")
 				}
@@ -281,7 +281,7 @@ func TestLoggerMethodsIndirectly(t *testing.T) {
 		{
 			name: "ConvertMethod",
 			setup: func() Logger {
-				return NewLogger(send.MakePlain())
+				return NewLogger(send.MakeStdOut())
 			},
 			validate: func(t *testing.T, logger Logger) {
 				result := logger.Convert("test")
@@ -296,10 +296,10 @@ func TestLoggerMethodsIndirectly(t *testing.T) {
 		{
 			name: "SetSenderMethod",
 			setup: func() Logger {
-				return NewLogger(send.MakePlain())
+				return NewLogger(send.MakeStdOut())
 			},
 			validate: func(t *testing.T, logger Logger) {
-				newSender := send.MakePlain()
+				newSender := send.MakeStdOut()
 				newSender.SetPriority(level.Debug)
 				logger.SetSender(newSender)
 
@@ -311,7 +311,7 @@ func TestLoggerMethodsIndirectly(t *testing.T) {
 		{
 			name: "SetConverterMethod",
 			setup: func() Logger {
-				return NewLogger(send.MakePlain())
+				return NewLogger(send.MakeStdOut())
 			},
 			validate: func(t *testing.T, logger Logger) {
 				customConverter := message.ConverterFunc(func(any) (message.Composer, bool) {

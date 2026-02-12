@@ -97,10 +97,9 @@ func (s *asyncGroupSender) startSenderWorker(newSender Sender) {
 			case <-s.ctx.Done():
 				return
 			case m := <-pipe:
-				if m == nil {
-					continue
+				if m != nil {
+					sender.Send(m)
 				}
-				sender.Send(m)
 			}
 		}
 	}(s.broker.Subscribe(s.baseCtx), newSender)

@@ -1,6 +1,8 @@
 package message
 
-import "github.com/tychoish/grip/level"
+import (
+	"github.com/tychoish/grip/level"
+)
 
 // Composer defines an interface with a String() method that returns
 // the message in string format, as well as a Raw() method that may
@@ -100,3 +102,32 @@ const (
 	// of Raw() methods.
 	OptionRenderExtendedStringOutuput Option = "render-extended-string-output"
 )
+
+type Configuration uint
+
+const (
+	ConfIsLogable Configuration = 1 << iota
+	ConfIsStructured
+	ConfLevelTrace
+	ConfLevelDebug
+	ConfLevelInfo
+	ConfLevelNotice
+	ConfLevelWarning
+	ConfLevelError
+	ConfLevelCritical
+	ConfLevelAlert
+	ConfLevelEmergency
+	ConfRenderAsStringPlain
+	ConfRenderAsStringWithMetadata
+	ConfRenderAsStringWithExtended
+	ConfRenderAsStructured
+	ConfRenderAsStructuredWithMetadata
+	ConfRenderWithSortedKeys
+)
+
+
+type ComposerV2 interface {
+	WithConf(Configuration)
+	Configuration() Configuration
+	
+}

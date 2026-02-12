@@ -5,7 +5,7 @@ package send
 // message is taken by calling the Raw() method on the
 // message.Composer and Marshalling the results.
 func MakeJSON() Sender {
-	s := MakePlain()
+	s := MakeStdOut()
 
 	s.SetFormatter(MakeJSONFormatter())
 
@@ -15,7 +15,7 @@ func MakeJSON() Sender {
 // MakeJSONFile creates an un-configured JSON logger that writes
 // output to the specified file.
 func MakeJSONFile(file string) (Sender, error) {
-	s, err := MakePlainFile(file)
+	s, err := MakeFile(file)
 	if err != nil {
 		return nil, err
 	}

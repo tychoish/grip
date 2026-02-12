@@ -18,14 +18,20 @@ func TestStdLogging(t *testing.T) {
 	internal.SetPriority(level.Info)
 	std := MakeStandard(internal)
 	std.Print(printableMessage)
-	testt.Logf(t, "std=%+v", std)
+
+	testt.Logf(t, "std=[%T]%+v", std, std)
 	assert.True(t, internal.HasMessage())
 	msg := internal.GetMessage()
 	check.Equal(t, msg.Rendered, printableMessage)
 
 	wrapped := FromStandard(std)
-	wrapped.Send(message.MakeString("hi grip"))
+	printableMessage = strings.Repeat("hi grip!", 10)
+	tosend := message.MakeString(printableMessage)
+	tosend.SetPriority(level.Alert)
+	wrapped.Send(tosend)
+	testt.Logf(t, "wrapped=[%T]%+v", wrapped, wrapped)
+
 	assert.True(t, internal.HasMessage())
 	msg = internal.GetMessage()
-	check.Equal(t, msg.Rendered, "hi grip")
+	check.Equal(t, msg.Rendered, printableMessage)
 }

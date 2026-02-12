@@ -17,7 +17,7 @@ func TestLogger(t *testing.T) {
 	const name = "gripTest"
 	testSender := func(t *testing.T) send.Sender {
 		t.Helper()
-		sender := send.MakePlain()
+		sender := send.MakeStdOut()
 		sender.SetName(name)
 		sender.SetPriority(level.Trace)
 		if sender.Name() != name {
