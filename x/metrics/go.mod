@@ -4,9 +4,9 @@ go 1.24
 
 require (
 	github.com/shirou/gopsutil v3.21.11+incompatible
-	github.com/tychoish/birch v0.4.0
-	github.com/tychoish/birch/x/ftdc v0.1.0
-	github.com/tychoish/fun v0.14.6
+	github.com/tychoish/birch v0.4.1
+	github.com/tychoish/birch/x/ftdc v0.1.1
+	github.com/tychoish/fun v0.14.7
 	github.com/tychoish/grip v0.4.8
 )
 

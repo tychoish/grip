@@ -2,7 +2,6 @@ package series
 
 import (
 	"iter"
-	"maps"
 	"strings"
 
 	"github.com/tychoish/fun/adt"
@@ -101,7 +100,8 @@ func WithMetrics(c any, events ...*Event) message.Composer {
 type extractableMessageTypes interface {
 	any | []any | ~map[string]any | irt.KV[string, any] |
 		iter.Seq2[string, any] | iter.Seq[irt.KV[string, any]] |
-		*adt.Map[string, any] | *adt.OrderedMap[string, any] |
+		*adt.SyncMap[string, any] | *adt.OrderedMap[string, any] |
+		*adt.LockedRWMap[string, any] | *adt.LockedMap[string, any] |
 		*dt.Set[irt.KV[string, any]] | *dt.OrderedSet[irt.KV[string, any]] |
 		*adt.OrderedSet[irt.KV[string, any]] | *adt.Set[irt.KV[string, any]]
 }
@@ -195,7 +195,7 @@ func hasMetrics[T extractableMessageTypes](in T) (isMetric bool) {
 	case fn.Future[Event], fn.Future[*Event], fn.Future[[]Event], fn.Future[[]*Event]:
 		return true
 	case map[string]any: // also mesage.Fields
-		for v := range maps.Values(ev) {
+		for v := range ev {
 			if isEventTyped(v) {
 				return true
 			}

@@ -39,7 +39,7 @@ type Collector struct {
 		mp map[string]dt.List[*tracked]
 	}
 
-	loops adt.Map[time.Duration, func(*tracked) error]
+	loops adt.SyncMap[time.Duration, func(*tracked) error]
 	pool  adt.Pool[*bytes.Buffer]
 
 	// broker is for cases where there are more than one output
