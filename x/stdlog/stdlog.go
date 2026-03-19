@@ -17,15 +17,11 @@ type nativeLogger struct {
 }
 
 // MakeStdOutput returns an unconfigured native standard-out logger.
-func MakeStdOutput() send.Sender {
-	return WrapWriter(os.Stdout)
-}
+func MakeStdOutput() send.Sender { return WrapWriter(os.Stdout) }
 
 // MakeStdError returns an unconfigured Sender implementation that
 // writes all logging output to standard error.
-func MakeStdError() send.Sender {
-	return WrapWriter(os.Stderr)
-}
+func MakeStdError() send.Sender { return WrapWriter(os.Stderr) }
 
 // MakePlainFile writes all output to a file, but does not
 // prepend any log formatting to each message.
