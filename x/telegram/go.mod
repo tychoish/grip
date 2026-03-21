@@ -3,6 +3,6 @@ module github.com/tychoish/grip/x/telegram
 go 1.24
 
 require (
-	github.com/tychoish/fun v0.14.7
+	github.com/tychoish/fun v0.14.8
 	github.com/tychoish/grip v0.4.8
 )
