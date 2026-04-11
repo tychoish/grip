@@ -8,6 +8,6 @@ require (
 )
 
 require (
-	github.com/tychoish/fun v0.14.8 // indirect
+	github.com/tychoish/fun v0.14.9 // indirect
 	golang.org/x/net v0.41.0 // indirect
 )

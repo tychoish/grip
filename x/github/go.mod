@@ -10,5 +10,5 @@ require (
 
 require (
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/tychoish/fun v0.14.8 // indirect
+	github.com/tychoish/fun v0.14.9 // indirect
 )

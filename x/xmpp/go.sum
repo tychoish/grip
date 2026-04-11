@@ -1,4 +1,5 @@
-github.com/tychoish/fun v0.14.8 h1:5EgnI4RCT/GK8BG1loFNS+fWB8mJbsOqQeEq4/qGMSg=
+github.com/tychoish/fun v0.14.9 h1:Uq7nkeCkccqnDWzTkbQYDgr2QAtCXA0JP/H7EIz5upM=
+github.com/tychoish/fun v0.14.9/go.mod h1:ghjR/9EyWh8h8oBg2+WJhsEcF/W4JXMWpo6btMRNusE=
 github.com/tychoish/grip v0.4.8 h1:dnV1OnCwuY7AjYQ5l6tLn7jSRJGNdZmNnrdKDqn3XRU=
 github.com/tychoish/grip v0.4.8/go.mod h1:3kHQdYRkvy+zcLySCqyg/b+JmWxasUe341y+YpgqUug=
 github.com/xmppo/go-xmpp v0.2.15 h1:U6OjfMAb47jSKWkxXp7D+yNolEX4Acj2uOJ/p5AaCOs=
