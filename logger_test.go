@@ -165,31 +165,9 @@ func TestLogger(t *testing.T) {
 			grip.Notice,
 			grip.Warning,
 
-			grip.Alertf,
-			grip.Criticalf,
-			grip.Debugf,
-			grip.Emergencyf,
-			grip.Errorf,
-			grip.Infof,
-			grip.Noticef,
-			grip.Warningf,
-
-			grip.AlertWhen,
-			grip.CriticalWhen,
-			grip.DebugWhen,
-			grip.EmergencyWhen,
-			grip.ErrorWhen,
-			grip.InfoWhen,
-			grip.NoticeWhen,
-			grip.WarningWhen,
-
-			func(w bool, m any) { grip.LogWhen(w, level.Info, m) },
 			func(m any) { grip.Log(level.Info, m) },
-			func(m string, a ...any) { grip.Logf(level.Info, m, a...) },
 			func(m ...message.Composer) { grip.Log(level.Info, m) },
 			func(m []message.Composer) { grip.Log(level.Info, m) },
-			func(w bool, m ...message.Composer) { grip.LogWhen(w, level.Info, m) },
-			func(w bool, m []message.Composer) { grip.LogWhen(w, level.Info, m) },
 
 			func(in any) { grip.Build().Any(in).Level(level.Info).Send() },
 		}

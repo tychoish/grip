@@ -102,32 +102,3 @@ const (
 	// of Raw() methods.
 	OptionRenderExtendedStringOutuput Option = "render-extended-string-output"
 )
-
-type Configuration uint
-
-const (
-	ConfIsLogable Configuration = 1 << iota
-	ConfIsStructured
-	ConfLevelTrace
-	ConfLevelDebug
-	ConfLevelInfo
-	ConfLevelNotice
-	ConfLevelWarning
-	ConfLevelError
-	ConfLevelCritical
-	ConfLevelAlert
-	ConfLevelEmergency
-	ConfRenderAsStringPlain
-	ConfRenderAsStringWithMetadata
-	ConfRenderAsStringWithExtended
-	ConfRenderAsStructured
-	ConfRenderAsStructuredWithMetadata
-	ConfRenderWithSortedKeys
-)
-
-
-type ComposerV2 interface {
-	WithConf(Configuration)
-	Configuration() Configuration
-	
-}

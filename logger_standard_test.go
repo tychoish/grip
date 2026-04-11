@@ -47,63 +47,6 @@ func setupFixtures(t *testing.T) *LoggingMethodSuite {
 	return s
 }
 
-func TestWhenMethods(t *testing.T) {
-	s := setupFixtures(t)
-
-	cases := map[string][]whenMethod{
-		"emergency": {EmergencyWhen, s.logger.EmergencyWhen},
-		"alert":     {AlertWhen, s.logger.AlertWhen},
-		"critical":  {CriticalWhen, s.logger.CriticalWhen},
-		"error":     {ErrorWhen, s.logger.ErrorWhen},
-		"warning":   {WarningWhen, s.logger.WarningWhen},
-		"notice":    {NoticeWhen, s.logger.NoticeWhen},
-		"info":      {InfoWhen, s.logger.InfoWhen},
-		"debug":     {DebugWhen, s.logger.DebugWhen},
-		"trace":     {TraceWhen, s.logger.TraceWhen},
-	}
-
-	for kind, loggers := range cases {
-		t.Run(kind, func(t *testing.T) {
-			if l := len(loggers); l != 2 {
-				t.Errorf("length is %d not %d", l, 2)
-			}
-			loggers[0](true, testMessage)
-			loggers[1](true, testMessage)
-
-			if !s.loggingSender.HasMessage() {
-				t.Error("value should be true")
-			}
-			if !s.stdSender.HasMessage() {
-				t.Error("value should be true")
-			}
-			lgrMsg := s.loggingSender.GetMessage()
-			if !lgrMsg.Logged {
-				t.Error("value should be true")
-			}
-			stdMsg := s.stdSender.GetMessage()
-			if !stdMsg.Logged {
-				t.Error("value should be true")
-			}
-
-			if lgrMsg.Rendered != stdMsg.Rendered {
-				t.Error("values should be equal")
-			}
-
-			loggers[0](false, testMessage)
-			loggers[1](false, testMessage)
-
-			lgrMsg = s.loggingSender.GetMessage()
-			if lgrMsg.Logged {
-				t.Error("value should be false")
-			}
-			stdMsg = s.stdSender.GetMessage()
-			if stdMsg.Logged {
-				t.Error("value should be false")
-			}
-		})
-	}
-}
-
 func TestBasicMethod(t *testing.T) {
 	s := setupFixtures(t)
 
@@ -159,96 +102,6 @@ func TestBasicMethod(t *testing.T) {
 	}
 }
 
-func TestFormatMethods(t *testing.T) {
-	s := setupFixtures(t)
-
-	cases := map[string][]fMethod{
-		"emergency": {Emergencyf, s.logger.Emergencyf},
-		"alert":     {Alertf, s.logger.Alertf},
-		"critical":  {Criticalf, s.logger.Criticalf},
-		"error":     {Errorf, s.logger.Errorf},
-		"warning":   {Warningf, s.logger.Warningf},
-		"notice":    {Noticef, s.logger.Noticef},
-		"info":      {Infof, s.logger.Infof},
-		"debug":     {Debugf, s.logger.Debugf},
-		"trace":     {Tracef, s.logger.Tracef},
-	}
-
-	for kind, loggers := range cases {
-		t.Run(kind, func(t *testing.T) {
-			if l := len(loggers); l != 2 {
-				t.Errorf("length is %d not %d", l, 2)
-			}
-			if s.loggingSender.HasMessage() {
-				t.Error("value should be false")
-			}
-			if s.stdSender.HasMessage() {
-				t.Error("value should be false")
-			}
-
-			loggers[0]("%s: %d", testMessage, 3)
-			loggers[1]("%s: %d", testMessage, 3)
-
-			if !s.loggingSender.HasMessage() {
-				t.Error("value should be true")
-			}
-			if !s.stdSender.HasMessage() {
-				t.Error("value should be true")
-			}
-			lgrMsg := s.loggingSender.GetMessage()
-			stdMsg := s.stdSender.GetMessage()
-			if lgrMsg.Rendered != stdMsg.Rendered {
-				t.Error("values should be equal")
-			}
-		})
-	}
-}
-
-func TestLineMethods(t *testing.T) {
-	s := setupFixtures(t)
-
-	cases := map[string][]lnMethod{
-		"emergency": {Emergencyln, s.logger.Emergencyln},
-		"alert":     {Alertln, s.logger.Alertln},
-		"critical":  {Criticalln, s.logger.Criticalln},
-		"error":     {Errorln, s.logger.Errorln},
-		"warning":   {Warningln, s.logger.Warningln},
-		"notice":    {Noticeln, s.logger.Noticeln},
-		"info":      {Infoln, s.logger.Infoln},
-		"debug":     {Debugln, s.logger.Debugln},
-		"trace":     {Traceln, s.logger.Traceln},
-	}
-
-	for kind, loggers := range cases {
-		t.Run(kind, func(t *testing.T) {
-			if l := len(loggers); l != 2 {
-				t.Errorf("length is %d not %d", l, 2)
-			}
-			if s.loggingSender.HasMessage() {
-				t.Error("value should be false")
-			}
-			if s.stdSender.HasMessage() {
-				t.Error("value should be false")
-			}
-
-			loggers[0](testMessage, 3)
-			loggers[1](testMessage, 3)
-
-			if !s.loggingSender.HasMessage() {
-				t.Error("value should be true")
-			}
-			if !s.stdSender.HasMessage() {
-				t.Error("value should be true")
-			}
-			lgrMsg := s.loggingSender.GetMessage()
-			stdMsg := s.stdSender.GetMessage()
-			if lgrMsg.Rendered != stdMsg.Rendered {
-				t.Error("values should be equal")
-			}
-		})
-	}
-}
-
 func TestProgrgramaticLevelMethods(t *testing.T) {
 	s := setupFixtures(t)
 
@@ -262,10 +115,7 @@ func TestProgrgramaticLevelMethods(t *testing.T) {
 	)
 
 	cases := map[string]any{
-		"when": []lgwhen{LogWhen, s.logger.LogWhen},
-		"lg":   []lg{Log, s.logger.Log},
-		"lgln": []lgln{Logln, s.logger.Logln},
-		"lgf":  []lgf{Logf, s.logger.Logf},
+		"lg": []lg{Log, s.logger.Log},
 	}
 
 	const l = level.Emergency

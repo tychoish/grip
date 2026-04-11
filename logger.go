@@ -95,110 +95,53 @@ func MakeLogger(s send.Sender, c message.Converter) Logger {
 	}
 }
 
-func composerf(tmpl string, args []any) message.Composer { return message.MakeFormat(tmpl, args...) }
-func composerln(args []any) message.Composer             { return message.MakeLines(args...) }
-
 // Clone creates a new Logger with the same message sender and
 // converter; however they are fully independent loggers.
-func (g Logger) Clone() Logger                               { return MakeLogger(g.Sender(), g.conv.Get()) }
-func (g Logger) Build() *message.Builder                     { return message.NewBuilder(g.Sender().Send, g.conv.Get()) }
-func (g Logger) Sender() send.Sender                         { return g.impl.Get().Sender }
-func (g Logger) Convert(m any) message.Composer              { return g.conv.Get().Convert(m) }
-func (g Logger) SetSender(s send.Sender)                     { g.impl.Set(sender{s}) }
-func (g Logger) SetConverter(m message.Converter)            { g.conv.Set(converter{m}) }
-func (g Logger) Send(m message.Composer)                     { g.Sender().Send(m) }
-func (g Logger) Log(l level.Priority, m any)                 { g.Send(g.make(l, m)) }
-func (g Logger) Logf(l level.Priority, msg string, a ...any) { g.Log(l, composerf(msg, a)) }
-func (g Logger) Logln(l level.Priority, a ...any)            { g.Log(l, composerln(a)) }
-func (g Logger) LogWhen(c bool, l level.Priority, m any)     { g.Log(l, g.makeWhen(c, m)) }
-func (g Logger) EmergencyPanic(m any)                        { g.sendPanic(level.Emergency, m) }
-func (g Logger) EmergencyFatal(m any)                        { g.sendFatal(level.Emergency, m) }
-func (g Logger) Emergency(m any)                             { g.Log(level.Emergency, m) }
-func (g Logger) Emergencyf(m string, a ...any)               { g.Log(level.Emergency, composerf(m, a)) }
-func (g Logger) Emergencyln(a ...any)                        { g.Log(level.Emergency, composerln(a)) }
-func (g Logger) EmergencyWhen(c bool, m any)                 { g.Log(level.Emergency, g.makeWhen(c, m)) }
-func (g Logger) Alert(m any)                                 { g.Log(level.Alert, m) }
-func (g Logger) Alertf(m string, a ...any)                   { g.Log(level.Alert, composerf(m, a)) }
-func (g Logger) Alertln(a ...any)                            { g.Log(level.Alert, composerln(a)) }
-func (g Logger) AlertWhen(c bool, m any)                     { g.Log(level.Alert, g.makeWhen(c, m)) }
-func (g Logger) Critical(m any)                              { g.Log(level.Critical, m) }
-func (g Logger) Criticalf(m string, a ...any)                { g.Log(level.Critical, composerf(m, a)) }
-func (g Logger) Criticalln(a ...any)                         { g.Log(level.Critical, composerln(a)) }
-func (g Logger) CriticalWhen(c bool, m any)                  { g.Log(level.Critical, g.makeWhen(c, m)) }
-func (g Logger) Error(m any)                                 { g.Log(level.Error, m) }
-func (g Logger) Errorf(m string, a ...any)                   { g.Log(level.Error, composerf(m, a)) }
-func (g Logger) Errorln(a ...any)                            { g.Log(level.Error, composerln(a)) }
-func (g Logger) ErrorWhen(c bool, m any)                     { g.Log(level.Error, g.makeWhen(c, m)) }
-func (g Logger) Warning(m any)                               { g.Log(level.Warning, m) }
-func (g Logger) Warningf(m string, a ...any)                 { g.Log(level.Warning, composerf(m, a)) }
-func (g Logger) Warningln(a ...any)                          { g.Log(level.Warning, composerln(a)) }
-func (g Logger) WarningWhen(c bool, m any)                   { g.Log(level.Warning, g.makeWhen(c, m)) }
-func (g Logger) Notice(m any)                                { g.Log(level.Notice, m) }
-func (g Logger) Noticef(m string, a ...any)                  { g.Log(level.Notice, composerf(m, a)) }
-func (g Logger) Noticeln(a ...any)                           { g.Log(level.Notice, composerln(a)) }
-func (g Logger) NoticeWhen(c bool, m any)                    { g.Log(level.Notice, g.makeWhen(c, m)) }
-func (g Logger) Info(m any)                                  { g.Log(level.Info, m) }
-func (g Logger) Infof(m string, a ...any)                    { g.Log(level.Info, composerf(m, a)) }
-func (g Logger) Infoln(a ...any)                             { g.Log(level.Info, composerln(a)) }
-func (g Logger) InfoWhen(c bool, m any)                      { g.Log(level.Info, g.makeWhen(c, m)) }
-func (g Logger) Debug(m any)                                 { g.Log(level.Debug, m) }
-func (g Logger) Debugf(m string, a ...any)                   { g.Log(level.Debug, composerf(m, a)) }
-func (g Logger) Debugln(a ...any)                            { g.Log(level.Debug, composerln(a)) }
-func (g Logger) DebugWhen(c bool, m any)                     { g.Log(level.Debug, g.makeWhen(c, m)) }
-func (g Logger) Trace(m any)                                 { g.Log(level.Trace, m) }
-func (g Logger) Tracef(m string, a ...any)                   { g.Log(level.Trace, composerf(m, a)) }
-func (g Logger) Traceln(a ...any)                            { g.Log(level.Trace, composerln(a)) }
-func (g Logger) TraceWhen(c bool, m any)                     { g.Log(level.Trace, g.makeWhen(c, m)) }
+func (g Logger) Clone() Logger                    { return MakeLogger(g.Sender(), g.conv.Get()) }
+func (g Logger) Build() *message.Builder          { return message.NewBuilder(g.Sender().Send, g.conv.Get()) }
+func (g Logger) Sender() send.Sender              { return g.impl.Get().Sender }
+func (g Logger) Convert(m any) message.Composer   { return g.conv.Get().Convert(m) }
+func (g Logger) SetSender(s send.Sender)          { g.impl.Set(sender{s}) }
+func (g Logger) SetConverter(m message.Converter) { g.conv.Set(converter{m}) }
+func (g Logger) Send(m message.Composer)          { g.Sender().Send(m) }
+func (g Logger) Log(l level.Priority, m any)      { g.Send(g.make(l, m)) }
+func (g Logger) EmergencyPanic(m any)             { g.sendPanic(level.Emergency, m) }
+func (g Logger) EmergencyFatal(m any)             { g.sendFatal(level.Emergency, m) }
+func (g Logger) Emergency(m any)                  { g.Log(level.Emergency, m) }
+func (g Logger) Alert(m any)                      { g.Log(level.Alert, m) }
+func (g Logger) Critical(m any)                   { g.Log(level.Critical, m) }
+func (g Logger) Error(m any)                      { g.Log(level.Error, m) }
+func (g Logger) Warning(m any)                    { g.Log(level.Warning, m) }
+func (g Logger) Notice(m any)                     { g.Log(level.Notice, m) }
+func (g Logger) Info(m any)                       { g.Log(level.Info, m) }
+func (g Logger) Debug(m any)                      { g.Log(level.Debug, m) }
+func (g Logger) Trace(m any)                      { g.Log(level.Trace, m) }
 
-func Clone() Logger                                     { return std.Clone() }
-func Sender() send.Sender                               { return std.Sender() }
-func Build() *message.Builder                           { return std.Build() }
-func Convert(m any) message.Composer                    { return std.Convert(m) }
-func SetSender(s send.Sender)                           { std.SetSender(s) }
-func SetConverter(c message.Converter)                  { std.SetConverter(c) }
-func Send(m message.Composer)                           { std.Send(m) }
-func Log(l level.Priority, msg any)                     { std.Log(l, msg) }
-func Logf(l level.Priority, msg string, a ...any)       { std.Logf(l, msg, a...) }
-func Logln(l level.Priority, a ...any)                  { std.Logln(l, a...) }
-func LogWhen(conditional bool, l level.Priority, m any) { std.LogWhen(conditional, l, m) }
-func EmergencyPanic(msg any)                            { std.EmergencyPanic(msg) }
-func EmergencyFatal(msg any)                            { std.EmergencyFatal(msg) }
-func Emergency(msg any)                                 { std.Emergency(msg) }
-func Emergencyf(msg string, a ...any)                   { std.Emergencyf(msg, a...) }
-func Emergencyln(a ...any)                              { std.Emergencyln(a...) }
-func EmergencyWhen(conditional bool, m any)             { std.EmergencyWhen(conditional, m) }
-func Alert(msg any)                                     { std.Alert(msg) }
-func Alertf(msg string, a ...any)                       { std.Alertf(msg, a...) }
-func Alertln(a ...any)                                  { std.Alertln(a...) }
-func AlertWhen(conditional bool, m any)                 { std.AlertWhen(conditional, m) }
-func Critical(msg any)                                  { std.Critical(msg) }
-func Criticalf(msg string, a ...any)                    { std.Criticalf(msg, a...) }
-func Criticalln(a ...any)                               { std.Criticalln(a...) }
-func CriticalWhen(conditional bool, m any)              { std.CriticalWhen(conditional, m) }
-func Error(msg any)                                     { std.Error(msg) }
-func Errorf(msg string, a ...any)                       { std.Errorf(msg, a...) }
-func Errorln(a ...any)                                  { std.Errorln(a...) }
-func ErrorWhen(conditional bool, m any)                 { std.ErrorWhen(conditional, m) }
-func Warning(msg any)                                   { std.Warning(msg) }
-func Warningf(msg string, a ...any)                     { std.Warningf(msg, a...) }
-func Warningln(a ...any)                                { std.Warningln(a...) }
-func WarningWhen(conditional bool, m any)               { std.WarningWhen(conditional, m) }
-func Notice(msg any)                                    { std.Notice(msg) }
-func Noticef(msg string, a ...any)                      { std.Noticef(msg, a...) }
-func Noticeln(a ...any)                                 { std.Noticeln(a...) }
-func NoticeWhen(conditional bool, m any)                { std.NoticeWhen(conditional, m) }
-func Info(msg any)                                      { std.Info(msg) }
-func Infof(msg string, a ...any)                        { std.Infof(msg, a...) }
-func Infoln(a ...any)                                   { std.Infoln(a...) }
-func InfoWhen(conditional bool, message any)            { std.InfoWhen(conditional, message) }
-func Debug(msg any)                                     { std.Debug(msg) }
-func Debugf(msg string, a ...any)                       { std.Debugf(msg, a...) }
-func Debugln(a ...any)                                  { std.Debugln(a...) }
-func DebugWhen(conditional bool, m any)                 { std.DebugWhen(conditional, m) }
-func Trace(msg any)                                     { std.Trace(msg) }
-func Tracef(msg string, a ...any)                       { std.Tracef(msg, a...) }
-func Traceln(a ...any)                                  { std.Traceln(a...) }
-func TraceWhen(conditional bool, m any)                 { std.TraceWhen(conditional, m) }
+func MakeKV() *message.KV                            { return message.NewKV() }
+func KV(key string, value any) *message.KV           { return MakeKV().KV(key, value) }
+func Build() *message.Builder                        { return std.Build() }
+func When(cond bool, m any) message.Composer         { return message.When(cond, m) }
+func MPrintln(args ...any) message.Composer          { return message.MakeLines(args...) }
+func MPrintf(t string, args ...any) message.Composer { return message.MakeFormat(t, args...) }
+func Convert(m any) message.Composer                 { return std.Convert(m) }
+
+func Clone() Logger                    { return std.Clone() }
+func Sender() send.Sender              { return std.Sender() }
+func SetSender(s send.Sender)          { std.SetSender(s) }
+func SetConverter(c message.Converter) { std.SetConverter(c) }
+func Send(m message.Composer)          { std.Send(m) }
+func Log(l level.Priority, msg any)    { std.Log(l, msg) }
+func EmergencyPanic(msg any)           { std.EmergencyPanic(msg) }
+func EmergencyFatal(msg any)           { std.EmergencyFatal(msg) }
+func Emergency(msg any)                { std.Emergency(msg) }
+func Alert(msg any)                    { std.Alert(msg) }
+func Critical(msg any)                 { std.Critical(msg) }
+func Error(msg any)                    { std.Error(msg) }
+func Warning(msg any)                  { std.Warning(msg) }
+func Notice(msg any)                   { std.Notice(msg) }
+func Info(msg any)                     { std.Info(msg) }
+func Debug(msg any)                    { std.Debug(msg) }
+func Trace(msg any)                    { std.Trace(msg) }
 
 // implementation
 
@@ -214,10 +157,6 @@ func (g Logger) make(l level.Priority, in any) message.Composer {
 
 func (g Logger) ms(l level.Priority, i any) (message.Composer, send.Sender) {
 	return g.make(l, i), g.Sender()
-}
-
-func (g Logger) makeWhen(cond bool, m any) message.Composer {
-	return message.When(cond, message.MakeFuture(func() message.Composer { return g.Convert(m) }))
 }
 
 func (g Logger) sendPanic(l level.Priority, in any) {
