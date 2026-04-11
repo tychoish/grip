@@ -39,7 +39,7 @@ func MakeJSONFormatter() MessageFormatter {
 	}
 }
 
-// MakeDefaultFormatter returns a MessageFormatter that will produce a
+// MakeDefaultFormatter returns a iMessageFormatter that will produce a
 // message in the following format:
 //
 //	[p=<level>]: <message>

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"iter"
 	"maps"
-	"slices"
 	"strings"
 
 	"github.com/tychoish/fun/dt"
 	"github.com/tychoish/fun/irt"
+	"github.com/tychoish/fun/strut"
 	"github.com/tychoish/grip/level"
 )
 
@@ -83,14 +83,55 @@ func (p *KV) String() string {
 		p.hasMetadata = true
 	}
 
-	out := makeSimpleFieldsString(p.kvs.Iterator(), p.core.IncludeMetadata, p.kvs.Len())
 	if p.core.SortComponents {
-		slices.Sort(out)
+		out := irt.Collect(irt.RemoveZeros(irt.Merge(p.kvs.Iterator(), renderField)))
+		// slices.Sort(out)
+		p.cachedOutput = strings.Join(out, " ")
+	} else {
+		p.cachedOutput = renderKVString(p.kvs.Iterator())
 	}
-	p.cachedOutput = strings.Join(out, " ")
 	p.cachedSize = p.kvs.Len()
 
 	return p.cachedOutput
+}
+
+// renderKVString builds the string representation of a KV sequence into a
+// pooled strut.Mutable, avoiding the intermediate []string allocation and the
+// separate strings.Join allocation used by the sort path.
+//
+// For string and fmt.Stringer values the field is written directly via
+// PushString, sidestepping the fmt.Sprintf call that renderField requires.
+// Non-string values still go through fmt.Fprintf, which writes to the buffer
+// without allocating an intermediate return string.
+func renderKVString(f iter.Seq2[string, any]) string {
+	buf := strut.MakeMutable(128)
+	first := true
+	for k, v := range f {
+		if _, ok := skippedFields[k]; ok {
+			continue
+		}
+		if !first {
+			buf.PushString(" ")
+		}
+		first = false
+		writeKVField(buf, k, v)
+	}
+	return buf.Resolve()
+}
+
+// writeKVField appends one key='value' token to buf.
+func writeKVField(buf *strut.Mutable, k string, v any) {
+	buf.PushString(k)
+	buf.PushString("='")
+	switch val := v.(type) {
+	case string:
+		buf.PushString(val)
+	case fmt.Stringer:
+		buf.PushString(val.String())
+	default:
+		buf.Mprintf("%v", v)
+	}
+	_ = buf.WriteByte('\'')
 }
 
 var skippedFields = map[string]struct{}{"meta": {}}
