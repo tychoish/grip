@@ -47,7 +47,7 @@ func MakeBuffered(sender Sender, interval time.Duration, size int) Sender {
 	s := &bufferedSender{
 		Sender: sender,
 		cancel: cancel,
-		buffer: []message.Composer{},
+		buffer: make([]message.Composer, 0, size),
 		size:   size,
 	}
 
@@ -129,10 +129,11 @@ func (s *bufferedSender) intervalFlush(ctx context.Context, interval time.Durati
 func (s *bufferedSender) flush() {
 	if len(s.buffer) == 1 {
 		s.Sender.Send(s.buffer[0])
+		s.buffer = s.buffer[:0]
 	} else {
 		s.Sender.Send(message.MakeGroupComposer(s.buffer))
+		s.buffer = make([]message.Composer, 0, s.size)
 	}
 
-	s.buffer = []message.Composer{}
 	s.lastFlush = time.Now()
 }
