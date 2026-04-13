@@ -117,9 +117,11 @@ func (g Logger) Info(m any)                       { g.Log(level.Info, m) }
 func (g Logger) Debug(m any)                      { g.Log(level.Debug, m) }
 func (g Logger) Trace(m any)                      { g.Log(level.Trace, m) }
 
-func MakeKV() *message.KV                            { return message.NewKV() }
-func KV(key string, value any) *message.KV           { return MakeKV().KV(key, value) }
 func Build() *message.Builder                        { return std.Build() }
+func BuildKV() *message.KV                           { return message.NewKV() }
+func B() *message.Builder                            { return std.Build() }
+func BKV() *message.KV                               { return message.NewKV() }
+func KV(key string, value any) *message.KV           { return BKV().KV(key, value) }
 func When(cond bool, m any) message.Composer         { return message.When(cond, m) }
 func MPrintln(args ...any) message.Composer          { return message.MakeLines(args...) }
 func MPrintf(t string, args ...any) message.Composer { return message.MakeFormat(t, args...) }
