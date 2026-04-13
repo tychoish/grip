@@ -80,7 +80,7 @@ func (s *writerSenderImpl) Write(p []byte) (int, error) {
 }
 
 func (s *writerSenderImpl) doSend() error {
-	pri := s.Priority()
+	pri := s.Load()
 	for {
 		line, err := s.buffer.ReadBytes('\n')
 		if err == io.EOF {
@@ -115,7 +115,7 @@ func (s *writerSenderImpl) Close() error {
 	}
 
 	m := message.MakeBytes(bytes.TrimRightFunc(s.buffer.Bytes(), unicode.IsSpace))
-	m.SetPriority(s.Priority())
+	m.SetPriority(s.Load())
 	s.Send(m)
 	s.buffer.Reset()
 	s.writer.Reset(s.buffer)
