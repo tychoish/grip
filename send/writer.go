@@ -20,7 +20,7 @@ type iowritersender struct {
 }
 
 func newWriter(wr io.Writer) *iowritersender          { return &iowritersender{iwr: bufio.NewWriter(wr)} }
-func (s *iowritersender) write(in []byte) (err error) { _, err = s.iwr.Write(in); return }
+func (s *iowritersender) Write(in []byte) (err error) { _, err = s.iwr.Write(in); return }
 
 func (s *iowritersender) Send(m message.Composer) {
 	if ShouldLog(s, m) {
@@ -34,7 +34,7 @@ func (s *iowritersender) Send(m message.Composer) {
 			defer s.mtx.Unlock()
 
 			s.HandleErrorOK(erc.Join(err,
-				s.write(bytes.TrimSpace(buf.Bytes())),
+				s.Write(bytes.TrimSpace(buf.Bytes())),
 				s.iwr.WriteByte('\n'),
 				s.iwr.Flush(),
 			))
