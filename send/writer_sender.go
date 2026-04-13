@@ -8,6 +8,7 @@ import (
 	"unicode"
 
 	"github.com/tychoish/fun/adt"
+	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -74,13 +75,8 @@ func (s *writerSenderImpl) Write(p []byte) (int, error) {
 	if err != nil {
 		return n, err
 	}
-	_ = s.writer.Flush()
 
-	if s.buffer.Len() > 80 {
-		err = s.doSend()
-	}
-
-	return n, err
+	return n, erc.Join(s.writer.Flush(), s.doSend())
 }
 
 func (s *writerSenderImpl) doSend() error {
