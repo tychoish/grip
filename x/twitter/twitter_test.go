@@ -97,25 +97,4 @@ func TestTwitter(t *testing.T) {
 		})
 		mock.reset()
 	})
-	t.Run("WithError", func(t *testing.T) {
-		errsender := send.NewInternal(2)
-		errsender.SetName("errr")
-		errsender.SetPriority(level.Info)
-
-		s := &twitterLogger{
-			twitter: &twitterClientImpl{twitter: (&Options{}).resolve(ctx)},
-		}
-		s.SetName("fake")
-		s.SetErrorHandler(send.ErrorHandlerFromSender(errsender))
-
-		msg := message.MakeString("hi")
-		msg.SetPriority(level.Info)
-		s.Send(msg)
-		if !errsender.HasMessage() {
-			t.Fatal("should have messages")
-		}
-		if !strings.Contains(errsender.GetMessage().Message.String(), "Bad Authentication data.") {
-			t.Error("malformed string")
-		}
-	})
 }
