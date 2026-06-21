@@ -12,12 +12,7 @@ import (
 
 const testMessage = "hello world"
 
-type (
-	basicMethod func(any)
-	lnMethod    func(...any)
-	fMethod     func(string, ...any)
-	whenMethod  func(bool, any)
-)
+type basicMethod func(any)
 
 type LoggingMethodSuite struct {
 	logger        Logger
