@@ -4,5 +4,5 @@ github.com/tychoish/grip v0.4.8 h1:dnV1OnCwuY7AjYQ5l6tLn7jSRJGNdZmNnrdKDqn3XRU=
 github.com/tychoish/grip v0.4.8/go.mod h1:3kHQdYRkvy+zcLySCqyg/b+JmWxasUe341y+YpgqUug=
 github.com/xmppo/go-xmpp v0.2.15 h1:U6OjfMAb47jSKWkxXp7D+yNolEX4Acj2uOJ/p5AaCOs=
 github.com/xmppo/go-xmpp v0.2.15/go.mod h1:+/BYkqleRFSD+msOe4sFWlMrvn5tLcwpQ0gcnLo7UVE=
-golang.org/x/net v0.41.0 h1:vBTly1HeNPEn3wtREYfy4GZ/NECgw2Cnl+nK6Nz3uvw=
-golang.org/x/net v0.41.0/go.mod h1:B/K4NNqkfmg07DQYrbwvSluqCJOOXwUjeb/5lOisjbA=
+golang.org/x/net v0.55.0 h1:bcvxaJn3e1U6InsFWt1JUq1aSjnRxLzT2rtD2KfkDF8=
+golang.org/x/net v0.55.0/go.mod h1:L5U2KuzuOe1lY7Z+aWVIKK6qEeJXnXV9yzGA+WCHJww=
