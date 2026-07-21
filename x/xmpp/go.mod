@@ -1,6 +1,6 @@
 module github.com/tychoish/grip/x/xmpp
 
-go 1.24
+go 1.25.0
 
 require (
 	github.com/tychoish/grip v0.4.8
@@ -9,5 +9,5 @@ require (
 
 require (
 	github.com/tychoish/fun v0.14.9 // indirect
-	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
 )
