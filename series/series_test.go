@@ -342,7 +342,8 @@ func TestIntegration(t *testing.T) {
 
 				assert.NotError(t, coll.Close())
 
-				queryCtx, qCancel := context.WithTimeout(t.Context(), 5*time.Second)
+				// gostatsd takes several seconds to forward a new series to victoria-metrics.
+				queryCtx, qCancel := context.WithTimeout(t.Context(), 30*time.Second)
 				defer qCancel()
 
 				// Gostatsd adds "stats.gauges" prefix to gauge metrics by default

@@ -94,10 +94,13 @@ func startVictoriaMetrics(t *testing.T) *victoriaInstance {
 		"run", "-d", "--name", containerName,
 		"-p", "8428:8428", // HTTP API
 		"-p", "2003:2003", // Graphite TCP
-		"-p", "8125:8125/udp", // statsd UDP
+		// StatsD is not published here: victoria-metrics has no StatsD
+		// listener, and gostatsd (see startGostatsd) owns 8125/udp.
 		"victoriametrics/victoria-metrics:v1.118.0",
-		"-opentsbListenAddr=:8125",
 		"-graphiteListenAddr=:2003",
+		// By default samples stay invisible to queries for 30s, longer than
+		// these tests wait for ingestion.
+		"-search.latencyOffset=0s",
 	}
 
 	out, err := exec.CommandContext(ctx, "docker", runArgs...).CombinedOutput()
