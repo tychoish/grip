@@ -88,7 +88,7 @@ func (s *writerSenderImpl) priority() level.Priority {
 	if p := s.Load(); p > level.Invalid {
 		return p
 	}
-	return s.Sender.Priority()
+	return s.Priority()
 }
 
 func (s *writerSenderImpl) doSend() error {
