@@ -195,13 +195,13 @@ func hasMetrics[T extractableMessageTypes](in T) (isMetric bool) {
 	case fn.Future[Event], fn.Future[*Event], fn.Future[[]Event], fn.Future[[]*Event]:
 		return true
 	case map[string]any: // also mesage.Fields
-		for v := range ev {
+		for _, v := range ev {
 			if isEventTyped(v) {
 				return true
 			}
 		}
 	case iter.Seq2[string, any]:
-		for v := range ev {
+		for _, v := range ev {
 			if isEventTyped(v) {
 				return true
 			}

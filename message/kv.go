@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"iter"
 	"maps"
+	"slices"
 	"strings"
 
 	"github.com/tychoish/fun/dt"
@@ -85,7 +86,7 @@ func (p *KV) String() string {
 
 	if p.core.SortComponents {
 		out := irt.Collect(irt.RemoveZeros(irt.Merge(p.kvs.Iterator(), renderField)))
-		// slices.Sort(out)
+		slices.Sort(out)
 		p.cachedOutput = strings.Join(out, " ")
 	} else {
 		p.cachedOutput = renderKVString(p.kvs.Iterator())

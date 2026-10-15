@@ -8,7 +8,6 @@ import (
 	"unicode"
 
 	"github.com/tychoish/fun/adt"
-	"github.com/tychoish/fun/erc"
 	"github.com/tychoish/grip/level"
 	"github.com/tychoish/grip/message"
 )
@@ -76,16 +75,29 @@ func (s *writerSenderImpl) Write(p []byte) (int, error) {
 		return n, err
 	}
 
-	return n, erc.Join(s.writer.Flush(), s.doSend())
+	_ = s.writer.Flush()
+
+	if s.buffer.Len() > 80 {
+		err = s.doSend()
+	}
+
+	return n, err
+}
+
+func (s *writerSenderImpl) priority() level.Priority {
+	if p := s.Load(); p > level.Invalid {
+		return p
+	}
+	return s.Sender.Priority()
 }
 
 func (s *writerSenderImpl) doSend() error {
-	pri := s.Load()
+	pri := s.priority()
 	for {
 		line, err := s.buffer.ReadBytes('\n')
 		if err == io.EOF {
-			s.buffer.Write(line)
 			s.buffer.Reset()
+			s.buffer.Write(line)
 			return nil
 		}
 
@@ -115,7 +127,7 @@ func (s *writerSenderImpl) Close() error {
 	}
 
 	m := message.MakeBytes(bytes.TrimRightFunc(s.buffer.Bytes(), unicode.IsSpace))
-	m.SetPriority(s.Load())
+	m.SetPriority(s.priority())
 	s.Send(m)
 	s.buffer.Reset()
 	s.writer.Reset(s.buffer)
